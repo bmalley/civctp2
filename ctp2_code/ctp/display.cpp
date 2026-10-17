@@ -162,6 +162,34 @@ void display_EnumerateDisplayModes(void)
             g_displayModes->AddTail(mode);
         }
     }
+
+	// The window is full-screen desktop and SDL scales the game's frame to it
+	// (SDL_RenderSetLogicalSize), so any size works. Offer scaled-down sizes
+	// with the desktop's aspect ratio: they enlarge map and interface alike
+	// without the black bars a 4:3 mode leaves on a wide screen.
+	SDL_DisplayMode desktop;
+	if (SDL_GetDesktopDisplayMode(PRIMARY_DISPLAY, &desktop) == 0 && desktop.h > 768) {
+		static const double scales[] = {1.25, 1.5, 1.75, 2.0, 2.5, 3.0};
+		sint32 heights[sizeof(scales) / sizeof(scales[0]) + 1];
+		size_t count = 0;
+		for (size_t i = 0; i < sizeof(scales) / sizeof(scales[0]); i++) {
+			sint32 h = (sint32)(desktop.h / scales[i] + 0.5);
+			if (h > 768)
+				heights[count++] = h;
+		}
+		heights[count++] = 768; // The interface's smallest comfortable height
+
+		for (size_t i = 0; i < count; i++) {
+			sint32 h = heights[i];
+			sint32 w = (sint32)((double)desktop.w * h / desktop.h) & ~7;
+			if (!display_IsLegalResolution(w, h)) {
+				CTPDisplayMode *mode = new CTPDisplayMode;
+				mode->width = w;
+				mode->height = h;
+				g_displayModes->AddTail(mode);
+			}
+		}
+	}
 #endif
 
 #ifdef __AUI_USE_DIRECTX__
