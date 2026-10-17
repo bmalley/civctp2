@@ -95,7 +95,11 @@ size_t const	GL_MAX_DB_NAME_SIZE	= 30;
 
 class Chart;
 class ctp2_HyperTextBox;
-#ifdef __AUI_USE_DIRECTX__
+// Tech movies (LibraryAnim=Yes): DirectShow on Windows, FFmpeg in the SDL build
+#if defined(__AUI_USE_DIRECTX__) || (defined(__AUI_USE_SDL__) && defined(USE_SDL_FFMPEG))
+#define CTP2_LIBRARY_MOVIE 1
+#endif
+#ifdef CTP2_LIBRARY_MOVIE
 class DirectVideo;
 #endif
 class ctp2_Static;
@@ -254,7 +258,7 @@ private:
 	ctp2_HyperTextBox	*m_techRequirementsText;
 	ctp2_HyperTextBox	*m_techVariablesText;
 
-#ifdef __AUI_USE_DIRECTX__
+#ifdef CTP2_LIBRARY_MOVIE
 	DirectVideo		*m_techMovie;
 #endif
 	ctp2_Static		*m_techStillShot;
