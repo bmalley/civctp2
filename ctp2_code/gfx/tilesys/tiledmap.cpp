@@ -2149,6 +2149,97 @@ void TiledMap::RepaintEdgeY(const RECT & repaintRect)
 	}
 }
 
+namespace
+{
+	Pixel16 OffMapPixel(sint32 r, sint32 g, sint32 b)
+	{
+		return static_cast<Pixel16>(g_is565Format
+			? ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+			: ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3));
+	}
+}
+
+// Paint tile (i, j), off the edge of a map that doesn't wrap that way, as a
+// dark slate diamond with a lighter outline, so the edge of the world stands
+// out from unexplored (black) land. Painted after the hats, it also trims the
+// mountain peaks of edge tiles, which poke into the missing tiles above as
+// ragged rectangles.
+void TiledMap::DrawOffMapTile(sint32 i, sint32 j)
+{
+	sint32 mapWidth, mapHeight;
+	GetMapMetrics(&mapWidth, &mapHeight);
+
+	bool offRow = !g_theWorld->IsYwrap() && (i < 0 || i >= mapHeight);
+	bool offCol = !g_theWorld->IsXwrap() && (j < 0 || j >= mapWidth);
+	if ((!offRow && !offCol) || mapHeight < 2 || !m_surface || !m_surfBase)
+		return;
+
+	// Place it from the nearest in-map tile (same row parity), then shift
+	sint32 height = GetZoomTilePixelHeight();
+	sint32 half   = height / 2;
+	sint32 inRow  = i;
+	if (offRow)
+		inRow = (i < 0) ? (i & 1) : mapHeight - 2 + ((i - mapHeight) & 1);
+	else if (i < 0 || i >= mapHeight)
+		inRow = ((i % mapHeight) + mapHeight) % mapHeight; // Wraps north-south
+
+	sint32 inCol = offCol ? ((j < 0) ? 0 : mapWidth - 1) : j;
+
+	sint32 mapX, x, y;
+	maputils_TileX2MapXAbs(inCol, inRow, &mapX);
+	maputils_MapXY2PixelXY(mapX, inRow, &x, &y);
+	x += (j - inCol) * GetZoomTilePixelWidth();
+	if (offRow)
+		y += (i - inRow) * half;
+	y += GetZoomTileHeadroom();
+
+	const Pixel16 fill    = OffMapPixel(22, 26, 34);
+	const Pixel16 outline = OffMapPixel(64, 72, 90);
+	sint32 surfWidth  = m_surface->Width();
+	sint32 surfHeight = m_surface->Height();
+
+	for (sint32 r = 0; r < height; r++)
+	{
+		sint32 py = y + r;
+		if (py < 0 || py >= surfHeight) continue;
+
+		// Same diamond as StartPixel() gives at full size
+		sint32 start = (r < half) ? 2 * (half - 1 - r) : 2 * (r - half);
+		sint32 end   = 2 * height - 2 - start;
+		bool   edgeRow = (r == 0 || r == height - 1);
+		Pixel16 * row = (Pixel16 *)(m_surfBase + py * m_surfPitch);
+
+		for (sint32 px = start; px < end; px++)
+		{
+			sint32 sx = x + px;
+			if (sx < 0 || sx >= surfWidth) continue;
+			row[sx] = (edgeRow || px < start + 2 || px >= end - 2) ? outline : fill;
+		}
+	}
+
+	AddDirtyToMap(x, y - GetZoomTileHeadroom(), GetZoomTilePixelWidth(), GetZoomTileGridHeight());
+}
+
+void TiledMap::RepaintOffMap(const RECT & repaintRect)
+{
+	if (g_theWorld->IsXwrap() && g_theWorld->IsYwrap()) return;
+
+	for (sint32 i = repaintRect.top - 1; i <= repaintRect.bottom; i++)
+	{
+		for (sint32 j = repaintRect.left - 1; j <= repaintRect.right; j++)
+			DrawOffMapTile(i, j); // Returns at once for tiles on the map
+	}
+}
+
+// Trim the hat of tile (i, j) where it reaches into off-map tiles above it
+void TiledMap::RepaintOffMapAbove(sint32 i, sint32 j)
+{
+	sint32 left = (i & 1) ? j : j - 1; // Odd rows sit half a tile right
+	DrawOffMapTile(i - 1, left);
+	DrawOffMapTile(i - 1, left + 1);
+	DrawOffMapTile(i - 2, j);
+}
+
 void TiledMap::ColorMagnitudeToRGB(uint8 col, sint32 *r, sint32 *g, sint32 *b)
 {
 	if (col < 128)
@@ -3213,6 +3304,7 @@ sint32 TiledMap::Refresh(void)
 		RepaintHats(altrect, true);
 		RepaintBorders(altrect, true);
 	}
+	RepaintOffMap(m_mapViewRect);
 
 	RepaintImprovements(m_mapViewRect);
 	RepaintCellText(m_mapViewRect);
@@ -3477,6 +3569,7 @@ bool TiledMap::ScrollMap(sint32 deltaX, sint32 deltaY)
 
 	RepaintHats(inflatedRepaintRect);
 	RepaintBorders(inflatedRepaintRect);
+	RepaintOffMap(m_mapViewRect);
 	RepaintImprovements(inflatedRepaintRect);
 	RepaintCellText(inflatedRepaintRect);
 
@@ -3613,6 +3706,7 @@ bool TiledMap::ScrollMapSmooth(sint32 pdeltaX, sint32 pdeltaY)
 
 	RepaintHats(inflatedRepaintRect);
 	RepaintBorders(inflatedRepaintRect);
+	RepaintOffMap(m_mapViewRect);
 	RepaintImprovements(inflatedRepaintRect);
 	RepaintCellText(inflatedRepaintRect);
 
@@ -3758,6 +3852,9 @@ sint32 TiledMap::RedrawHat(
 			DrawNationalBorders(surface ? *surface : *m_surface, ne);
 		}
 	}
+
+	if (!surface && !(g_theWorld->IsXwrap() && g_theWorld->IsYwrap()))
+		RepaintOffMapAbove(i, j);
 
 	return 0;
 }
