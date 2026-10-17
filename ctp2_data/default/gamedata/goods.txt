@@ -281,7 +281,7 @@ TERRAIN_MOUNTAIN_GOOD_TWO {
    Food 0
    Production 0
    Probability 0.25
-   Icon ICON_GOOD_MOUNTAIN_TWO
+   Icon ICON_GOOD_ARCTIC_MOUNTAIN_FOUR
    GLHidden
 }
 
@@ -435,7 +435,8 @@ TERRAIN_TUNDRA_GOOD_FOUR {
   Food 10
   Production 10
   Probability 0.25
-  Icon ICON_GOOD_TUNDRA_FOUR
+  Icon ICON_GOOD_TUNDRA_THREE
+  GLHidden
 }
 
 # Whales #37
@@ -479,7 +480,8 @@ TERRAIN_WATER_DEEP_GOOD_FOUR {
   Food 20
   Production 0
   Probability 0.1
-  Icon ICON_GOOD_DEEP_WATER_FOUR
+  Icon ICON_GOOD_DEEP_WATER_TWO
+  GLHidden
 }
 
 # Crabs #40
@@ -545,7 +547,7 @@ TERRAIN_BROWN_HILL_GOOD_TWO {
    Food 0
    Production 0
    Probability 0.2
-   Icon ICON_GOOD_BROWN_HILL_TWO
+   Icon ICON_GOOD_BROWN_MOUNTAIN_TWO
    GLHidden
 }
 
@@ -558,6 +560,7 @@ TERRAIN_BROWN_HILL_GOOD_THREE {
    Production 0
    Probability 0.25
    Icon ICON_GOOD_DESERT_FOUR
+   GLHidden
 }
 
 # Camels
@@ -569,6 +572,7 @@ TERRAIN_BROWN_HILL_GOOD_FOUR {
    Production 0
    Probability 0.25
    Icon ICON_GOOD_DESERT_FOUR
+   GLHidden
 }
 
 
@@ -581,7 +585,6 @@ TERRAIN_WATER_BEACH_GOOD_ONE {
    Production 0
    Probability 0.2
    Icon ICON_GOOD_WATER_BEACH_ONE
-   GLHidden
 }
 
 # Salmon #42
@@ -647,7 +650,8 @@ TERRAIN_BROWN_MOUNTAIN_GOOD_THREE {
    Food 0
    Production 20
    Probability 0.35
-   Icon ICON_GOOD_BROWN_MOUNTAIN_THREE
+   Icon ICON_GOOD_BROWN_MOUNTAIN_ONE
+   GLHidden
 }
 
 # Silver #50
@@ -658,7 +662,8 @@ TERRAIN_BROWN_MOUNTAIN_GOOD_FOUR {
    Food 0
    Production 0
    Probability 0.15
-   Icon ICON_GOOD_BROWN_MOUNTAIN_FOUR
+   Icon ICON_GOOD_BROWN_MOUNTAIN_TWO
+   GLHidden
 }
 
 # Sapphires #51
@@ -680,19 +685,20 @@ TERRAIN_WHITE_HILL_GOOD_TWO {
    Food 0
    Production 0
    Probability 0.25
-   Icon ICON_GOOD_WHITE_HILL_TWO
+   Icon ICON_GOOD_ARCTIC_MOUNTAIN_FOUR
    GLHidden
 }
 
-# Emeralds #52
+# Sapphires #51
 TERRAIN_WHITE_HILL_GOOD_THREE {
-   SpriteID 29
-   Sound SOUND_ID_EMERALS
+   SpriteID 28
+   Sound SOUND_ID_SAPPHIRES
    Gold 15
    Food 0
    Production 0
    Probability 0.25
-   Icon ICON_GOOD_WHITE_HILL_THREE
+   Icon ICON_GOOD_WHITE_HILL_ONE
+   GLHidden
 }
 
 # Emeralds #52
@@ -703,7 +709,8 @@ TERRAIN_WHITE_HILL_GOOD_FOUR {
    Food 0
    Production 0
    Probability 0.25
-   Icon ICON_GOOD_WHITE_HILL_FOUR
+   Icon ICON_GOOD_ARCTIC_MOUNTAIN_FOUR
+   GLHidden
 }
 
 # Seals #53
@@ -736,7 +743,8 @@ TERRAIN_GLACIER_GOOD_THREE {
    Food 5
    Production 10
    Probability 0.25
-   Icon ICON_GOOD_GLACIER_THREE
+   Icon ICON_GOOD_GLACIER_ONE
+   GLHidden
 }
 
 # Walrus #54
@@ -747,7 +755,8 @@ TERRAIN_GLACIER_GOOD_FOUR {
    Food 10
    Production 5
    Probability 0.25
-   Icon ICON_GOOD_GLACIER_FOUR
+   Icon ICON_GOOD_GLACIER_TWO
+   GLHidden
 }
 
 # Jellyfish # 73
@@ -780,7 +789,7 @@ TERRAIN_WATER_SHELF_GOOD_THREE {
   Food 10
   Production 10
   Probability 0.25
-  Icon ICON_GOOD_GLACIER_THREE
+  Icon ICON_GOOD_WATER_SHELF_THREE
 }
 
 # Turtle # 58
