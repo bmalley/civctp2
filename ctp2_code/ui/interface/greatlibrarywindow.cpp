@@ -36,6 +36,7 @@
 
 #include "aui.h"
 #include "aui_control.h"
+#include "aui_uniqueid.h"
 #include "aui_static.h"
 
 #include "pattern.h"
@@ -107,6 +108,25 @@ namespace
 MBCHAR const         s_libraryWindowBlock[]  = "GreatLibrary";
 GreatLibraryWindow * s_libraryWindow         = NULL;
 
+#ifdef CTP2_LIBRARY_MOVIE
+// aui_UI::Idle only reaches regions in a window's child tree, and GreatLibraryWindow
+// isn't one, so nothing called its Idle() and the tech movie never advanced. This
+// invisible, empty child of the library window forwards the idle tick.
+class MovieIdler : public aui_Control
+{
+public:
+	MovieIdler(AUI_ERRCODE *err, GreatLibraryWindow *library)
+	:	aui_Control(err, aui_UniqueId(), 0, 0, 0, 0),
+		m_library(library)
+	{}
+
+	virtual AUI_ERRCODE Idle(void) { return m_library->Idle(); }
+
+private:
+	GreatLibraryWindow *m_library;
+};
+#endif // CTP2_LIBRARY_MOVIE
+
 } // namespace
 
 GreatLibraryWindow::GreatLibraryWindow(AUI_ERRCODE * err)
@@ -122,10 +142,11 @@ GreatLibraryWindow::GreatLibraryWindow(AUI_ERRCODE * err)
 	m_techGameplayText      (NULL),
 	m_techRequirementsText  (NULL),
 	m_techVariablesText     (NULL)
-#ifdef __AUI_USE_DIRECTX__
+#ifdef CTP2_LIBRARY_MOVIE
 	                              ,
-	m_techMovie             (NULL)
-#endif // __AUI_USE_DIRECTX__
+	m_techMovie             (NULL),
+	m_movieIdler            (NULL)
+#endif // CTP2_LIBRARY_MOVIE
 {
 	m_window = (ctp2_Window *) aui_Ldl::BuildHierarchyFromRoot(s_libraryWindowBlock);
 	Assert(m_window);
@@ -133,21 +154,36 @@ GreatLibraryWindow::GreatLibraryWindow(AUI_ERRCODE * err)
     {
 		*err = AUI_ERRCODE_INVALIDPARAM;
 	}
+#ifdef CTP2_LIBRARY_MOVIE
+	else
+	{
+		AUI_ERRCODE idlerErr = AUI_ERRCODE_OK;
+		m_movieIdler = new MovieIdler(&idlerErr, this);
+		m_window->AddControl(m_movieIdler);
+	}
+#endif // CTP2_LIBRARY_MOVIE
 }
 
 GreatLibraryWindow::~GreatLibraryWindow()
 {
+#ifdef CTP2_LIBRARY_MOVIE
+	if (m_movieIdler)
+	{
+		m_window->RemoveControl(m_movieIdler->Id());
+		delete m_movieIdler;
+	}
+#endif // CTP2_LIBRARY_MOVIE
 	aui_Ldl::DeleteHierarchyFromRoot(s_libraryWindowBlock);
 }
 
 AUI_ERRCODE GreatLibraryWindow::Idle ( void )
 {
-#ifdef __AUI_USE_DIRECTX__
+#ifdef CTP2_LIBRARY_MOVIE
 	if (m_techMovie && m_techMovie->Open())
     {
 		HRESULT hr = m_techMovie->PlayOne();
-		Assert(!FAILED(hr));
-		if (FAILED(hr)) {
+		Assert(hr >= 0);
+		if (hr < 0) {
 			m_techMovie->CloseStream();
 			delete m_techMovie;
 			m_techMovie = NULL;
@@ -232,26 +268,38 @@ sint32 GreatLibraryWindow::LoadVariablesText ( SlicObject &so )
 
 sint32 GreatLibraryWindow::LoadTechMovie ( void )
 {
-#ifdef __AUI_USE_DIRECTX__
+#ifdef CTP2_LIBRARY_MOVIE
 	if (!m_techMovie) return 0;
 	if (!strcmp(m_movie_file,"null")) return 0;
 
 	MBCHAR fullPath[_MAX_PATH];
 	if (g_civPaths->FindFile(C3DIR_VIDEOS, m_movie_file, fullPath, TRUE)) {
 
+		// Play where the still goes; the k_VIDEO_* defaults are CtP1's layout
+		if (m_techStillShot) {
+			RECT rect = { 0, 0, m_techStillShot->Width(), m_techStillShot->Height() };
+			OffsetRect(&rect, m_techStillShot->X(), m_techStillShot->Y());
+			m_techStillShot->ToWindow(&rect);
+			m_techMovie->SetDestRect(&rect);
+		}
+
+#ifdef __AUI_USE_DIRECTX__
 		g_soundManager->ReleaseSoundDriver();
+#endif
 
 		m_techMovie->OpenStream(fullPath);
 
+#ifdef __AUI_USE_DIRECTX__
 		g_soundManager->ReacquireSoundDriver();
+#endif
 	} else {
 		return 0;
 	}
 
-	return 1;
+	return m_techMovie->Open();
 #else
 	return 0;
-#endif // __AUI_USE_DIRECTX__
+#endif // CTP2_LIBRARY_MOVIE
 }
 
 sint32 GreatLibraryWindow::LoadTechStill( void )
@@ -273,12 +321,12 @@ sint32 GreatLibraryWindow::LoadTechStill( void )
 
 void GreatLibraryWindow::PlayTechMovie ( void )
 {
-#ifdef __AUI_USE_DIRECTX__
+#ifdef CTP2_LIBRARY_MOVIE
 	if (m_techMovie)
     {
         m_techMovie->PlayAll();
     }
-#endif // __AUI_USE_DIRECTX__
+#endif // CTP2_LIBRARY_MOVIE
 }
 
 sint32 GreatLibraryWindow::SetTechMode ( sint32 theMode, DATABASE theDatabase )

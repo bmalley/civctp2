@@ -68,6 +68,46 @@ private:
 	uint32						m_timePerFrame;
 	uint32						m_lastFrameTime;
 };
-#endif // __AUI_USE_DIRECTX__
+#elif defined(__AUI_USE_SDL__) && defined(USE_SDL_FFMPEG)
+#include <vector>
+#include "aui_window.h"
+
+// Linux stand-in for the DirectShow player above, used by the Great Library for its
+// short silent advance and unit clips: decodes the whole clip with FFmpeg into frames in
+// the window surface's pixel format, then PlayOne() blits the current one, looping.
+class DirectVideo
+{
+public:
+	DirectVideo();
+	~DirectVideo();
+
+	HRESULT		Initialize(aui_Window *window);
+	HRESULT		OpenStream(MBCHAR *name);
+	HRESULT		PlayAll(void) { return PlayOne(); }
+	HRESULT		PlayOne(void);
+	HRESULT		CloseStream(void);
+	HRESULT		Process(void) { return PlayOne(); }
+
+	void		GetDestRect(RECT *destRect) { *destRect = m_destRect; }
+	void		SetDestRect(RECT *destRect) { m_destRect = *destRect; }
+
+	BOOL		Finished(void) const { return FALSE; }
+	BOOL		Playing(void) const { return m_isOpen && !m_isPaused; }
+	BOOL		Open(void) const { return m_isOpen; }
+
+	void		Pause(void) { m_isPaused = true; }
+	void		Resume(void) { m_isPaused = false; }
+
+private:
+	BOOL						m_isOpen;
+	BOOL						m_isPaused;
+	aui_Window					*m_window;
+	RECT						m_destRect;
+	sint32						m_frameBytesPerRow;
+	std::vector<std::vector<uint8> >	m_frames;
+	uint32						m_timePerFrame;
+	uint32						m_startTime;
+};
+#endif
 
 #endif
