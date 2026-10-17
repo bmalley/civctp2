@@ -227,6 +227,9 @@ public:
 	void			RepaintBorders(const RECT & repaintRect, bool clip=false);
 	void			RepaintEdgeX(const RECT & repaintRect);
 	void			RepaintEdgeY(const RECT & repaintRect);
+	void			RepaintOffMap(const RECT & repaintRect);
+	void			RepaintOffMapAbove(sint32 i, sint32 j);
+	void			DrawOffMapTile(sint32 i, sint32 j);
 	sint32			Refresh(void);
 
 	sint32			DrawCityRadius(const MapPoint &cpos, COLOR color,sint32 size=1);
