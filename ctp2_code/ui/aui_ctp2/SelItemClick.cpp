@@ -938,6 +938,23 @@ void SelectedItem::NewRegisterClick(const MapPoint &pos, const aui_MouseEvent *d
 	if(button == SELECT_BUTTON_MAX)
 		return;
 
+	// RightClickMove: right-click moves the selected army; right-clicking
+	// the army itself still opens its context menu.
+	if(mode == SELECT_MODE_CTP2 &&
+	   button == SELECT_BUTTON_RIGHT &&
+	   g_theProfileDB->IsRightClickMove() &&
+	   m_select_state[vPlayer] == SELECT_TYPE_LOCAL_ARMY &&
+	   m_selected_army[vPlayer].IsValid())
+	{
+		MapPoint army_pos;
+		m_selected_army[vPlayer].GetPos(army_pos);
+		if(army_pos != pos)
+		{
+			RightMoveClick(pos, data, doubleClick);
+			return;
+		}
+	}
+
 	ClickFunctionPtr func = m_clickFunc
 		[m_select_state[vPlayer]]
 		[clickedThing]
@@ -1282,6 +1299,15 @@ void SelectedItem::MoveArmyClick(const MapPoint &pos, const aui_MouseEvent *data
 
 		EnterArmyMove(player, pos);
 	}
+}
+
+void SelectedItem::RightMoveClick(const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick)
+{
+	// CTP2 mode only finds a path while an order is pending, so find it
+	// here; MoveArmyClick checks it before moving cargo onto land or sea.
+	MapPoint dest = pos;
+	SetDrawablePathDest(dest, true);
+	MoveArmyClick(pos, data, doubleClick);
 }
 
 void SelectedItem::StartMoveClick(const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick)

@@ -202,6 +202,11 @@ ProfileDB::ProfileDB()
     m_battleSpeed                       (SLIDER_MIDDLE),
     m_showEnemyHealth                   (TRUE),
     m_scrollDelay                       (0),
+    m_edgeScroll                        (TRUE),
+    m_wasdScroll                        (FALSE),
+    m_dragScroll                        (TRUE),
+    m_wheelZoom                         (FALSE),
+    m_rightClickMove                    (FALSE),
     m_autoRenameCities                  (FALSE),
     m_autoOpenCityWindow                (TRUE),
     m_endTurnSound                      (TRUE),
@@ -413,6 +418,11 @@ ProfileDB::ProfileDB()
 	Var("BattleSpeed"                , PV_NUM   , &m_battleSpeed                , NULL);
 
 	Var("ScrollDelay"                , PV_NUM   , &m_scrollDelay                , NULL);
+	Var("EdgeScroll"                 , PV_BOOL  , &m_edgeScroll                 , NULL);
+	Var("WASDScroll"                 , PV_BOOL  , &m_wasdScroll                 , NULL);
+	Var("DragScroll"                 , PV_BOOL  , &m_dragScroll                 , NULL);
+	Var("WheelZoom"                  , PV_BOOL  , &m_wheelZoom                  , NULL);
+	Var("RightClickMove"             , PV_BOOL  , &m_rightClickMove             , NULL);
 
 	Var("AutoSwitchTabs"             , PV_BOOL  , &m_autoSwitchTabs             , NULL);
 	Var("AutoRenameCities"           , PV_BOOL  , &m_autoRenameCities           , NULL, false);
