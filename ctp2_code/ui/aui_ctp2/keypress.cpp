@@ -180,6 +180,10 @@ extern ControlPanelWindow *g_controlPanel;
 #include "profileDB.h"
 extern ProfileDB *g_theProfileDB;
 
+#if defined(__AUI_USE_SDL__)
+#include <SDL2/SDL.h>                   // SDL_GetModState
+#endif
+
 #include "c3_utilitydialogbox.h"
 c3_UtilityPlayerListPopup *g_networkPlayersScreen = NULL;
 extern c3_UtilityTextMessagePopup		*g_utilityTextMessage;
@@ -389,6 +393,22 @@ sint32 ui_HandleKeypress(WPARAM wParam, LPARAM lParam)
 	{
 		return 0;
 	}
+
+#if defined(__AUI_USE_SDL__)
+	// With WASDScroll, plain W/A/S/D scroll the map (ui_CheckForScroll),
+	// so they don't also trigger their keymap functions. Upper case too,
+	// so Caps Lock doesn't turn A into end turn; Shift+letter still works.
+	if (g_theProfileDB && g_theProfileDB->IsWASDScroll()
+	 && !(SDL_GetModState() & (KMOD_SHIFT | KMOD_CTRL | KMOD_ALT | KMOD_GUI)))
+	{
+		switch (wParam)
+		{
+			case 'w': case 'a': case 's': case 'd':
+			case 'W': case 'A': case 'S': case 'D':
+				return 0;
+		}
+	}
+#endif
 
 	if (!theKeyMap) return 0;
 

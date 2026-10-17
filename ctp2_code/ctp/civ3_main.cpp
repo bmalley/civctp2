@@ -151,6 +151,7 @@
 #include <string>                       // std::basic_string
 #include "TerrainRecord.h"
 #include "tiledmap.h"
+#include "maputils.h"                   // maputils_MapX2TileX
 #include "TradePool.h"
 #include "TurnCnt.h"                    // g_turn
 #include "UnitPool.h"                   // g_theUnitPool
@@ -523,6 +524,85 @@ int ui_Initialize(void)
 	return AUI_ERRCODE_OK;
 }
 
+/// Whether the screen point is over the map, not over a window on top of it
+static bool ui_IsMouseOverMap(sint32 x, sint32 y)
+{
+	if (!g_c3ui || !g_background) return false;
+
+	tech_WLList<aui_Region *> *windows = g_c3ui->ChildList();
+	ListPos position = windows->GetHeadPosition();
+	for (size_t i = windows->L(); i; i--)
+	{
+		aui_Region *window = windows->GetNext(position);
+		if (!window->IsHidden() && window->IsInside(x, y))
+			return window == g_background;
+	}
+
+	return false;
+}
+
+#if defined(__AUI_USE_SDL__)
+/// Map scroll direction from the held arrow keys, and W/A/S/D when
+/// WASDScroll is on (without modifiers, which keep their keymap functions).
+/// Several keys combine, so diagonals work.
+static bool ui_GetKeyboardScrollDelta(sint32 &deltaX, sint32 &deltaY)
+{
+	const Uint8 *keys = SDL_GetKeyboardState(NULL);
+	bool wasd = g_theProfileDB->IsWASDScroll()
+	         && !(SDL_GetModState() & (KMOD_SHIFT | KMOD_CTRL | KMOD_ALT | KMOD_GUI));
+
+#define HELD(key) (keys[SDL_GetScancodeFromKey(key)] != 0)
+	bool up    = HELD(SDLK_UP)    || (wasd && HELD(SDLK_w));
+	bool down  = HELD(SDLK_DOWN)  || (wasd && HELD(SDLK_s));
+	bool left  = HELD(SDLK_LEFT)  || (wasd && HELD(SDLK_a));
+	bool right = HELD(SDLK_RIGHT) || (wasd && HELD(SDLK_d));
+#undef HELD
+
+	deltaX = (right ? 1 : 0) - (left ? 1 : 0);
+	deltaY = (down  ? 1 : 0) - (up   ? 1 : 0);
+	return deltaX != 0 || deltaY != 0;
+}
+
+/// Drag the map while the middle mouse button is held (DragScroll).
+/// A drag only starts if the button went down over the map.
+static bool ui_CheckForDragScroll(sint32 x, sint32 y)
+{
+	static enum { DRAG_NONE, DRAG_MAP, DRAG_IGNORED } state = DRAG_NONE;
+	static sint32 anchorX = 0;
+	static sint32 anchorY = 0;
+
+	if (!g_theProfileDB->IsDragScroll()
+	 || !(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MMASK))
+	{
+		state = DRAG_NONE;
+		return false;
+	}
+
+	if (state == DRAG_NONE)
+	{
+		state   = ui_IsMouseOverMap(x, y) ? DRAG_MAP : DRAG_IGNORED;
+		anchorX = x;
+		anchorY = y;
+		return false;
+	}
+
+	if (state != DRAG_MAP) return false;
+
+	// The map scrolls in whole steps: a tile across, half a tile down
+	sint32 hscroll = g_tiledMap->GetZoomTilePixelWidth();
+	sint32 vscroll = g_tiledMap->GetZoomTilePixelHeight() / 2;
+	sint32 deltaX  = (anchorX - x) / hscroll;
+	sint32 deltaY  = (anchorY - y) / vscroll;
+	if (deltaX == 0 && deltaY == 0) return false;
+
+	anchorX -= deltaX * hscroll;
+	anchorY -= deltaY * vscroll;
+	g_tiledMap->SetScrolling(true);
+	g_tiledMap->ScrollMap(deltaX, deltaY);
+	return true;
+}
+#endif
+
 /// Handle mouse wheel operation
 /// \param delta Amount and direction of mouse wheel rotation
 void ui_HandleMouseWheel(sint16 delta)
@@ -536,6 +616,36 @@ void ui_HandleMouseWheel(sint16 delta)
 	{
 		// Scroll list box
 		box->ForceScroll(0, (delta < 0) ? 1 : -1);
+	}
+	else if (g_theProfileDB->IsWheelZoom())
+	{
+		// Zoom main map, keeping the tile under the mouse in place
+		if (!g_civApp->IsGameLoaded() || !g_tiledMap || !g_c3ui->TheMouse()
+		 || !ui_IsMouseOverMap(g_c3ui->TheMouse()->X(), g_c3ui->TheMouse()->Y()))
+			return;
+
+		MapPoint before;
+		bool hasBefore = g_tiledMap->GetMouseTilePos(before);
+		if (!((delta > 0) ? g_tiledMap->ZoomIn() : g_tiledMap->ZoomOut()))
+			return;
+
+		MapPoint after;
+		if (hasBefore && g_tiledMap->GetMouseTilePos(after))
+		{
+			sint32 beforeX, afterX;
+			maputils_MapX2TileX(before.x, before.y, &beforeX);
+			maputils_MapX2TileX(after.x, after.y, &afterX);
+			sint32 deltaX = beforeX - afterX;
+			sint32 deltaY = before.y - after.y;
+			// Skip the correction across a wrapping map edge
+			if (abs(deltaX) < g_theWorld->GetXWidth() / 2 && abs(deltaY) < g_theWorld->GetYHeight() / 2)
+				g_tiledMap->ScrollMap(deltaX, deltaY);
+		}
+
+		g_tiledMap->RetargetTileSurface(NULL);
+		g_tiledMap->Refresh();
+		g_tiledMap->InvalidateMap();
+		g_tiledMap->ValidateMix();
 	}
 	else
 	{
@@ -629,6 +739,17 @@ bool ui_CheckForScroll(void)
 
 	bool        scrolled = false;
 
+#if defined(__AUI_USE_SDL__)
+	if (ui_CheckForDragScroll(x, y))
+	{
+		return true;
+	}
+
+	if (ui_GetKeyboardScrollDelta(deltaX, deltaY) &&
+		(!g_c3ui->TopWindow() || !g_c3ui->TopWindow()->GetFocusControl()))
+	{
+		scrolled = true;
+#else
 	if (g_civApp->IsKeyboardScrolling() &&
 		(!g_c3ui->TopWindow() || !g_c3ui->TopWindow()->GetFocusControl()))
 	{
@@ -655,6 +776,7 @@ bool ui_CheckForScroll(void)
 				scrolled = true;
 				break;
 		}
+#endif
 
 		if (scrolled)
 		{
@@ -672,8 +794,10 @@ bool ui_CheckForScroll(void)
 				}
 			}
 
+#if !defined(__AUI_USE_SDL__)
 			if (deltaX)
 				deltaY = 0;
+#endif
 
 			if(scrolled_last_time) {
 				scrolled_last_time = false;
@@ -687,7 +811,7 @@ bool ui_CheckForScroll(void)
 			return true;
 		}
 	}
-	else
+	else if (g_theProfileDB->IsEdgeScroll())
 	{
 		if (x<4)
 		{
