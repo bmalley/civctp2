@@ -202,7 +202,7 @@ public:
 	bool ShouldDrawPath();
 	void GetOldMouseTilePos(MapPoint &p) const { p = m_cur_mouse_tile; }
 	void SetCurMouseTile(const MapPoint &p) { m_cur_mouse_tile = p; }
-	void SetDrawablePathDest(MapPoint &p);
+	void SetDrawablePathDest(MapPoint &p, bool force = false);
 	void ConstructPath(bool &isCircular, double &cost);
 
 	Path *GetGoodPath() { return m_good_path; }
@@ -327,6 +327,7 @@ public:
 	void SendGoodClick            (const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick);
 
 	void MoveArmyClick            (const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick);
+	void RightMoveClick           (const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick);
 
 	void StartMoveClick           (const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick);
 	void MoveDrag                 (const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick);
