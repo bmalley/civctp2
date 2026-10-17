@@ -308,6 +308,11 @@ private:
 
     sint32 m_showEnemyHealth;  //emod1 - already here but implementing a scenario editor switch
     sint32 m_scrollDelay;
+    sint32 m_edgeScroll;
+    sint32 m_wasdScroll;
+    sint32 m_dragScroll;
+    sint32 m_wheelZoom;
+    sint32 m_rightClickMove;
 
     sint32 m_autoRenameCities;
     sint32 m_autoOpenCityWindow;
@@ -797,6 +802,11 @@ public:
     BOOL GetShowPoliticalBorders()              { return m_showPoliticalBorders; }
 
     sint32 GetScrollDelay()                     { return m_scrollDelay; }
+    BOOL   IsEdgeScroll() const                 { return m_edgeScroll; }
+    BOOL   IsWASDScroll() const                 { return m_wasdScroll; }
+    BOOL   IsDragScroll() const                 { return m_dragScroll; }
+    BOOL   IsWheelZoom() const                  { return m_wheelZoom; }
+    BOOL   IsRightClickMove() const             { return m_rightClickMove; }
     BOOL GetShowEnemyHealth()                   { return m_showEnemyHealth; } //emod3
     BOOL GetDebugAI()                           { return m_debugai; }   //emod3
 

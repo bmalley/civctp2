@@ -1704,11 +1704,11 @@ void SelectedItem::AddWaypoint(const MapPoint &pos)
 	m_waypoints.Insert(pos);
 }
 
-void SelectedItem::SetDrawablePathDest(MapPoint &dest)
+void SelectedItem::SetDrawablePathDest(MapPoint &dest, bool force)
 {
 	if (!g_theUnitAstar) return;
 
-	if(!ShouldDrawPath())
+	if(!force && !ShouldDrawPath())
 	{
 		m_cur_mouse_tile = dest;
 		m_is_pathing = false;
