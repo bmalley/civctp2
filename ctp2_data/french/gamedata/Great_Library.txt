@@ -4066,7 +4066,7 @@ Silver is a precious metal that is found on <L:DATABASE_TERRAIN,TERRAIN_BROWN_MO
 [END]
 
 [TERRAIN_BROWN_MOUNTAIN_GOOD_TWO_HISTORICAL]
-Silver (Ag) is a metallic element, one of the first metals used by humans. Pure silver is nearly white, lustrous, soft, very ductile, malleable, and an excellent conductor of heat and electricity. It is used in mirrors, coins, utensils, antiseptics, jewelry, and for electrolytic plating of tableware. Silver nitrate is its most important compound. Silver reacts with hydrogen sulfide in air to form silver sulfide (tarnish). Photographic emulsions contain silver halides, which are sensitive to light. Silver alloys are used in dentistry and electrical contacts. Sterling silver contains 92.5 percent silver and 7.5 percent copper. Silver is obtained from the ores argentite, cerarygrite, pyrargyrite, stephanite, and proustite.[END]
+Silver (Ag) is a metallic element, one of the first metals used by humans. Pure silver is nearly white, lustrous, soft, very ductile, malleable, and an excellent conductor of heat and electricity. It is used in mirrors, coins, utensils, antiseptics, jewelry, and for electrolytic plating of tableware. Silver nitrate is its most important compound. Silver reacts with hydrogen sulfide in air to form silver sulfide (tarnish). Photographic emulsions contain silver halides, which are sensitive to light. Silver alloys are used in dentistry and electrical contacts. Sterling silver contains 92.5 percent silver and 7.5 percent copper. Silver is obtained from the ores argentite, cerarygrite, pyrargyrite, stephanite, and proustite.
 [END]
 
 [TERRAIN_BROWN_MOUNTAIN_GOOD_THREE_PREREQ]
@@ -7803,7 +7803,7 @@ Food Hunger: {UnitDB(UnitRecord[0]).FoodHunger}
 
 [UNIT_ECO_TERRORIST_SUMMARY]
 <L:DATABASE_ORDERS,ORDER_ASSASSINATE>Perpètre des attentats<e>
-<L:DATABASE_ORDERS,ORDER_NANO_INFECT>Lance des nano-attaques<e>[END]
+<L:DATABASE_ORDERS,ORDER_NANO_INFECT>Lance des nano-attaques<e>
 <L:DATABASE_CONCEPTS,CONCEPT_STEALTH_UNITS>Stealth Unit<e>
 [END]
 
@@ -9061,7 +9061,7 @@ Food Hunger: {UnitDB(UnitRecord[0]).FoodHunger}
 
 [UNIT_SPACE_PLANE_SUMMARY]
 Lancement suborbital
-<L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transporter<e> jusqu'à cinq unités [END]
+<L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transporter<e> jusqu'à cinq unités
 [END]
 
 [UNIT_SPACE_PLANE_GAMEPLAY]

@@ -4049,7 +4049,7 @@ Silver is a precious metal that is found on <L:DATABASE_TERRAIN,TERRAIN_BROWN_MO
 [END]
 
 [TERRAIN_BROWN_MOUNTAIN_GOOD_TWO_HISTORICAL]
-Silver (Ag) is a metallic element, one of the first metals used by humans. Pure silver is nearly white, lustrous, soft, very ductile, malleable, and an excellent conductor of heat and electricity. It is used in mirrors, coins, utensils, antiseptics, jewelry, and for electrolytic plating of tableware. Silver nitrate is its most important compound. Silver reacts with hydrogen sulfide in air to form silver sulfide (tarnish). Photographic emulsions contain silver halides, which are sensitive to light. Silver alloys are used in dentistry and electrical contacts. Sterling silver contains 92.5 percent silver and 7.5 percent copper. Silver is obtained from the ores argentite, cerarygrite, pyrargyrite, stephanite, and proustite.[END]
+Silver (Ag) is a metallic element, one of the first metals used by humans. Pure silver is nearly white, lustrous, soft, very ductile, malleable, and an excellent conductor of heat and electricity. It is used in mirrors, coins, utensils, antiseptics, jewelry, and for electrolytic plating of tableware. Silver nitrate is its most important compound. Silver reacts with hydrogen sulfide in air to form silver sulfide (tarnish). Photographic emulsions contain silver halides, which are sensitive to light. Silver alloys are used in dentistry and electrical contacts. Sterling silver contains 92.5 percent silver and 7.5 percent copper. Silver is obtained from the ores argentite, cerarygrite, pyrargyrite, stephanite, and proustite.
 [END]
 
 [TERRAIN_BROWN_MOUNTAIN_GOOD_THREE_PREREQ]
@@ -5341,7 +5341,7 @@ Upkeep: {BuildingDB(Building[0]).Upkeep} <L:DATABASE_CONCEPTS,CONCEPT_GOLD>Gold<
 
 [IMPROVE_MATTER_DECOMPILER_STATISTICS]
 Da:
-{BuildingDB(Building[0]).ProductionPollutionPercent}% <L:DATABASE_CONCEPTS,CONCEPT_POLLUTION>Contaminación<e> (de la producción) [END]
+{BuildingDB(Building[0]).ProductionPollutionPercent}% <L:DATABASE_CONCEPTS,CONCEPT_POLLUTION>Contaminación<e> (de la producción)
 [END]
 
 [IMPROVE_MATTER_DECOMPILER_GAMEPLAY]
