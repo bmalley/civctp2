@@ -78,6 +78,7 @@ libgsgameobj_la_SOURCES = \
 	Resources.cpp \
 	Sci.cpp \
 	Score.cpp \
+	Replay.cpp \
 	Strengths.cpp \
 	TaxRate.cpp \
 	terrainutil.cpp \
