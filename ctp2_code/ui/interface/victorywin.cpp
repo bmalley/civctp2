@@ -74,6 +74,8 @@
 #include "CivPaths.h"           // g_civPaths
 #include "SelItem.h"
 #include "linegraph.h"
+#include "GraphWindow.h"
+#include "ReplayWindow.h"
 #include "TurnCnt.h"
 #include "Score.h"
 
@@ -109,6 +111,8 @@ static HighScoreWindowPopup     *s_highScoreWin;
 static LineGraph                *s_graph;
 static ctp2_ListBox             *s_graphList;
 static ctp2_Button              *s_lineOrZeroSumButton;
+static ctp2_Button              *s_timelapseButton;
+static ctp2_Button              *s_largeGraphButton;
 static BOOL                     s_lineGraph;
 static ctp2_ListBox             *s_scoreList;
 
@@ -145,6 +149,21 @@ void LineOrZeroSumButtonActionCallback(aui_Control *control, uint32 action, uint
 
 	s_graph->RenderGraph();
 	g_victoryWindow->m_window->Draw();
+}
+
+// The map timelapse and the large graph windows, as from the Ranking tab
+void TimelapseButtonActionCallback(aui_Control *control, uint32 action, uint32 data, Cookie cookie)
+{
+	if (action != static_cast<uint32>(AUI_BUTTON_ACTION_EXECUTE)) return;
+
+	ReplayWindow::Open();
+}
+
+void LargeGraphButtonActionCallback(aui_Control *control, uint32 action, uint32 data, Cookie cookie)
+{
+	if (action != static_cast<uint32>(AUI_BUTTON_ACTION_EXECUTE)) return;
+
+	GraphWindow::Open(-1);
 }
 
 void HighScoreWinButtonActionCallback( aui_Control *control, uint32 action, uint32 data, Cookie cookie )
@@ -390,6 +409,16 @@ sint32 victorywin_Init_Controls(const MBCHAR *windowBlock )
 	sprintf(controlBlock, "%s.%s", tabBlock, "LineOrZeroSum");
 	s_lineOrZeroSumButton = (ctp2_Button *)aui_Ldl::GetObject(windowBlock, controlBlock);
 	s_lineOrZeroSumButton->SetActionFuncAndCookie(LineOrZeroSumButtonActionCallback, nullptr);
+
+	sprintf(controlBlock, "%s.%s", tabBlock, "Timelapse");
+	s_timelapseButton = (ctp2_Button *)aui_Ldl::GetObject(windowBlock, controlBlock);
+	if (s_timelapseButton)
+		s_timelapseButton->SetActionFuncAndCookie(TimelapseButtonActionCallback, nullptr);
+
+	sprintf(controlBlock, "%s.%s", tabBlock, "LargeGraph");
+	s_largeGraphButton = (ctp2_Button *)aui_Ldl::GetObject(windowBlock, controlBlock);
+	if (s_largeGraphButton)
+		s_largeGraphButton->SetActionFuncAndCookie(LargeGraphButtonActionCallback, nullptr);
 
 	victorywin_SetLineGraph( false );
 	s_graph->EnableYNumber(FALSE);
