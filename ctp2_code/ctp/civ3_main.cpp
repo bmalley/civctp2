@@ -125,6 +125,7 @@
 #include "MainControlPanel.h"
 #include "messagewin.h"
 #include "network.h"
+#include "GameEventManager.h"
 #include "pattern.h"
 #include "picture.h"
 #include "pixelutils.h"
@@ -1892,18 +1893,51 @@ int WINAPI CivMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	msg.wParam  = 0;
 #endif
 
+#if defined(__AUI_USE_SDL__)
+	uint32 lastInputTick   = GetTickCount();
+	uint32 lastChangeTick  = 0;
+	uint32 rateStartTick   = lastInputTick;
+	int    rateChanges     = 0;
+	bool   animating       = false;
+#endif
+
 	for (gDone = FALSE; !gDone; )
 	{
 		uint32 frameStartTick = GetTickCount();
 		g_civApp->Process();
 
 #if defined(__AUI_USE_SDL__)
+		static const int FRAMES_PER_SECOND = 60;
+		static const int TICKS_PER_FRAME = 1000 / FRAMES_PER_SECOND;
+		// A game left alone still repaints the map every frame. Without input
+		// for a while, with nothing queued and the screen mostly still (a
+		// blinking unit flag is fine, a library movie isn't), slow down; input
+		// ends the wait at once.
+		static const uint32 IDLE_AFTER_TICKS = 5000;
+		static const int TICKS_PER_IDLE_FRAME = 100;
+		static const int MAX_IDLE_CHANGES_PER_SECOND = 5;
+		if (g_c3ui->LastScreenChange() != lastChangeTick)
+		{
+			lastChangeTick = g_c3ui->LastScreenChange();
+			rateChanges++;
+		}
+		if (frameStartTick - rateStartTick >= 1000)
+		{
+			animating     = rateChanges * 1000 > MAX_IDLE_CHANGES_PER_SECOND * sint32(frameStartTick - rateStartTick);
+			rateStartTick = frameStartTick;
+			rateChanges   = 0;
+		}
+		const bool idle = sint32(frameStartTick - lastInputTick) > sint32(IDLE_AFTER_TICKS)
+		               && !animating
+		               && !(g_gevManager && g_gevManager->EventsPending())
+		               && !(g_director && !g_director->CaughtUp())
+		               && !g_network.IsActive();
+		int ticksPerFrame = idle ? TICKS_PER_IDLE_FRAME : TICKS_PER_FRAME;
+
 		SDL_Event event;
 		while (!g_letUIProcess) // There are breaks, too ;)
 		{
-			static const int FRAMES_PER_SECOND = 30;
-			static const int TICKS_PER_FRAME = 1000 / FRAMES_PER_SECOND;
-			const int frameTicksLeft = frameStartTick + TICKS_PER_FRAME - GetTickCount();
+			const int frameTicksLeft = frameStartTick + ticksPerFrame - GetTickCount();
 
 			if (frameTicksLeft > 0)
 			{
@@ -1941,11 +1975,27 @@ int WINAPI CivMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 
 				if(0 == n)
 				{
+					// Mouse events are handled by event watches as they
+					// arrive (aui_SDLMouse, SDLMessageHandler), but nothing
+					// takes them off the queue. Left there, they end every
+					// wait above at once, and after the first mouse move
+					// the game ran flat out instead of at FRAMES_PER_SECOND.
+					if (SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, SDL_MOUSEMOTION, SDL_MOUSEWHEEL) > 0)
+					{
+						SDL_FlushEvents(SDL_MOUSEMOTION, SDL_MOUSEWHEEL);
+						lastInputTick = GetTickCount();
+						ticksPerFrame = TICKS_PER_FRAME;
+						continue;
+					}
+
 					// other events are handled in other threads
 					// or no more events
 					break;
 				}
 			}
+			lastInputTick = GetTickCount();
+			ticksPerFrame = TICKS_PER_FRAME;
+
 			if(SDL_QUIT == event.type) {
 				gDone = TRUE;
 			}
@@ -2158,6 +2208,9 @@ int SDLMessageHandler(void* userdata, SDL_Event* event)
 		case SDL_WINDOWEVENT_RESTORED:
 			break;
 		case SDL_WINDOWEVENT_MOVED:
+			break;
+		case SDL_WINDOWEVENT_EXPOSED:
+			g_c3ui->ScreenChanged();
 			break;
 		default:
 			break;

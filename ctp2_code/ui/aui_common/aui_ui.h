@@ -143,6 +143,8 @@ protected:
 		m_destructiveActionList     (NULL),
 		m_winList                   (NULL),
 		m_minimize                  (false),
+		m_screenChanged             (true),
+		m_lastScreenChange          (0),
 		m_savedMouseAnimFirstIndex  (0),
 		m_savedMouseAnimLastIndex   (0),
 		m_savedMouseAnimCurIndex    (0),
@@ -424,6 +426,14 @@ public:
 	// screen at x, y: the map layer may only show through the map window
 	virtual void MapLayerBlt(sint32 x, sint32 y, aui_Window *window, const RECT *windowRect) {}
 
+	// Something reached the screen since it was last shown. The SDL build
+	// copies, uploads and presents the whole screen, so frames that drew
+	// nothing skip that.
+	void ScreenChanged() { m_screenChanged = true; }
+	bool IsScreenChanged() const { return m_screenChanged; }
+	// Ticks when a change was last shown
+	uint32 LastScreenChange() const { return m_lastScreenChange; }
+
 protected:
 	AUI_ERRCODE	TagMouseEvents( sint32 numEvents, aui_MouseEvent *events );
 
@@ -482,6 +492,8 @@ protected:
 	tech_WLList<HWND>			*m_winList;
 
 	BOOL m_minimize;
+	bool m_screenChanged;
+	uint32 m_lastScreenChange;
 
 
 

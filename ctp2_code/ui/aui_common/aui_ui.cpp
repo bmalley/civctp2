@@ -115,6 +115,8 @@ aui_UI::aui_UI
 	m_destructiveActionList     (NULL),
 	m_winList                   (NULL),
 	m_minimize                  (false),
+	m_screenChanged             (true),
+	m_lastScreenChange          (0),
 	m_savedMouseAnimFirstIndex  (0),
 	m_savedMouseAnimLastIndex   (0),
 	m_savedMouseAnimCurIndex    (0),
@@ -1063,6 +1065,7 @@ AUI_ERRCODE aui_UI::Draw( void )
 	if( m_editMode )
 	{
 		ShowSelectedRegion( m_editRegion );
+		ScreenChanged();
 	}
 #ifdef __AUI_USE_SDL__
 	SDLDrawScreen();
