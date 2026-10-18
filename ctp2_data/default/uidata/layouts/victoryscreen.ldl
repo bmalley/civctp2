@@ -235,6 +235,21 @@ VictoryWindow : CTP2_3TAB_DIALOG_WINDOW {
 					# Label
 					string	text	"str_ldl_LINE_BUTTON"
 				} # LineOrZeroSum
+
+				# Open the map timelapse and the large graph (ReplayWindow, GraphWindow)
+				Timelapse:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+					int		xpix		176
+					int		ypix		250
+					int		widthpix	136
+					string	text	"str_ldl_REPLAY_BUTTON"
+				} # Timelapse
+
+				LargeGraph:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+					int		xpix		327
+					int		ypix		250
+					int		widthpix	148
+					string	text	"str_ldl_GRAPH_BUTTON"
+				} # LargeGraph
 			} # TabPanel
 		}
 		########################################################################
