@@ -55,6 +55,7 @@
 #include <memory>               // std::auto_ptr
 #include "player.h"
 #include "ReplayWindow.h"
+#include "GraphWindow.h"
 #include "StrDB.h"              // g_theStringDB
 #include "Strengths.h"
 #include "TurnCnt.h"            // g_turn
@@ -82,6 +83,8 @@ RankingTab::RankingTab(ctp2_Window *parent)
                           "InfoDialog.TabGroup.Tab3.TabPanel.LineOrZeroSum"))),
     m_timelapseButton    (static_cast<ctp2_Button*>(aui_Ldl::GetObject(
                           "InfoDialog.TabGroup.Tab3.TabPanel.Timelapse"))),
+    m_largeGraphButton   (static_cast<ctp2_Button*>(aui_Ldl::GetObject(
+                          "InfoDialog.TabGroup.Tab3.TabPanel.LargeGraph"))),
     m_infoPlayerList     (static_cast<ctp2_ListBox *>(aui_Ldl::GetObject(
                           "InfoDialog", "TabGroup.Tab3.TabPanel.InfoPlayerList")))
 //  m_rankingMilitary    (0), // Initialized seperately
@@ -137,6 +140,13 @@ RankingTab::RankingTab(ctp2_Window *parent)
 	{
 		m_timelapseButton->SetActionFuncAndCookie(TimelapseButtonActionCallback, parent);
 		m_timelapseButton->Show();
+	}
+
+	Assert(m_largeGraphButton);
+	if (m_largeGraphButton)
+	{
+		m_largeGraphButton->SetActionFuncAndCookie(LargeGraphButtonActionCallback, parent);
+		m_largeGraphButton->Show();
 	}
 
 	Assert( m_infoGraph );
@@ -202,12 +212,14 @@ void RankingTab::Show()
 {
 	m_lineOrZeroSumButton->Show();
 	if (m_timelapseButton) m_timelapseButton->Show();
+	if (m_largeGraphButton) m_largeGraphButton->Show();
 }
 
 void RankingTab::Hide()
 {
 	m_lineOrZeroSumButton->Hide();
 	if (m_timelapseButton) m_timelapseButton->Hide();
+	if (m_largeGraphButton) m_largeGraphButton->Hide();
 }
 
 void RankingTab::LoadData()
@@ -373,6 +385,17 @@ void RankingTab::TimelapseButtonActionCallback(aui_Control *control,
 		return;
 
 	ReplayWindow::Open();
+}
+
+// Opens on the category shown here
+void RankingTab::LargeGraphButtonActionCallback(aui_Control *control,
+	uint32 action, uint32 data, Cookie cookie)
+{
+	if (action != static_cast<uint32>(AUI_BUTTON_ACTION_EXECUTE))
+		return;
+
+	GraphWindow::Open(s_current_ranking_tab
+	                  ? s_current_ranking_tab->m_rankingDropDown->GetSelectedItem() : -1);
 }
 
 RankingTab::~RankingTab(void)
