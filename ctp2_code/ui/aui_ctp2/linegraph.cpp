@@ -158,6 +158,11 @@ sint32 GetCombinedStrength(Strengths const & a_Strengths, sint32 a_Turn, sint32 
 
 } // namespace
 
+sint32 linegraph_GetCombinedStrength(Strengths const & a_Strengths, sint32 a_Turn, sint32 a_Category)
+{
+	return GetCombinedStrength(a_Strengths, a_Turn, a_Category);
+}
+
 LineGraph::LineGraph
 (
 	AUI_ERRCODE *           retval,
