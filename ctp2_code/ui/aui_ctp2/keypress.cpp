@@ -324,7 +324,11 @@ sint32 ui_HandleKeypress(WPARAM wParam, LPARAM lParam)
 	{
 		extern OptionsWindow *g_optionsWindow;
 
-		if(g_c3ui->TopWindow() && g_c3ui->TopWindow() == DipWizard::GetWindow())
+		if(g_selected_item && g_selected_item->CancelRightDrag())
+		{
+			// Nothing else: Escape only cancels the right-drag move
+		}
+		else if(g_c3ui->TopWindow() && g_c3ui->TopWindow() == DipWizard::GetWindow())
 		{
 			DipWizard::Hide();
 		}

@@ -317,6 +317,8 @@ void SelectedItem::Init()
 	m_ignoreCitySelect          = false;  // completely unused now #01
 	m_isDragging                = false;
 	m_gotClick                  = false;
+	m_rightDrag                 = RIGHT_DRAG_NONE;
+	m_rightDragReleasedFrames   = 0;
 
 	SetupClickFunctions();
 
@@ -2986,6 +2988,9 @@ void SelectedItem::ArmyMovedCallback(Army &a)
 bool SelectedItem::ShouldDrawPath()
 {
 	Assert(g_controlPanel != NULL);
+	if(m_rightDrag == RIGHT_DRAG_ACTIVE)
+		return true;
+
 	if(( g_theProfileDB->IsUseCTP2Mode()
 	&&   g_controlPanel->GetTargetingMode() != CP_TARGETING_MODE_ORDER_PENDING)
 	&& (!IsLocalCity()

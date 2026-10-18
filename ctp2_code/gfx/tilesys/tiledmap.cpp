@@ -4854,6 +4854,18 @@ void TiledMap::Drop(aui_MouseEvent *data)
 	}
 }
 
+/// Right button released over the map: ends a RightClickMove drag
+void TiledMap::RightDrop(aui_MouseEvent *data)
+{
+	MapPoint		pos;
+	POINT           point = data->position;
+
+	if (MousePointToTilePos(point, pos))
+		g_selected_item->EndRightDrag(&pos, data);
+	else
+		g_selected_item->EndRightDrag(NULL, data);
+}
+
 void TiledMap::Idle(void)
 {
 	MapPoint point;
