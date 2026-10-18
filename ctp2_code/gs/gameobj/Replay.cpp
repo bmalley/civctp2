@@ -24,6 +24,7 @@
 #include "network.h"            // g_network
 #include "player.h"             // g_player
 #include "profileDB.h"          // g_theProfileDB
+#include "Score.h"
 #include "Unit.h"
 #include "UnitData.h"
 #include "UnitDynArr.h"
@@ -179,6 +180,29 @@ namespace
 	}
 }
 
+namespace
+{
+	// 'S': round, then each player's total score (Score::GetTotalScore),
+	// for a score history
+	void PutScores(std::vector<uint8> &out, sint32 round)
+	{
+		std::vector<uint8> scores;
+		uint32 count = 0;
+		for (sint32 p = 0; p < k_MAX_PLAYERS; ++p)
+		{
+			if (!g_player[p] || !g_player[p]->m_score) continue;
+			PutU8(scores, p);
+			PutS32(scores, g_player[p]->m_score->GetTotalScore());
+			++count;
+		}
+
+		PutU8(out, 'S');
+		PutS32(out, round);
+		PutU8(out, count);
+		out.insert(out.end(), scores.begin(), scores.end());
+	}
+}
+
 void replay_RecordRound(sint32 round)
 {
 	if (!g_theProfileDB || !g_theProfileDB->IsRecordReplay()
@@ -214,6 +238,7 @@ void replay_RecordRound(sint32 round)
 	}
 	s_lastRound = round;
 	PutRound(out, round);
+	PutScores(out, round);
 
 	file = fopen(fullpath, "ab");
 	if (!file) return;
@@ -384,6 +409,22 @@ bool replay_LoadCurrent(ReplayGame &result)
 				sessionStart = false;
 			}
 			game.rounds[round] = rec;
+		}
+		else if (kind == 'S' && !games.empty())
+		{
+			sint32 const round = static_cast<sint32>(r.U32());
+			uint32 const count = r.U8();
+			std::map<sint32, sint32> scores;
+			for (uint32 i = 0; i < count; ++i)
+			{
+				sint32 const player = r.U8();
+				scores[player] = static_cast<sint32>(r.U32());
+			}
+			if (!r.Ok()) break;
+
+			std::map<sint32, ReplayRound>::iterator it = games.back().rounds.find(round);
+			if (it != games.back().rounds.end())
+				it->second.scores = scores;
 		}
 		else
 		{

@@ -40,6 +40,7 @@ struct ReplayRound
 	std::string             date;
 	std::vector<uint8>      owners;     // w * h, player index or 255 for nobody
 	std::vector<ReplayCity> cities;
+	std::map<sint32, sint32> scores;    // player index to total score
 };
 
 struct ReplayGame
