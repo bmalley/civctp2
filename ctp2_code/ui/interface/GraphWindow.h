@@ -34,7 +34,7 @@ public:
 	StatsGraph(AUI_ERRCODE *retval, uint32 id, const MBCHAR *ldlBlock);
 	virtual ~StatsGraph();
 
-	// category: an eRankingCategories value
+	// category: an eRankingCategories value, or -1 for the score history
 	void    Load(sint32 category);
 	void    SetShare(bool share);
 	bool    IsShare() const { return m_share; }
@@ -49,10 +49,12 @@ private:
 	struct Series
 	{
 		std::string             name;
+		sint32                  owner;      // player index
 		Pixel16                 color;
-		std::vector<double>     values;     // one a round, from round 0
+		std::vector<double>     values;     // one a round, from round 0; < 0: missing
 	};
 
+	void    LoadScores(void);
 	void    Render(void);
 	void    RenderGrid(double top, sint32 rounds);
 	void    RenderLines(double top, sint32 rounds);
@@ -68,6 +70,7 @@ private:
 	std::vector<Series> m_series;
 	sint32              m_rounds;
 	bool                m_share;
+	bool                m_hasData;      // false: a score history with no records
 	sint32              m_hover;        // round pointed at, or -1
 	RECT                m_plotRect;
 	RECT                m_legendRect;
