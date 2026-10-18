@@ -74,6 +74,7 @@ struct  TILEHITMASK;
 #define k_ZOOM_NORMAL               6
 #define k_ZOOM_SMALLEST             0
 #define k_ZOOM_LARGEST              6
+#define k_MAX_SUPER_ZOOM            4    // map pixels drawn up to 4x past 1:1
 
 extern TiledMap *   g_tiledMap;
 
@@ -479,6 +480,14 @@ public:
 	bool CanZoomOut() const;
 	bool ZoomOut();
 
+	// Super zoom: past the largest zoom level the map is drawn at 1:1 into a
+	// smaller mix surface, which is scaled up (nearest neighbour) into the
+	// background window when its dirty rectangles are copied.
+	sint32       GetSuperZoom() const { return m_superZoom; }
+	bool         SetSuperZoom(sint32 factor);
+	aui_Surface *GetMixSurface() const;
+	POINT        WindowToMapPoint(POINT point) const;
+
 	sint32 GetZoomLevel() const { return m_zoomLevel; }
 	sint32 GetZoomTilePixelWidth() const { return m_zoomTilePixelWidth[m_zoomLevel];}
 	sint32 GetZoomTilePixelHeight() const { return m_zoomTilePixelHeight[m_zoomLevel];}
@@ -545,6 +554,15 @@ protected:
 	sint32	m_zoomTileHeadroom[k_MAX_ZOOM_LEVELS];
 	double	m_zoomTileScale[k_MAX_ZOOM_LEVELS];
 	void	(*m_zoomCallback)();
+
+	void	CreateViewSurfaces(const RECT & viewRect);
+	void	DeleteViewSurfaces();
+	void	ScaleMixRect(const RECT & rect, aui_Surface * dest, aui_DirtyList * destList);
+
+	sint32		m_superZoom;
+	aui_Surface	*m_superMix;
+	RECT		m_fullViewRect;      // background window rect at super zoom 1
+	RECT		m_fullViewport;      // g_backgroundViewport at super zoom 1
 
 	bool				 m_isScrolling;
 

@@ -65,6 +65,7 @@
 #include "aui_surface.h"
 #include "aui_Factory.h"
 #include "aui_dirtylist.h"
+#include "aui_rectangle.h"                // Rectangle_Clip
 #include "aui_stringtable.h"
 #include "background.h"
 #include "BaseTile.h"
@@ -174,6 +175,8 @@ TiledMap::TiledMap(MapPoint &size)
 #endif
     m_zoomLevel             (k_ZOOM_NORMAL),
 	m_zoomCallback          (NULL),
+    m_superZoom             (1),
+    m_superMix              (NULL),
 	m_isScrolling           (false),
 	m_surface               (NULL),
 	m_mapSurface            (NULL),
@@ -271,6 +274,11 @@ TiledMap::~TiledMap()
 	{
 		g_c3ui->UnloadBitmapFont(m_font);
 	}
+	if (m_superZoom > 1)
+	{
+		g_backgroundViewport = m_fullViewport;
+	}
+	delete m_superMix;
 	delete m_mapSurface;
 	delete m_mixDirtyList;
 	delete m_oldMixDirtyList;
@@ -285,28 +293,10 @@ TiledMap::~TiledMap()
 
 sint32 TiledMap::Initialize(RECT *viewRect)
 {
-	sint32			w = viewRect->right - viewRect->left;
-	sint32			h = viewRect->bottom - viewRect->top;
-	AUI_ERRCODE		errcode;
-
-	m_mapSurface = aui_Factory::new_Surface(errcode, w, h);
+	m_fullViewRect = *viewRect;
+	CreateViewSurfaces(*viewRect);
 	Assert(m_mapSurface);
 	if (!m_mapSurface) return AUI_ERRCODE_MEMALLOCFAILED;
-
-
-
-
-	m_surface = m_mapSurface;
-
-#ifdef __USING_SPANS__
-
-	m_mixDirtyList = new aui_DirtyList( TRUE, w, h );
-	m_oldMixDirtyList = new aui_DirtyList( TRUE, w, h );
-	m_mapDirtyList = new aui_DirtyList( TRUE, w, h );
-#endif
-
-	m_displayRect = m_surfaceRect = *viewRect;
-	OffsetRect(&m_surfaceRect, -m_surfaceRect.left, -m_surfaceRect.top);
 
 	CalculateMetrics();
 
@@ -319,6 +309,196 @@ sint32 TiledMap::Initialize(RECT *viewRect)
 	InitGrid( 128, 128);
 
 	return AUI_ERRCODE_OK;
+}
+
+/// Map surface and dirty lists for a background window of viewRect's size
+void TiledMap::CreateViewSurfaces(const RECT & viewRect)
+{
+	sint32			w = viewRect.right - viewRect.left;
+	sint32			h = viewRect.bottom - viewRect.top;
+	AUI_ERRCODE		errcode;
+
+	m_mapSurface = aui_Factory::new_Surface(errcode, w, h);
+	Assert(m_mapSurface);
+
+	m_surface = m_mapSurface;
+
+#ifdef __USING_SPANS__
+
+	m_mixDirtyList = new aui_DirtyList( TRUE, w, h );
+	m_oldMixDirtyList = new aui_DirtyList( TRUE, w, h );
+	m_mapDirtyList = new aui_DirtyList( TRUE, w, h );
+#endif
+
+	m_displayRect = m_surfaceRect = viewRect;
+	OffsetRect(&m_surfaceRect, -m_surfaceRect.left, -m_surfaceRect.top);
+}
+
+void TiledMap::DeleteViewSurfaces()
+{
+	DeleteGrid();
+	delete m_mapSurface;
+	m_mapSurface = NULL;
+	m_surface = NULL;
+#ifdef __USING_SPANS__
+	delete m_mixDirtyList;
+	delete m_oldMixDirtyList;
+	delete m_mapDirtyList;
+	m_mixDirtyList = m_oldMixDirtyList = m_mapDirtyList = NULL;
+#else
+	m_mixDirtyList->Flush();
+	m_oldMixDirtyList->Flush();
+	m_mapDirtyList->Flush();
+#endif
+}
+
+aui_Surface *TiledMap::GetMixSurface() const
+{
+	if (m_superZoom > 1 && m_superMix)
+		return m_superMix;
+
+	return g_background ? g_background->TheSurface() : NULL;
+}
+
+/// Background window point to the point the map is drawn at
+POINT TiledMap::WindowToMapPoint(POINT point) const
+{
+	if (m_superZoom > 1)
+	{
+		// Scaled around the viewport's top left corner (ScaleMixRect)
+		point.x = m_fullViewport.left + (point.x - m_fullViewport.left) / m_superZoom;
+		point.y = m_fullViewport.top  + (point.y - m_fullViewport.top)  / m_superZoom;
+	}
+	return point;
+}
+
+/// Switch super zoom (1 = off). Only past the largest zoom level.
+bool TiledMap::SetSuperZoom(sint32 factor)
+{
+	if (factor < 1 || factor > k_MAX_SUPER_ZOOM || factor == m_superZoom)
+		return false;
+	if (factor > 1 && m_zoomLevel != k_ZOOM_LARGEST)
+		return false;
+
+	sint32 mapViewCenterX = (m_mapViewRect.left + m_mapViewRect.right) / 2;
+	sint32 mapViewCenterY = (m_mapViewRect.top + m_mapViewRect.bottom) / 2;
+	sint32 mapViewCenterXWrap = 0, mapViewCenterYWrap = 0;
+	maputils_WrapPoint(mapViewCenterX, mapViewCenterY,
+		&mapViewCenterXWrap, &mapViewCenterYWrap);
+	sint32 mapViewCenterXTile = maputils_TileX2MapX(mapViewCenterXWrap, mapViewCenterYWrap);
+
+	if (m_superZoom == 1)
+		m_fullViewport = g_backgroundViewport;
+
+	RECT viewRect = m_fullViewRect;
+	RECT viewport = m_fullViewport;
+	if (factor > 1)
+	{
+		// The same headroom around a viewport 1/factor of the screen
+		sint32 fullWidth  = m_fullViewRect.right - m_fullViewRect.left;
+		sint32 fullHeight = m_fullViewRect.bottom - m_fullViewRect.top;
+		sint32 width      = m_fullViewport.right - m_fullViewport.left;
+		sint32 height     = m_fullViewport.bottom - m_fullViewport.top;
+		viewport.right    = viewport.left + (width + factor - 1) / factor;
+		viewport.bottom   = viewport.top + (height + factor - 1) / factor;
+		viewRect.right    = viewRect.left + ((viewport.right + fullWidth - m_fullViewport.right + 1) & ~1);
+		viewRect.bottom   = viewRect.top + ((viewport.bottom + fullHeight - m_fullViewport.bottom + 1) & ~1);
+	}
+
+	DeleteViewSurfaces();
+	delete m_superMix;
+	m_superMix = NULL;
+
+	CreateViewSurfaces(viewRect);
+	InitGrid(128, 128);
+	if (factor > 1)
+	{
+		AUI_ERRCODE errcode;
+		m_superMix = aui_Factory::new_Surface(errcode,
+			viewRect.right - viewRect.left, viewRect.bottom - viewRect.top);
+		Assert(m_superMix);
+	}
+
+	g_backgroundViewport = viewport;
+	m_superZoom = factor;
+
+	CalculateMetrics();
+	g_radarMap->CenterMap(MapPoint(mapViewCenterXTile, mapViewCenterYWrap));
+	Refresh();
+	InvalidateMap();
+	InvalidateMix();
+
+	if (g_background)
+	{
+		g_background->ShouldDraw(TRUE);
+	}
+
+	if (m_zoomCallback)
+		m_zoomCallback();
+
+	return true;
+}
+
+/// Copy rect of the super zoom mix surface into dest, scaled up, and add the
+/// scaled rectangle to destList
+void TiledMap::ScaleMixRect(const RECT & rect, aui_Surface * dest, aui_DirtyList * destList)
+{
+	RECT src = rect;
+	if (!Rectangle_Clip(&src, &g_backgroundViewport)) return;
+
+	const sint32 n  = m_superZoom;
+	const sint32 ox = m_fullViewport.left;
+	const sint32 oy = m_fullViewport.top;
+	RECT dst =
+	{
+		ox + (src.left  - ox) * n,
+		oy + (src.top   - oy) * n,
+		ox + (src.right - ox) * n,
+		oy + (src.bottom - oy) * n
+	};
+	RECT destBounds = { 0, 0, dest->Width(), dest->Height() };
+	if (!Rectangle_Clip(&dst, &destBounds)) return;
+
+	uint8 * srcBuf  = NULL;
+	uint8 * destBuf = NULL;
+	if (m_superMix->Lock(NULL, (LPVOID *)&srcBuf, 0) != AUI_ERRCODE_OK) return;
+	if (dest->Lock(NULL, (LPVOID *)&destBuf, 0) != AUI_ERRCODE_OK)
+	{
+		m_superMix->Unlock(srcBuf);
+		return;
+	}
+
+	const sint32 srcPitch  = m_superMix->Pitch();
+	const sint32 destPitch = dest->Pitch();
+	const size_t rowBytes  = (dst.right - dst.left) * sizeof(Pixel16);
+	for (sint32 y = dst.top; y < dst.bottom; ++y)
+	{
+		Pixel16 * d = (Pixel16 *)(destBuf + y * destPitch) + dst.left;
+		if (y > dst.top && (y - oy) % n != 0)
+		{
+			// Same source row as the row above
+			memcpy(d, (uint8 *)d - destPitch, rowBytes);
+			continue;
+		}
+
+		const Pixel16 * s = (const Pixel16 *)(srcBuf + (oy + (y - oy) / n) * srcPitch)
+		                  + ox + (dst.left - ox) / n;
+		sint32 repeat = n - (dst.left - ox) % n;
+		for (sint32 x = dst.left; x < dst.right; ++x)
+		{
+			*d++ = *s;
+			if (--repeat == 0)
+			{
+				++s;
+				repeat = n;
+			}
+		}
+	}
+
+	dest->Unlock(destBuf);
+	m_superMix->Unlock(srcBuf);
+
+	destList->AddRect(&dst);
 }
 
 void TiledMap::InitGrid(sint32 maxPixelsPerGridRectX, sint32 maxPixelsPerGridRectY)
@@ -635,6 +815,32 @@ void TiledMap::ClearMixDirtyRects(void)
 void TiledMap::CopyMixDirtyRects(aui_DirtyList *dest)
 {
 	dest->Flush();
+
+	if (m_superZoom > 1 && m_superMix && g_background)
+	{
+		// Scale this frame's and last frame's mix rectangles into the window
+		aui_Surface * window = g_background->TheSurface();
+
+		ListPos	position = m_oldMixDirtyList->GetHeadPosition();
+		for (size_t i = m_oldMixDirtyList->L(); i > 0; --i)
+		{
+			ScaleMixRect(*m_oldMixDirtyList->GetNext(position), window, dest);
+		}
+
+		m_oldMixDirtyList->Flush();
+#ifdef __USING_SPANS__
+		m_oldMixDirtyList->SetSpans(m_mixDirtyList);
+#endif
+
+		position = m_mixDirtyList->GetHeadPosition();
+		for (size_t i = m_mixDirtyList->L(); i > 0; --i)
+		{
+			RECT *rect = m_mixDirtyList->GetNext(position);
+			ScaleMixRect(*rect, window, dest);
+			m_oldMixDirtyList->AddRect(rect);
+		}
+		return;
+	}
 
 	ListPos	position = m_oldMixDirtyList->GetHeadPosition();;
 	size_t	i;
@@ -3471,7 +3677,7 @@ bool TiledMap::ScrollMap(sint32 deltaX, sint32 deltaY)
 		return false;
 	}
 
-	RetargetTileSurface(g_background->TheSurface());
+	RetargetTileSurface(GetMixSurface());
 
 	if (!g_theWorld->IsXwrap())
 	{
@@ -3592,7 +3798,7 @@ bool TiledMap::SmoothScrollAligned() const
 
 bool TiledMap::ScrollMapSmooth(sint32 pdeltaX, sint32 pdeltaY)
 {
-	RetargetTileSurface(g_background->TheSurface());
+	RetargetTileSurface(GetMixSurface());
 
 	sint32 signX  = (!pdeltaX ? 0 : (pdeltaX < 0 ? -1 : 1));
 	sint32 signY  = (!pdeltaY ? 0 : (pdeltaY < 0 ? -1 : 1));
@@ -4761,7 +4967,7 @@ void TiledMap::MouseDrag(aui_MouseEvent *data)
 void TiledMap::Click(aui_MouseEvent *data, bool doubleClick)
 {
 	MapPoint		pos;
-	POINT			point = data->position;
+	POINT			point = WindowToMapPoint(data->position);
 
 	if (MousePointToTilePos(point, pos))
 	{
@@ -4821,7 +5027,7 @@ void TiledMap::Click(aui_MouseEvent *data, bool doubleClick)
 void TiledMap::Drop(aui_MouseEvent *data)
 {
 	MapPoint		pos;
-	POINT           point = data->position;
+	POINT           point = WindowToMapPoint(data->position);
 
 	if (MousePointToTilePos(point, pos)) {
 
@@ -4858,7 +5064,7 @@ void TiledMap::Drop(aui_MouseEvent *data)
 void TiledMap::RightDrop(aui_MouseEvent *data)
 {
 	MapPoint		pos;
-	POINT           point = data->position;
+	POINT           point = WindowToMapPoint(data->position);
 
 	if (MousePointToTilePos(point, pos))
 		g_selected_item->EndRightDrag(&pos, data);
@@ -4891,6 +5097,7 @@ bool TiledMap::GetMousePos(POINT &pos) const
 
 	pos.x = mouse->X() - g_background->X();
 	pos.y = mouse->Y() - g_background->Y();
+	pos = WindowToMapPoint(pos);
 	return true;
 }
 
@@ -5221,6 +5428,12 @@ void TiledMap::SetZoomLevel(sint32 level)
 		}
 		g_background->Offset(xOffset, yOffset);
 		OffsetRect(&g_backgroundViewport, -xOffset, -yOffset);
+		if (m_superZoom > 1)
+		{
+			// The city window's resource map sets the zoom level while
+			// super zoomed; keep the scaling origin with the viewport
+			OffsetRect(&m_fullViewport, -xOffset, -yOffset);
+		}
 	}
 
 	m_zoomLevel = level;
@@ -5234,24 +5447,26 @@ void TiledMap::SetZoomLevel(sint32 level)
 bool TiledMap::CanZoomIn() const
 {
 
-	return(GetZoomLevel() < k_ZOOM_LARGEST);
+	return(GetZoomLevel() < k_ZOOM_LARGEST || m_superZoom < k_MAX_SUPER_ZOOM);
 }
 
 bool TiledMap::ZoomIn(void)
 {
 
-	if(CanZoomIn()) {
+	if(GetZoomLevel() < k_ZOOM_LARGEST) {
 
 		ZoomUpdate(GetZoomLevel() + 1);
 
 		return(true);
 	}
 
-	return(false);
+	return SetSuperZoom(m_superZoom + 1);
 }
 
 bool TiledMap::CanZoomOut() const
 {
+	if(m_superZoom > 1)
+		return(true);
 
 	if(GetZoomLevel() > k_ZOOM_SMALLEST) {
 
@@ -5271,6 +5486,8 @@ bool TiledMap::CanZoomOut() const
 
 bool TiledMap::ZoomOut(void)
 {
+	if(m_superZoom > 1)
+		return SetSuperZoom(m_superZoom - 1);
 
 	if(CanZoomOut()) {
 
