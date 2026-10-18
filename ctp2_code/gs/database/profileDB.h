@@ -313,6 +313,7 @@ private:
     sint32 m_dragScroll;
     sint32 m_wheelZoom;
     sint32 m_rightClickMove;
+    sint32 m_mapFullResolution;
 
     sint32 m_autoRenameCities;
     sint32 m_autoOpenCityWindow;
@@ -807,6 +808,7 @@ public:
     BOOL   IsDragScroll() const                 { return m_dragScroll; }
     BOOL   IsWheelZoom() const                  { return m_wheelZoom; }
     BOOL   IsRightClickMove() const             { return m_rightClickMove; }
+    BOOL   IsMapFullResolution() const          { return m_mapFullResolution; }
     BOOL GetShowEnemyHealth()                   { return m_showEnemyHealth; } //emod3
     BOOL GetDebugAI()                           { return m_debugai; }   //emod3
 

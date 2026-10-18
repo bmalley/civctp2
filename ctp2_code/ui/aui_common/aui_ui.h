@@ -409,6 +409,21 @@ public:
 	virtual AUI_ERRCODE SDLDrawScreen( void ) { return AUI_ERRCODE_OK; }
 #endif
 
+	// Map layer: a map drawn at the output's own resolution, shown under the
+	// interface. Output pixels per UI pixel as num/den; false if the screen
+	// can't show a map layer.
+	virtual bool GetOutputScale(sint32 &num, sint32 &den) { num = den = 1; return false; }
+	// Show mix's mixRect, scale mix pixels per UI pixel, in window's viewport
+	// (window coordinates) wherever the screen still shows the window's own
+	// pixels. NULL mix turns it off.
+	virtual void SetMapLayer(aui_Surface *mix, const RECT *mixRect,
+		aui_Window *window, const RECT *viewport, double scale) {}
+	// Upload rect (mix coordinates) of the map layer's surface
+	virtual void UpdateMapLayer(const RECT *rect) {}
+	// Note that windowRect of window (NULL: not a window) was copied to the
+	// screen at x, y: the map layer may only show through the map window
+	virtual void MapLayerBlt(sint32 x, sint32 y, aui_Window *window, const RECT *windowRect) {}
+
 protected:
 	AUI_ERRCODE	TagMouseEvents( sint32 numEvents, aui_MouseEvent *events );
 

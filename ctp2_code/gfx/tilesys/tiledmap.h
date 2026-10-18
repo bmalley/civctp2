@@ -483,10 +483,16 @@ public:
 	// Super zoom: past the largest zoom level the map is drawn at 1:1 into a
 	// smaller mix surface, which is scaled up (nearest neighbour) into the
 	// background window when its dirty rectangles are copied.
+	// MapFullResolution generalises it: with the interface enlarged to the
+	// screen, the mix is drawn at the screen's own pixels and shown by the
+	// SDL UI under the interface (aui_UI::SetMapLayer).
 	sint32       GetSuperZoom() const { return m_superZoom; }
 	bool         SetSuperZoom(sint32 factor);
+	void         CheckMapScale();
+	bool         HasMapLayer() const { return m_scaleNum != m_scaleDen; }
 	aui_Surface *GetMixSurface() const;
 	POINT        WindowToMapPoint(POINT point) const;
+	sint32       MapToWindowLength(sint32 length) const;
 
 	sint32 GetZoomLevel() const { return m_zoomLevel; }
 	sint32 GetZoomTilePixelWidth() const { return m_zoomTilePixelWidth[m_zoomLevel];}
@@ -558,8 +564,15 @@ protected:
 	void	CreateViewSurfaces(const RECT & viewRect);
 	void	DeleteViewSurfaces();
 	void	ScaleMixRect(const RECT & rect, aui_Surface * dest, aui_DirtyList * destList);
+	void	RebuildView(sint32 factor, sint32 num, sint32 den);
+	// Mix pixels per background window pixel: MixNum() / MixDen()
+	sint32	MixNum() const { return m_scaleNum; }
+	sint32	MixDen() const { return m_scaleDen * m_superZoom; }
+	bool	IsMixScaled() const { return MixNum() != MixDen(); }
 
 	sint32		m_superZoom;
+	sint32		m_scaleNum;          // output pixels per interface pixel,
+	sint32		m_scaleDen;          // 1/1 without the map layer
 	aui_Surface	*m_superMix;
 	RECT		m_fullViewRect;      // background window rect at super zoom 1
 	RECT		m_fullViewport;      // g_backgroundViewport at super zoom 1
