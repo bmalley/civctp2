@@ -251,6 +251,7 @@
 #include "StrategyRecord.h"
 #include "StrDB.h"
 #include <string>                       // std::string
+#include <vector>                       // std::vector
 #include "thronedb.h"                   // g_theThroneDB
 #include "TerrainImprovementRecord.h"
 #include "TerrainRecord.h"
@@ -379,6 +380,8 @@ extern MBCHAR g_diplomacy_threat_filename[_MAX_PATH];
 ProjectFile *g_GreatLibPF = NULL;
 ProjectFile *g_ImageMapPF = NULL;
 ProjectFile *g_SoundPF = NULL;
+/// Image packs replaced by InitializeImageMaps, kept mapped for cached images
+static std::vector<ProjectFile *> s_RetiredImageMaps;
 
 sint32 g_logCrashes = 1;
 
@@ -1445,6 +1448,11 @@ void CivApp::CleanupAppUI(void)
 
 	allocated::clear(g_GreatLibPF);
 	allocated::clear(g_ImageMapPF);
+	for (size_t i = 0; i < s_RetiredImageMaps.size(); ++i)
+	{
+		delete s_RetiredImageMaps[i];
+	}
+	s_RetiredImageMaps.clear();
 	allocated::clear(g_SoundPF);
 }
 
@@ -3003,17 +3011,33 @@ void InitializeSoundPF()
 
 void InitializeImageMaps()
 {
-	delete g_ImageMapPF;
-	g_ImageMapPF = new ProjectFile();
+	ProjectFile * imageMaps = new ProjectFile();
 
 	if (g_c3ui->PixelFormat() == AUI_SURFACE_PIXELFORMAT_555)
 	{
-		AddSearchPacks(g_ImageMapPF, C3DIR_PATTERNS, "pat555.zfs");
-		AddSearchPacks(g_ImageMapPF, C3DIR_PICTURES, "pic555.zfs");
+		AddSearchPacks(imageMaps, C3DIR_PATTERNS, "pat555.zfs");
+		AddSearchPacks(imageMaps, C3DIR_PICTURES, "pic555.zfs");
 	}
 	else
 	{
-		AddSearchPacks(g_ImageMapPF, C3DIR_PATTERNS, "pat565.zfs");
-		AddSearchPacks(g_ImageMapPF, C3DIR_PICTURES, "pic565.zfs");
+		AddSearchPacks(imageMaps, C3DIR_PATTERNS, "pat565.zfs");
+		AddSearchPacks(imageMaps, C3DIR_PICTURES, "pic565.zfs");
 	}
+
+	// Images and patterns loaded from the packs point into their file mappings
+	// (TargaImageFormat::LoadRIM), and the resource cache keeps them across
+	// windows. So the old mappings must stay valid: keep the old packs when
+	// nothing changed (no scenario packs), else keep them alive until exit.
+	// Unmapping them crashed scenario loads in the progress window's border.
+	if (g_ImageMapPF && g_ImageMapPF->SamePaths(*imageMaps))
+	{
+		delete imageMaps;
+		return;
+	}
+
+	if (g_ImageMapPF)
+	{
+		s_RetiredImageMaps.push_back(g_ImageMapPF);
+	}
+	g_ImageMapPF = imageMaps;
 }
