@@ -79,7 +79,10 @@ aui_SDLUI::aui_SDLUI
     m_mapTexture        (NULL),
     m_uiTexture         (NULL),
     m_uiColors          (NULL),
-    m_mapMask           (NULL)
+    m_mapMask           (NULL),
+    m_mapShadow         (NULL),
+    m_mapShadowStale    (true),
+    m_lastPresent       (0)
 {
 	*retval = aui_Region::InitCommon( 0, 0, 0, width, height );
 	Assert( AUI_SUCCESS(*retval) );
@@ -359,6 +362,20 @@ AUI_ERRCODE aui_SDLUI::SDLDrawScreen( void )
 	Assert(m_SDLTexture);
 	Assert(m_SDLRenderer);
 
+	// An idle game draws nothing most frames; uploading and presenting the
+	// screen anyway kept a core and the GPU busy. Still refresh now and then
+	// in case something drew past us.
+	static const Uint32 k_REFRESH_TICKS = 1000;
+	Uint32 now = SDL_GetTicks();
+	if (!m_screenChanged && now - m_lastPresent < k_REFRESH_TICKS)
+	{
+		return AUI_ERRCODE_OK;
+	}
+	if (m_screenChanged)
+		m_lastScreenChange = GetTickCount();
+	m_screenChanged = false;
+	m_lastPresent   = now;
+
 	if (DrawMapLayer())
 	{
 		SDL_RenderPresent(m_SDLRenderer);
@@ -410,6 +427,7 @@ bool aui_SDLUI::GetOutputScale(sint32 &num, sint32 &den)
 
 void aui_SDLUI::DestroyMapLayer()
 {
+	if (m_mapMix) ScreenChanged();
 	if (m_mapTexture)
 	{
 		SDL_DestroyTexture(m_mapTexture);
@@ -424,6 +442,8 @@ void aui_SDLUI::DestroyMapLayer()
 	m_uiColors  = NULL;
 	delete [] m_mapMask;
 	m_mapMask   = NULL;
+	delete [] m_mapShadow;
+	m_mapShadow = NULL;
 	m_mapMix    = NULL;
 	m_mapWindow = NULL;
 }
@@ -466,6 +486,9 @@ void aui_SDLUI::SetMapLayer(aui_Surface *mix, const RECT *mixRect,
 		}
 		// Map pixels land on whole output pixels; super zoom enlarges them blocky
 		SDL_SetTextureScaleMode(m_mapTexture, SDL_ScaleModeNearest);
+
+		delete [] m_mapShadow;
+		m_mapShadow = new uint16[width * height];
 	}
 
 	if (!m_uiTexture)
@@ -511,15 +534,18 @@ void aui_SDLUI::SetMapLayer(aui_Surface *mix, const RECT *mixRect,
 	m_mapScale    = scale;
 
 	if (upload)
+	{
+		m_mapShadowStale = true;
 		UpdateMapLayer(mixRect);
+	}
 }
 
 void aui_SDLUI::UpdateMapLayer(const RECT *rect)
 {
-	if (!m_mapMix || !m_mapTexture) return;
+	if (!m_mapMix || !m_mapTexture || !m_mapShadow) return;
 
 	RECT r = *rect;
-	if (!Rectangle_Clip(&r, &m_mapMixRect)) return;
+	if (!Rectangle_Clip(&r, &m_mapMixRect) || r.right <= r.left) return;
 
 	uint8 *buffer = NULL;
 	if (m_mapMix->Lock(NULL, (LPVOID *)&buffer, 0) != AUI_ERRCODE_OK) return;
@@ -527,6 +553,31 @@ void aui_SDLUI::UpdateMapLayer(const RECT *rect)
 	SDL_Rect dest = { r.left - m_mapMixRect.left, r.top - m_mapMixRect.top,
 	                  r.right - r.left, r.bottom - r.top };
 	sint32   pitch = m_mapMix->Pitch();
+
+	// The map's sprites are repainted every frame whether they changed or
+	// not: upload (and present) only if a pixel did
+	const sint32 shadowWidth = m_mapMixRect.right - m_mapMixRect.left;
+	const size_t bytes       = dest.w * sizeof(uint16);
+	bool         changed     = m_mapShadowStale;
+	for (sint32 y = 0; y < dest.h; ++y)
+	{
+		const uint8 *src    = buffer + (r.top + y) * pitch + r.left * sizeof(uint16);
+		uint16      *shadow = m_mapShadow + (dest.y + y) * shadowWidth + dest.x;
+		if (m_mapShadowStale || memcmp(shadow, src, bytes) != 0)
+		{
+			memcpy(shadow, src, bytes);
+			changed = true;
+		}
+	}
+	if (!changed)
+	{
+		m_mapMix->Unlock(buffer);
+		return;
+	}
+	if (memcmp(&r, &m_mapMixRect, sizeof(RECT)) == 0)
+		m_mapShadowStale = false;
+	ScreenChanged();
+
 	if (SDL_UpdateTexture(m_mapTexture, &dest,
 		buffer + r.top * pitch + r.left * sizeof(uint16), pitch) < 0)
 	{
@@ -546,28 +597,35 @@ void aui_SDLUI::MapLayerBlt(sint32 x, sint32 y, aui_Window *window, const RECT *
 	if (!Rectangle_Clip(&screen, &bounds) || screen.right <= screen.left) return;
 
 	const sint32 width = screen.right - screen.left;
-	if (window && window == m_mapWindow)
+	const sint32 dx    = windowRect->left - x;
+	const sint32 dy    = windowRect->top - y;
+	uint8 *      bits  = new uint8[width];
+	for (sint32 row = screen.top; row < screen.bottom; ++row)
 	{
-		for (sint32 row = screen.top; row < screen.bottom; ++row)
-			memset(m_mapMask + row * m_width + screen.left, 1, width);
-	}
-	else if (window && !window->IsOpaque() && window->GetStencil())
-	{
-		// Only where the window shows what's under it (aui_UI::ClipAndConsolidate)
-		const sint32 dx = windowRect->left - x;
-		const sint32 dy = windowRect->top - y;
-		for (sint32 row = screen.top; row < screen.bottom; ++row)
+		if (window && window == m_mapWindow)
 		{
+			memset(bits, 1, width);
+		}
+		else if (window && !window->IsOpaque() && window->GetStencil())
+		{
+			// Only where the window shows what's under it (aui_UI::ClipAndConsolidate)
 			aui_StencilRowMask(window->GetStencil(), row + dy,
-				screen.left + dx, screen.right + dx,
-				m_mapMask + row * m_width + screen.left);
+				screen.left + dx, screen.right + dx, bits);
+		}
+		else
+		{
+			memset(bits, 0, width);
+		}
+
+		// Which layer shows can change where the pixels don't
+		uint8 *mask = m_mapMask + row * m_width + screen.left;
+		if (memcmp(mask, bits, width) != 0)
+		{
+			memcpy(mask, bits, width);
+			ScreenChanged();
 		}
 	}
-	else
-	{
-		for (sint32 row = screen.top; row < screen.bottom; ++row)
-			memset(m_mapMask + row * m_width + screen.left, 0, width);
-	}
+	delete [] bits;
 }
 
 /// Draw the map layer, and the interface over it except where the screen
@@ -669,6 +727,7 @@ AUI_ERRCODE aui_SDLUI::ChangeSize(sint32 width, sint32 height)
 	m_pixelFormat = m_primary->PixelFormat();
 */
 	Invalidate(NULL);
+	ScreenChanged();
 
 	return AUI_ERRCODE_OK;
 }
