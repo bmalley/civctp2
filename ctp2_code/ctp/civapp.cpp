@@ -185,6 +185,7 @@
 #include "InfoBar.h"
 #include "infowin.h"
 #include "infowindow.h"                 // Info Window cleanup
+#include "ReplayWindow.h"                // Replay Window cleanup
 #include "initialplaywindow.h"
 #include "intelligencewindow.h"
 #include "IntroMovieWin.h"
@@ -2208,6 +2209,7 @@ void CivApp::CleanupGameUI(void)
 
 	InfoBar::Cleanup();
 	InfoWindow::Cleanup();
+	ReplayWindow::Cleanup();
 	ScienceVictoryDialog::Cleanup();
 
 	sci_advancescreen_Cleanup();

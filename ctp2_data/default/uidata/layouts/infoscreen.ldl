@@ -291,6 +291,15 @@ InfoDialog:CTP2_3TAB_DIALOG_WINDOW {
 					string text "str_ldl_LINE_BUTTON"
 				} # LineOrZeroSum
 
+				# Opens the map timelapse (ReplayWindow)
+				Timelapse:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+					int xpix     176
+					int ypix     255
+					int widthpix 136
+
+					string text "str_ldl_REPLAY_BUTTON"
+				} # Timelapse
+
 				# The graph
 				InfoGraph {
 					int xpix      13
@@ -405,5 +414,62 @@ WonderTabListItem:CTP2_LIST_ITEM
 			bool vertcenter true
 			string just "center"
 		}
+	}
+}
+
+###################
+#
+# MAP TIMELAPSE (ReplayWindow): the replay recording played back
+#
+ReplayDialog:CTP2_DIALOG_WINDOW {
+	string	title	"str_ldl_REPLAY_TITLE"
+	int		widthpix	800
+	int		heightpix	558
+
+	# The map, the timeline under it and the legend (ReplayMap)
+	Map {
+		string	objecttype	"ctp2_ReplayMap"
+		int		xpix		36
+		int		ypix		40
+		int		widthpix	718
+		int		heightpix	466
+	}
+
+	BackButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		36
+		int		ypix		514
+		int		widthpix	50
+		string	text	"str_ldl_REPLAY_BACK"
+	}
+
+	PlayButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		92
+		int		ypix		514
+		int		widthpix	120
+		string	text	"str_ldl_REPLAY_PLAY"
+	}
+
+	ForwardButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		218
+		int		ypix		514
+		int		widthpix	50
+		string	text	"str_ldl_REPLAY_FORWARD"
+	}
+
+	CloseButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		618
+		int		ypix		514
+		int		widthpix	136
+		string	text	"str_ldl_CLOSE_BUTTON"
+		string	shortcut	"ESC"
+	}
+
+	Background:CTP2_DIALOG_BG {
+		int		widthpix	800
+		int		heightpix	558
+		string	image00	"uptg23a.tga"
+		string	image02	"uptg23c.tga"
+		string	image03	"dw_lb.tga"
+		string	image05	"dw_rb.tga"
 	}
 }
