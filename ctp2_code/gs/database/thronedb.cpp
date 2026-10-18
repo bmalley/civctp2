@@ -110,7 +110,7 @@ sint32 ThroneDB::ParseThroneDatabase(const MBCHAR *filename)
 	sint32 nThrones = 0;
 	sint32 index = 0;
 
-	Token *throneToken = new Token(filename, TOKEN_THRONE_MAX - TOKEN_MAX, s_ThroneDB_token_data, C3DIR_GAMEDATA);
+	Token *throneToken = new Token(filename, TOKEN_THRONE_MAX - TOKEN_THRONE_IS_CEILING, s_ThroneDB_token_data, C3DIR_GAMEDATA);
 
 	Assert(throneToken);
 
