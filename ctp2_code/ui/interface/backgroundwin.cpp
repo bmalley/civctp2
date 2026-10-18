@@ -139,7 +139,6 @@ sint32 g_debugOwner = k_DEBUG_OWNER_NONE;
 AUI_ERRCODE background_draw_handler(LPVOID bg)
 {
 	Background  *   back    = reinterpret_cast<Background *>(bg);
-	aui_Surface	*   surface = (back)    ? back->TheSurface() : NULL;
 	aui_Mouse *     mouse   = (g_c3ui)  ? g_c3ui->TheMouse() : NULL;
 
     if (!mouse || !g_tiledMap)
@@ -147,6 +146,9 @@ AUI_ERRCODE background_draw_handler(LPVOID bg)
         // Busy initialising: postpone drawing until ready.
         return AUI_ERRCODE_INVALIDPARAM;
     }
+
+	// At super zoom the map is drawn into a smaller surface first
+	aui_Surface	*   surface = g_tiledMap->GetMixSurface();
 
 	if (g_modalWindow > 0)
     {

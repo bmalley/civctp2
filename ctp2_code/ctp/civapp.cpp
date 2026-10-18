@@ -2321,7 +2321,7 @@ void CivApp::ProcessGraphicsCallback(void)
 
 	s_inCallback = true;
 
-	g_tiledMap->RestoreMixFromMap(g_background->TheSurface());
+	g_tiledMap->RestoreMixFromMap(g_tiledMap->GetMixSurface());
 	g_background->Draw();
 	g_c3ui->Process();
 
@@ -2372,7 +2372,7 @@ sint32 CivApp::ProcessUI(const uint32 target_milliseconds, uint32 &used_millisec
 			else
 			{
 				if(g_tiledMap) {
-					g_tiledMap->RestoreMixFromMap(g_background->TheSurface());
+					g_tiledMap->RestoreMixFromMap(g_tiledMap->GetMixSurface());
 				}
 				if(g_background)
 					g_background->Draw();
