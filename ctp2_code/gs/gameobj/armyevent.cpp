@@ -80,6 +80,7 @@
 #include "CivilisationPool.h"
 #include "Happy.h"
 #include "profileDB.h"
+#include "civapp.h"                     // Observer_HidesMoves
 
 extern ArmyPool		*g_theArmyPool;
 
@@ -1453,7 +1454,7 @@ STDEHANDLER(DirectorMoveUnitsEvent)
 	if(!hiddenMove && g_selected_item->IsAutoCenterOn()
 	   && !g_director->TileWillBeCompletelyVisible(newPos.x, newPos.y)
 	   && (top_src.GetVisibility() & (1 << g_selected_item->GetVisiblePlayer()))
-	   && (g_theProfileDB->IsEnemyMoves() || top_src.GetOwner() == g_selected_item->GetVisiblePlayer()))
+	   && ((g_theProfileDB->IsEnemyMoves() && !Observer_HidesMoves()) || top_src.GetOwner() == g_selected_item->GetVisiblePlayer()))
 	{
 		g_director->AddCenterMap(newPos);
 	}
