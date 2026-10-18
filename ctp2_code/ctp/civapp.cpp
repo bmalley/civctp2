@@ -265,6 +265,9 @@
 #include "UnitDynArr.h"
 #include "unitmanager.h"
 #include "UnitRecord.h"
+#include "newturncount.h"               // NewTurnCount::GetStopPlayer
+#include "StatusBar.h"
+#include "wonderutil.h"                 // wonderutil_GetGlobalRadar
 #include "unitutil.h"
 #include "UVDB.h"
 #include "victorywin.h"
@@ -2507,6 +2510,150 @@ sint32 CivApp::ProcessProfile(void)
 	return 0;
 }
 
+// Observer mode (profile ObserverMode): the AI plays your civ as well, and
+// rounds advance by themselves every ObserverTurnDelay seconds (0: press End
+// Turn to step), so you can watch an all-AI game. Space pauses. With
+// ObserverReveal your civ sees the whole map, as if it owned the GlobeSat.
+void WhackScreen();                     // keypress.cpp
+
+namespace
+{
+	bool    s_observerPaused    = false;
+	uint32  s_observerTurnReady = 0;    // ticks when the AI finished your civ's turn
+
+	bool ObserverAllowed()
+	{
+		return g_theProfileDB && g_selected_item && g_player
+		    && !g_network.IsActive() && !g_network.IsNetworkLaunch();
+	}
+
+	void ObserverReveal(Player *player, bool reveal)
+	{
+		if (reveal)
+		{
+			player->m_hasGlobalRadar = TRUE;
+			for (sint32 p = 0; p < k_MAX_PLAYERS; ++p)
+			{
+				if (!g_player[p] || p == player->m_owner) continue;
+
+				for (sint32 u = 0; u < g_player[p]->m_all_units->Num(); ++u)
+				{
+					Unit unit = g_player[p]->m_all_units->Access(u);
+					if (unit.GetDBRec()->GetVisionClassStandard())
+						unit.SetVisible(player->m_owner);
+				}
+				for (sint32 c = 0; c < g_player[p]->m_all_cities->Num(); ++c)
+				{
+					g_player[p]->m_all_cities->Access(c).SetVisible(player->m_owner);
+				}
+			}
+		}
+		else
+		{
+			// What it saw stays until the next turn's vision update
+			player->m_hasGlobalRadar = wonderutil_GetGlobalRadar(player->m_builtWonders);
+		}
+
+		WhackScreen();
+	}
+}
+
+bool Observer_IsActive()
+{
+	if (!ObserverAllowed()) return false;
+	sint32 stop = NewTurnCount::GetStopPlayer();
+	return stop >= 0 && stop < k_MAX_PLAYERS && g_player[stop] && g_player[stop]->IsRobot()
+	    && g_theProfileDB->IsObserverMode();
+}
+
+// Without ObserverFollow, other civs' moves aren't animated or followed:
+// with the whole map in view every move would be, and a round took many
+// minutes
+bool Observer_HidesMoves()
+{
+	return Observer_IsActive() && !g_theProfileDB->IsObserverFollow();
+}
+
+void Observer_TogglePause()
+{
+	s_observerPaused = !s_observerPaused;
+	StatusBar::SetText(s_observerPaused ? "Observer mode paused (Space resumes)"
+	                                    : "Observer mode running (Space pauses)");
+}
+
+static void ProcessObserver()
+{
+	static Player *s_player   = NULL;   // the stop player last frame
+	static bool    s_observed = false;  // we made it a robot
+	static bool    s_revealed = false;  // we gave it global radar
+
+	if (!ObserverAllowed()) return;
+
+	sint32 stop = NewTurnCount::GetStopPlayer();
+	Player *player = (stop >= 0 && stop < k_MAX_PLAYERS) ? g_player[stop] : NULL;
+	if (!player) return;
+
+	// A new or loaded game, or the stop player died: a robot stop player in
+	// single player is one we observed with (a save keeps the type)
+	if (player != s_player)
+	{
+		s_player   = player;
+		s_observed = player->IsRobot();
+		s_revealed = false;
+		s_observerTurnReady = 0;
+	}
+
+	bool const observe = g_theProfileDB->IsObserverMode() != FALSE;
+	if (observe != s_observed)
+	{
+		// As the /attach and /detach chat commands do; the AI takes over
+		// from the next turn
+		player->m_playerType = observe ? PLAYER_TYPE_ROBOT : PLAYER_TYPE_HUMAN;
+		s_observed = observe;
+		s_observerPaused = false;
+		StatusBar::SetText(observe ? "Observer mode: the AI plays your civ (Space pauses)"
+		                           : "Observer mode off: your civ is yours again");
+	}
+
+	bool const reveal = observe && g_theProfileDB->IsObserverReveal();
+	if (reveal != s_revealed)
+	{
+		ObserverReveal(player, reveal);
+		s_revealed = reveal;
+	}
+
+	if (!observe) return;
+
+	// The AI doesn't end the stop player's turn (CtpAi::BeginTurn): do it
+	// once it is done and the screen has caught up
+	bool const ready = g_selected_item->GetCurPlayer() == stop
+	                && g_selected_item->GetVisiblePlayer() == stop
+	                && g_gevManager && !g_gevManager->EventsPending()
+	                && !g_gevManager->NeedUserInput()
+	                && g_director && g_director->CaughtUp()
+	                && !g_modalWindow;
+	if (!ready)
+	{
+		s_observerTurnReady = 0;
+		return;
+	}
+	if (!s_observerTurnReady)
+	{
+		s_observerTurnReady = Os::GetTicks();
+	}
+
+	sint32 const delay = g_theProfileDB->GetObserverTurnDelay();
+	if (s_observerPaused || delay <= 0
+	 || Os::GetTicks() - s_observerTurnReady < uint32(delay) * 1000)
+	{
+		return;
+	}
+
+	s_observerTurnReady = 0;
+	g_selected_item->RegisterManualEndTurn();
+	g_gevManager->EndTurnRequest();
+}
+
 sint32 CivApp::Process(void)
 {
 #ifdef _DEBUG
@@ -2562,6 +2709,9 @@ sint32 CivApp::Process(void)
 
 	if(g_gevManager)
 		g_gevManager->Process();
+
+	if (m_gameLoaded)
+		ProcessObserver();
 
 	if (m_gameLoaded && g_savedGameRequest && g_selected_item)
 	{
