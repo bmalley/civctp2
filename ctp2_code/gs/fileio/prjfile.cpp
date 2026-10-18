@@ -637,6 +637,23 @@ int ProjectFile::addPath(char const * path, bool use_filemapping)
     return addPath_DOS(path);
 }
 
+/// Whether other was built from the same files, of the same types, in the same order
+bool ProjectFile::SamePaths(ProjectFile const & other) const
+{
+    if (m_num_paths != other.m_num_paths) return false;
+
+    for (int i = 0; i < m_num_paths; ++i)
+    {
+        if ((m_paths[i].type != other.m_paths[i].type) ||
+            (strcmp(m_paths[i].dos_path, other.m_paths[i].dos_path) != 0))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool ProjectFile::IsReported(char const * a_FileName) const
 {
     return m_Reported.find(std::string(a_FileName)) != m_Reported.end();
