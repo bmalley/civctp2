@@ -126,6 +126,11 @@ class SelectedItem
 	bool         m_justNowSelectedArmy;
 	bool         m_justGotDoubleClick;
 
+	// RightClickMove: a right press starts a drag that shows the path,
+	// the release moves
+	enum { RIGHT_DRAG_NONE, RIGHT_DRAG_ACTIVE, RIGHT_DRAG_CANCELLED } m_rightDrag;
+	sint32       m_rightDragReleasedFrames;
+
 	ClickFunctionPtr m_clickFunc[SELECT_TYPE_MAX][SELECT_TYPE_MAX][SELECT_BUTTON_MAX][SELECT_MODE_MAX];
 
 public:
@@ -203,6 +208,10 @@ public:
 	void GetOldMouseTilePos(MapPoint &p) const { p = m_cur_mouse_tile; }
 	void SetCurMouseTile(const MapPoint &p) { m_cur_mouse_tile = p; }
 	void SetDrawablePathDest(MapPoint &p, bool force = false);
+	bool IsRightDragging() const { return m_rightDrag == RIGHT_DRAG_ACTIVE; }
+	bool CancelRightDrag();
+	void EndRightDrag(const MapPoint *pos, const aui_MouseEvent *data);
+	void CheckRightDragReleased(bool buttonDown);
 	void ConstructPath(bool &isCircular, double &cost);
 
 	Path *GetGoodPath() { return m_good_path; }

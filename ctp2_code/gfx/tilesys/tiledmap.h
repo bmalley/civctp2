@@ -404,6 +404,7 @@ public:
 	void		MouseDrag(aui_MouseEvent *data);
 	void		Click(aui_MouseEvent *data, bool doubleClick);
 	void		Drop(aui_MouseEvent *data);
+	void		RightDrop(aui_MouseEvent *data);
 	void		Idle(void);
 
 	bool		GetMousePos(POINT &pos) const;

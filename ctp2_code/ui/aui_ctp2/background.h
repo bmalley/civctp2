@@ -94,6 +94,8 @@ protected:
     virtual void	MouseLDropOutside(aui_MouseEvent * data);
     virtual void	MouseLDragInside(aui_MouseEvent * data);
     virtual void	MouseRGrabInside(aui_MouseEvent * data);
+    virtual void	MouseRDragInside(aui_MouseEvent * data);
+    virtual void	MouseRDropInside(aui_MouseEvent * data);
     virtual void	MouseMoveOver(aui_MouseEvent * data);
     virtual void	MouseMoveInside(aui_MouseEvent * data);
     virtual void	MouseMoveAway(aui_MouseEvent * data);
