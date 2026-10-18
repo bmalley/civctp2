@@ -39,6 +39,7 @@
 
 #include "aui_mouse.h"
 #include "aui_keyboard.h"
+#include "aui_rectangle.h"              // Rectangle_Clip
 #include "aui_joystick.h"
 #include "aui_sdlsurface.h"
 #include "aui_sdlmouse.h"
@@ -71,7 +72,14 @@ aui_SDLUI::aui_SDLUI
     aui_SDL             (),
     m_SDLWindow         (0),
     m_SDLRenderer       (0),
-    m_SDLTexture        (0)
+    m_SDLTexture        (0),
+    m_mapMix            (NULL),
+    m_mapWindow         (NULL),
+    m_mapScale          (1.0),
+    m_mapTexture        (NULL),
+    m_uiTexture         (NULL),
+    m_uiColors          (NULL),
+    m_mapMask           (NULL)
 {
 	*retval = aui_Region::InitCommon( 0, 0, 0, width, height );
 	Assert( AUI_SUCCESS(*retval) );
@@ -169,6 +177,7 @@ AUI_ERRCODE aui_SDLUI::CreateNativeScreen( BOOL useExclusiveMode )
 
 aui_SDLUI::~aui_SDLUI( void )
 {
+	DestroyMapLayer();
 	if (m_SDLTexture) {
 		SDL_DestroyTexture(m_SDLTexture);
 		m_SDLTexture = NULL;
@@ -349,6 +358,13 @@ AUI_ERRCODE aui_SDLUI::SDLDrawScreen( void )
 	Assert(m_primary);
 	Assert(m_SDLTexture);
 	Assert(m_SDLRenderer);
+
+	if (DrawMapLayer())
+	{
+		SDL_RenderPresent(m_SDLRenderer);
+		return AUI_ERRCODE_OK;
+	}
+
 	int errcode;
 	errcode= SDL_UpdateTexture(m_SDLTexture, NULL, m_primary->Buffer(), m_primary->Pitch());
 #if !defined(WIN32)
@@ -369,6 +385,263 @@ AUI_ERRCODE aui_SDLUI::SDLDrawScreen( void )
 		return AUI_ERRCODE_SURFACEFAILURE;
 	else
 		return AUI_ERRCODE_OK;
+}
+
+bool aui_SDLUI::GetOutputScale(sint32 &num, sint32 &den)
+{
+	num = den = 1;
+	int w = 0, h = 0;
+	if (m_bpp != 16 || !m_SDLRenderer || SDL_GetRendererOutputSize(m_SDLRenderer, &w, &h) < 0)
+		return false;
+
+	// The logical size keeps its aspect ratio, so the tighter side sets the scale
+	if ((sint64)w * m_height <= (sint64)h * m_width)
+	{
+		num = w;
+		den = m_width;
+	}
+	else
+	{
+		num = h;
+		den = m_height;
+	}
+	return num > 0 && den > 0;
+}
+
+void aui_SDLUI::DestroyMapLayer()
+{
+	if (m_mapTexture)
+	{
+		SDL_DestroyTexture(m_mapTexture);
+		m_mapTexture = NULL;
+	}
+	if (m_uiTexture)
+	{
+		SDL_DestroyTexture(m_uiTexture);
+		m_uiTexture = NULL;
+	}
+	delete [] m_uiColors;
+	m_uiColors  = NULL;
+	delete [] m_mapMask;
+	m_mapMask   = NULL;
+	m_mapMix    = NULL;
+	m_mapWindow = NULL;
+}
+
+void aui_SDLUI::SetMapLayer(aui_Surface *mix, const RECT *mixRect,
+	aui_Window *window, const RECT *viewport, double scale)
+{
+	if (!mix || !window || m_bpp != 16)
+	{
+		DestroyMapLayer();
+		return;
+	}
+
+	sint32 width  = mixRect->right - mixRect->left;
+	sint32 height = mixRect->bottom - mixRect->top;
+	bool   upload = mix != m_mapMix
+	             || memcmp(mixRect, &m_mapMixRect, sizeof(RECT)) != 0;
+
+	if (m_mapTexture && upload)
+	{
+		int w = 0, h = 0;
+		SDL_QueryTexture(m_mapTexture, NULL, NULL, &w, &h);
+		if (w != width || h != height)
+		{
+			SDL_DestroyTexture(m_mapTexture);
+			m_mapTexture = NULL;
+		}
+	}
+
+	if (!m_mapTexture)
+	{
+		m_mapTexture = SDL_CreateTexture(m_SDLRenderer,
+			aui_SDLSurface::TransformSurfacePixelFormatToSDL(m_pixelFormat),
+			SDL_TEXTUREACCESS_STREAMING, width, height);
+		if (!m_mapTexture)
+		{
+			std::cerr << "SDL map texture: " << SDL_GetError() << std::endl;
+			DestroyMapLayer();
+			return;
+		}
+		// Map pixels land on whole output pixels; super zoom enlarges them blocky
+		SDL_SetTextureScaleMode(m_mapTexture, SDL_ScaleModeNearest);
+	}
+
+	if (!m_uiTexture)
+	{
+		m_uiTexture = SDL_CreateTexture(m_SDLRenderer, SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING, m_width, m_height);
+		if (!m_uiTexture)
+		{
+			std::cerr << "SDL interface texture: " << SDL_GetError() << std::endl;
+			DestroyMapLayer();
+			return;
+		}
+		// Clear pixels are all 0 and the rest fully opaque, so the texture is
+		// premultiplied: linear scaling then fades edges into the map instead
+		// of into black. Not every renderer has custom blend modes.
+		SDL_BlendMode premultiplied = SDL_ComposeCustomBlendMode(
+			SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD,
+			SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD);
+		if (SDL_SetTextureBlendMode(m_uiTexture, premultiplied) < 0)
+			SDL_SetTextureBlendMode(m_uiTexture, SDL_BLENDMODE_BLEND);
+
+		SDL_PixelFormat *format = SDL_AllocFormat(
+			aui_SDLSurface::TransformSurfacePixelFormatToSDL(m_pixelFormat));
+		m_uiColors = new uint32[0x10000];
+		for (uint32 i = 0; i < 0x10000; ++i)
+		{
+			Uint8 r, g, b;
+			SDL_GetRGB(i, format, &r, &g, &b);
+			m_uiColors[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
+		}
+		SDL_FreeFormat(format);
+
+		// Filled in as windows reach the screen; the map window is redrawn
+		// in full when the layer starts
+		m_mapMask = new uint8[m_width * m_height];
+		memset(m_mapMask, 0, m_width * m_height);
+	}
+
+	m_mapMix      = mix;
+	m_mapMixRect  = *mixRect;
+	m_mapWindow   = window;
+	m_mapViewport = *viewport;
+	m_mapScale    = scale;
+
+	if (upload)
+		UpdateMapLayer(mixRect);
+}
+
+void aui_SDLUI::UpdateMapLayer(const RECT *rect)
+{
+	if (!m_mapMix || !m_mapTexture) return;
+
+	RECT r = *rect;
+	if (!Rectangle_Clip(&r, &m_mapMixRect)) return;
+
+	uint8 *buffer = NULL;
+	if (m_mapMix->Lock(NULL, (LPVOID *)&buffer, 0) != AUI_ERRCODE_OK) return;
+
+	SDL_Rect dest = { r.left - m_mapMixRect.left, r.top - m_mapMixRect.top,
+	                  r.right - r.left, r.bottom - r.top };
+	sint32   pitch = m_mapMix->Pitch();
+	if (SDL_UpdateTexture(m_mapTexture, &dest,
+		buffer + r.top * pitch + r.left * sizeof(uint16), pitch) < 0)
+	{
+		std::cerr << "SDL error: " << SDL_GetError() << std::endl;
+	}
+
+	m_mapMix->Unlock(buffer);
+}
+
+void aui_SDLUI::MapLayerBlt(sint32 x, sint32 y, aui_Window *window, const RECT *windowRect)
+{
+	if (!m_mapMask) return;
+
+	RECT screen = *windowRect;
+	OffsetRect(&screen, x - windowRect->left, y - windowRect->top);
+	RECT bounds = { 0, 0, m_width, m_height };
+	if (!Rectangle_Clip(&screen, &bounds) || screen.right <= screen.left) return;
+
+	const sint32 width = screen.right - screen.left;
+	if (window && window == m_mapWindow)
+	{
+		for (sint32 row = screen.top; row < screen.bottom; ++row)
+			memset(m_mapMask + row * m_width + screen.left, 1, width);
+	}
+	else if (window && !window->IsOpaque() && window->GetStencil())
+	{
+		// Only where the window shows what's under it (aui_UI::ClipAndConsolidate)
+		const sint32 dx = windowRect->left - x;
+		const sint32 dy = windowRect->top - y;
+		for (sint32 row = screen.top; row < screen.bottom; ++row)
+		{
+			aui_StencilRowMask(window->GetStencil(), row + dy,
+				screen.left + dx, screen.right + dx,
+				m_mapMask + row * m_width + screen.left);
+		}
+	}
+	else
+	{
+		for (sint32 row = screen.top; row < screen.bottom; ++row)
+			memset(m_mapMask + row * m_width + screen.left, 0, width);
+	}
+}
+
+/// Draw the map layer, and the interface over it except where the screen
+/// shows the map window's own (lower resolution) copy of the map: pixels last
+/// copied from it, directly or through another window's holes, and not drawn
+/// over since (the cursor)
+bool aui_SDLUI::DrawMapLayer()
+{
+	if (!m_mapMix || !m_mapTexture || !m_uiTexture || !m_mapWindow
+	 || m_mapWindow->IsHidden() || GetWindow(m_mapWindow->Id()) != m_mapWindow)
+	{
+		return false;
+	}
+
+	aui_Surface *window = m_mapWindow->TheSurface();
+	if (!window || window->BitsPerPixel() != 16 || m_primary->BitsPerPixel() != 16)
+		return false;
+
+	// The viewport on the screen
+	sint32 windowX = m_mapWindow->X();
+	sint32 windowY = m_mapWindow->Y();
+	RECT   screen  = m_mapViewport;
+	OffsetRect(&screen, windowX, windowY);
+	RECT   bounds  = { 0, 0, m_width, m_height };
+	RECT   windowBounds = { windowX, windowY, windowX + window->Width(), windowY + window->Height() };
+	RECT   compare = screen;
+	if (!Rectangle_Clip(&compare, &bounds) || !Rectangle_Clip(&compare, &windowBounds))
+		SetRect(&compare, 0, 0, 0, 0);
+
+	uint8 *windowBuf = NULL;
+	if (window->Lock(NULL, (LPVOID *)&windowBuf, 0) != AUI_ERRCODE_OK)
+		return false;
+
+	void *pixels = NULL;
+	int   pitch  = 0;
+	if (SDL_LockTexture(m_uiTexture, NULL, &pixels, &pitch) < 0)
+	{
+		window->Unlock(windowBuf);
+		return false;
+	}
+
+	const uint8  *primaryBuf   = m_primary->Buffer();
+	const sint32  primaryPitch = m_primary->Pitch();
+	const sint32  windowPitch  = window->Pitch();
+	for (sint32 y = 0; y < m_height; ++y)
+	{
+		const uint16 *p = (const uint16 *)(primaryBuf + y * primaryPitch);
+		uint32       *d = (uint32 *)((uint8 *)pixels + y * pitch);
+		sint32        x = 0;
+		if (y >= compare.top && y < compare.bottom)
+		{
+			const uint16 *w = (const uint16 *)(windowBuf + (y - windowY) * windowPitch) - windowX;
+			const uint8  *m = m_mapMask + y * m_width;
+			for (; x < compare.left; ++x)
+				d[x] = m_uiColors[p[x]];
+			for (; x < compare.right; ++x)
+				d[x] = (m[x] && p[x] == w[x]) ? 0 : m_uiColors[p[x]];
+		}
+		for (; x < m_width; ++x)
+			d[x] = m_uiColors[p[x]];
+	}
+
+	SDL_UnlockTexture(m_uiTexture);
+	window->Unlock(windowBuf);
+
+	sint32   mixWidth  = m_mapMixRect.right - m_mapMixRect.left;
+	sint32   mixHeight = m_mapMixRect.bottom - m_mapMixRect.top;
+	SDL_FRect mapRect  = { (float)screen.left, (float)screen.top,
+	                       (float)(mixWidth / m_mapScale), (float)(mixHeight / m_mapScale) };
+
+	SDL_RenderClear(m_SDLRenderer);
+	SDL_RenderCopyF(m_SDLRenderer, m_mapTexture, NULL, &mapRect);
+	SDL_RenderCopy(m_SDLRenderer, m_uiTexture, NULL, NULL);
+	return true;
 }
 
 AUI_ERRCODE aui_SDLUI::ChangeSize(sint32 width, sint32 height)
