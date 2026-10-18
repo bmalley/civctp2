@@ -69,6 +69,11 @@ extern BOOL g_runInBackground;
 //
 //----------------------------------------------------------------------------
 
+// Observer mode (profile ObserverMode), see civapp.cpp
+bool Observer_IsActive();
+bool Observer_HidesMoves();
+void Observer_TogglePause();
+
 class CivApp
 {
 public:

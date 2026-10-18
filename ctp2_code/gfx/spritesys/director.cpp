@@ -69,6 +69,7 @@
 #include "player.h"                 // g_player
 #include "primitives.h"
 #include "profileDB.h"              // g_theProfileDB
+#include "civapp.h"                     // Observer_HidesMoves
 #include "radarmap.h"               // g_radarMap
 #include "sci_advancescreen.h"
 #include "screenutils.h"
@@ -607,7 +608,9 @@ private:
 
 	bool SkipEnemyMoves()
 	{
-		return (!g_theProfileDB->IsEnemyMoves() && m_owner != -1 && m_owner != g_selected_item->GetVisiblePlayer());
+		return m_owner != -1
+		    && ((!g_theProfileDB->IsEnemyMoves() && m_owner != g_selected_item->GetVisiblePlayer())
+		     || Observer_HidesMoves());
 	}
 
 	bool SkipRobotUnitAnimations()
@@ -2642,7 +2645,7 @@ void DirectorImpl::AddMove (
 	}
 	Assert(actor->GetUnitID() == mover.m_id);
 
-	if (g_theProfileDB->IsEnemyMoves() &&
+	if (g_theProfileDB->IsEnemyMoves() && !Observer_HidesMoves() &&
 		mover.GetOwner() != g_selected_item->GetVisiblePlayer() &&
 		(mover.GetVisibility() & (1 << g_selected_item->GetVisiblePlayer())) &&
 		!TileWillBeCompletelyVisible(endPos.x, endPos.y))
@@ -2811,7 +2814,7 @@ void DirectorImpl::AddSpaceLaunch(const Unit & launcher, const MapPoint & destin
 	// keeps its own, separate IsEnemyMoves() gate, unchanged.
 	bool playerInvolved = g_selected_item->IsAutoCenterOn()
 	                      && (launcher->GetOwner() == g_selected_item->GetVisiblePlayer());
-	bool visibleEnemyUnit = g_theProfileDB->IsEnemyMoves()
+	bool visibleEnemyUnit = g_theProfileDB->IsEnemyMoves() && !Observer_HidesMoves()
 	                        && (launcher->GetVisibility() & (1 << g_selected_item->GetVisiblePlayer()));
 	if ((playerInvolved || visibleEnemyUnit)
 		&& !TileWillBeCompletelyVisible(launcher.RetPos().x, launcher.RetPos().y)) {
@@ -2894,7 +2897,7 @@ void DirectorImpl::AddDeath(UnitActor *dead, const MapPoint &deadPos, sint32 dea
 
 	bool playerInvolved = (dead->GetPlayerNum() == g_selected_item->GetVisiblePlayer())
 			|| (killedBy == g_selected_item->GetVisiblePlayer());
-	bool visibleEnemyUnit = g_theProfileDB->IsEnemyMoves()
+	bool visibleEnemyUnit = g_theProfileDB->IsEnemyMoves() && !Observer_HidesMoves()
 							&& dead->GetPlayerNum() != g_selected_item->GetVisiblePlayer()
 							&& (dead->GetUnitVisibility() & (1 << g_selected_item->GetVisiblePlayer()));
 	if ((playerInvolved || visibleEnemyUnit) && !TileWillBeCompletelyVisible(deadPos.x, deadPos.y) && g_theProfileDB->IsAutoCenter()) {

@@ -762,8 +762,18 @@ void DipWizard::SetStage(sint32 stage)
 	UpdateViewProposalStage();
 }
 
+// When the AI plays the visible player (observer mode) nobody is there to
+// read proposals and answers, and the window held up the rounds
+static bool VisiblePlayerIsRobot()
+{
+	sint32 const visible = g_selected_item->GetVisiblePlayer();
+	return visible >= 0 && visible < k_MAX_PLAYERS && g_player[visible] && g_player[visible]->IsRobot();
+}
+
 void DipWizard::SetViewResponse(sint32 sender, sint32 recipient, bool negotiationsComplete, const Response *useResp, const Response *useThreatResp)
 {
+	if (VisiblePlayerIsRobot()) return;
+
 	const Response & sender_response =
 		Diplomat::GetDiplomat(sender).GetResponsePending(recipient);
 
@@ -891,6 +901,8 @@ void DipWizard::SetViewResponse(sint32 sender, sint32 recipient, bool negotiatio
 
 void DipWizard::SetViewProposal(sint32 sender, sint32 receiver)
 {
+	if (VisiblePlayerIsRobot()) return;
+
 	m_viewSender = sender;
 	m_viewRecipient = receiver;
 
