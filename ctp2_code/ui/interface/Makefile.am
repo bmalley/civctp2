@@ -141,6 +141,7 @@ libuiinterface_la_SOURCES = \
 	infowindow.cpp \
 	rankingtab.cpp \
 	ReplayWindow.cpp \
+	GraphWindow.cpp \
 	scoretab.cpp \
 	timelinetab.cpp \
 	sciencevictorydialog.cpp

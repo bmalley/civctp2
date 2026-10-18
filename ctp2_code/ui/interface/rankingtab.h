@@ -69,6 +69,7 @@ private:
 	ctp2_DropDown  *m_rankingDropDown;
 	ctp2_Button    *m_lineOrZeroSumButton;
 	ctp2_Button    *m_timelapseButton;
+	ctp2_Button    *m_largeGraphButton;
 	ctp2_ListBox   *m_infoPlayerList;
 
 	sint32          m_rankingMilitary;
@@ -107,6 +108,9 @@ private:
 		uint32 action, uint32 data, Cookie cookie);
 
 	static void TimelapseButtonActionCallback(aui_Control *control,
+		uint32 action, uint32 data, Cookie cookie);
+
+	static void LargeGraphButtonActionCallback(aui_Control *control,
 		uint32 action, uint32 data, Cookie cookie);
 
 };
