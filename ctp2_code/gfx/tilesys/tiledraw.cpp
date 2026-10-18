@@ -867,7 +867,7 @@ void TiledMap::DrawPath(Path *path)
 
 		RECT rect = {x-2, y-2, x+2, y+2};
 
-		primitives_PaintRect16(g_background->TheSurface(), &rect, 0xFFFF);
+		primitives_PaintRect16(GetMixSurface(), &rect, 0xFFFF);
 
 		AddDirtyRectToMix(rect);
 	}
