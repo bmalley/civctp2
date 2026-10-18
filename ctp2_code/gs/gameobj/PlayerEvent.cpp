@@ -87,6 +87,8 @@
 
 // Propagate PW each turn update
 #include "MaterialPool.h"
+#include "newturncount.h"               // NewTurnCount::GetStopPlayer
+#include "Replay.h"
 
 extern TurnCount *g_turn;
 extern CivApp *g_civApp;
@@ -338,6 +340,12 @@ STDEHANDLER(FinishBeginTurnEvent)
 	DPRINTF(k_DBG_GAMESTATE, ("Public Works: %d\n", p->m_materialPool->GetMaterials()));
 
 	p->m_strengths->Calculate();
+
+	// Once a round, at the turn of the player playing (or watching)
+	if (p->m_owner == NewTurnCount::GetStopPlayer())
+	{
+		replay_RecordRound(p->GetCurRound());
+	}
 
 	if ( p->m_owner == g_selected_item->GetVisiblePlayer() )
 	{
