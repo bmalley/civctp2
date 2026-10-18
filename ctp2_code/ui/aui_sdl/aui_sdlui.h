@@ -58,7 +58,10 @@ protected:
 	    m_mapTexture        (NULL),
 	    m_uiTexture         (NULL),
 	    m_uiColors          (NULL),
-	    m_mapMask           (NULL)
+	    m_mapMask           (NULL),
+	    m_mapShadow         (NULL),
+	    m_mapShadowStale    (true),
+	    m_lastPresent       (0)
 	{ ; };
 
 	AUI_ERRCODE InitCommon( void );
@@ -104,6 +107,10 @@ protected:
 	SDL_Texture *m_uiTexture;       // ARGB primary, clear where the map shows
 	uint32      *m_uiColors;        // primary pixel -> ARGB
 	uint8       *m_mapMask;         // per screen pixel: copied from the map window
+	uint16      *m_mapShadow;       // what m_mapTexture holds
+	bool         m_mapShadowStale;  // until all of it is uploaded
+
+	Uint32       m_lastPresent;     // SDL ticks
 };
 
 typedef aui_SDLUI aui_NativeUI;
