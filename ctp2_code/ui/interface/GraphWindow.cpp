@@ -35,6 +35,7 @@
 #include "player.h"             // g_player
 #include "pointerlist.h"
 #include "primitives.h"
+#include "Replay.h"             // replay_LoadCurrent
 #include "StrDB.h"              // g_theStringDB
 #include "Strengths.h"
 #include "textutils.h"
@@ -50,31 +51,36 @@ namespace
 	sint32 const    k_AXIS_WIDTH    = 56;
 	sint32 const    k_AXIS_HEIGHT   = 24;
 
-	// The Ranking tab's categories, in its order
+	// Not a Ranking category: the score history in the replay file
+	sint32 const    k_SCORE         = -1;
+
+	// The Ranking tab's categories, in its order, then the score
 	struct Category
 	{
 		MBCHAR const *  name;
 		sint32          category;
+		MBCHAR const *  english;    // for a string only English has
 	};
 
 	Category const  k_CATEGORIES[] =
 	{
-		{ "str_ldl_RANKING_MILITARY",   kRankingMilitary     },
-		{ "str_ldl_RANKING_ECONOMIC",   kRankingEconomic     },
-		{ "str_ldl_RANKING_SCIENTIFIC", kRankingScientific   },
-		{ "str_ldl_RANKING_POLLUTION",  kRankingPollution    },
-		{ "str_ldl_RANKING_TRADE",      kRankingTrade        },
-		{ "str_ldl_RANKING_GOLD",       kRankingGold         },
-		{ "str_ldl_RANKING_CITIES",     kRankingCities       },
-		{ "str_ldl_RANKING_POPULATION", kRankingPopulation   },
-		{ "str_ldl_RANKING_AREA",       kRankingGeographical },
-		{ "str_ldl_RANKING_UNITS",      kRankingUnits        },
-		{ "str_ldl_RANKING_BUILDINGS",  kRankingBuildings    },
-		{ "str_ldl_RANKING_WONDERS",    kRankingWonders      },
-		{ "str_ldl_RANKING_OVERALL",    kRankingOverall      },
+		{ "str_ldl_RANKING_MILITARY",   kRankingMilitary     , NULL },
+		{ "str_ldl_RANKING_ECONOMIC",   kRankingEconomic     , NULL },
+		{ "str_ldl_RANKING_SCIENTIFIC", kRankingScientific   , NULL },
+		{ "str_ldl_RANKING_POLLUTION",  kRankingPollution    , NULL },
+		{ "str_ldl_RANKING_TRADE",      kRankingTrade        , NULL },
+		{ "str_ldl_RANKING_GOLD",       kRankingGold         , NULL },
+		{ "str_ldl_RANKING_CITIES",     kRankingCities       , NULL },
+		{ "str_ldl_RANKING_POPULATION", kRankingPopulation   , NULL },
+		{ "str_ldl_RANKING_AREA",       kRankingGeographical , NULL },
+		{ "str_ldl_RANKING_UNITS",      kRankingUnits        , NULL },
+		{ "str_ldl_RANKING_BUILDINGS",  kRankingBuildings    , NULL },
+		{ "str_ldl_RANKING_WONDERS",    kRankingWonders      , NULL },
+		{ "str_ldl_RANKING_OVERALL",    kRankingOverall      , NULL },
+		{ "str_ldl_GRAPH_SCORE",        k_SCORE              , "Score" },
 	};
 	sint32 const    k_NUM_CATEGORIES    = sizeof(k_CATEGORIES) / sizeof(k_CATEGORIES[0]);
-	sint32 const    k_OVERALL           = k_NUM_CATEGORIES - 1;
+	sint32 const    k_OVERALL           = k_NUM_CATEGORIES - 2;
 
 	// Only English has these strings; other languages get the English text
 	MBCHAR const * Str(MBCHAR const *id, MBCHAR const *english)
@@ -148,6 +154,7 @@ StatsGraph::StatsGraph(AUI_ERRCODE *retval, uint32 id, const MBCHAR *ldlBlock)
 	m_series        (),
 	m_rounds        (0),
 	m_share         (false),
+	m_hasData       (true),
 	m_hover         (-1)
 {
 	AUI_ERRCODE errcode = AUI_ERRCODE_OK;
@@ -170,6 +177,7 @@ void StatsGraph::Load(sint32 category)
 	m_series.clear();
 	m_rounds = g_turn ? g_turn->GetRound() : 0;
 	m_hover = -1;
+	m_hasData = true;
 
 	// The players the Ranking graph shows: the living ones but the
 	// barbarians, then the dead
@@ -198,16 +206,52 @@ void StatsGraph::Load(sint32 category)
 		if (civ && g_theCivilisationPool->IsValid(*civ))
 			civ->GetSingularCivName(name);
 		series.name = name;
+		series.owner = player->GetOwner();
 		series.color = g_colorSet->GetColor(g_colorSet->ComputePlayerColor(player->GetOwner()));
-		for (sint32 round = 0; round < m_rounds; ++round)
+		if (category != k_SCORE)
 		{
-			series.values.push_back(
-			    linegraph_GetCombinedStrength(*player->m_strengths, round, category));
+			for (sint32 round = 0; round < m_rounds; ++round)
+			{
+				series.values.push_back(
+				    linegraph_GetCombinedStrength(*player->m_strengths, round, category));
+			}
 		}
 		m_series.push_back(series);
 	}
 
+	if (category == k_SCORE)
+		LoadScores();
+
 	Render();
+}
+
+// From the replay file: a score a round for each player, recorded with the
+// map timelapse. Rounds without a record are missing (negative), not 0.
+void StatsGraph::LoadScores(void)
+{
+	ReplayGame game;
+	if (!replay_LoadCurrent(game))
+		game = ReplayGame();
+
+	if (!game.rounds.empty())
+		m_rounds = std::max(m_rounds, game.rounds.rbegin()->first + 1);
+
+	m_hasData = false;
+	for (size_t s = 0; s < m_series.size(); ++s)
+	{
+		std::vector<double> &values = m_series[s].values;
+		values.assign(m_rounds, -1.0);
+		for (std::map<sint32, ReplayRound>::const_iterator it = game.rounds.begin();
+		     it != game.rounds.end(); ++it)
+		{
+			std::map<sint32, sint32>::const_iterator score = it->second.scores.find(m_series[s].owner);
+			if (it->first >= 0 && it->first < m_rounds && score != it->second.scores.end())
+			{
+				values[it->first] = std::max<sint32>(0, score->second);
+				m_hasData = true;
+			}
+		}
+	}
 }
 
 void StatsGraph::SetShare(bool share)
@@ -247,9 +291,11 @@ void StatsGraph::Render(void)
 	RECT all = { 0, 0, m_width, m_height };
 	primitives_PaintRect16(m_surface, &all, g_colorSet->GetColor(COLOR_BLACK));
 
-	if (m_rounds < 1 || m_series.empty())
+	if (m_rounds < 1 || m_series.empty() || !m_hasData)
 	{
-		primitives_DrawText(m_surface, 10, 20, Str("str_ldl_GRAPH_NONE", "Nothing to show before the first turn has ended."),
+		primitives_DrawText(m_surface, 10, 20,
+		                    m_hasData ? Str("str_ldl_GRAPH_NONE", "Nothing to show before the first turn has ended.")
+		                              : Str("str_ldl_GRAPH_NO_SCORES", "No score history yet: it is recorded with the map timelapse (Ctrl+P)."),
 		                    g_colorSet->GetColorRef(COLOR_WHITE), true);
 		ShouldDraw();
 		return;
@@ -334,12 +380,20 @@ void StatsGraph::RenderLines(double top, sint32 rounds)
 		Pixel16 const color = m_series[s].color;
 		sint32 lastX = 0;
 		sint32 lastY = 0;
+		bool havePrevious = false;
 		for (sint32 r = 0; r < rounds; ++r)
 		{
-			double const value = std::max(0.0, Value(s, r));
+			double const value = Value(s, r);
+			if (value < 0.0)
+			{
+				havePrevious = false;     // missing: a gap
+				continue;
+			}
 			sint32 const x = RoundX(r, rounds);
 			sint32 const y = m_plotRect.bottom - 1 - static_cast<sint32>((value / top) * height);
-			if (r == 0 || rounds < 2)
+			bool const drawLine = havePrevious;
+			havePrevious = true;
+			if (!drawLine)
 			{
 				RECT dot = { x - 1, y - 1, x + 2, y + 2 };
 				primitives_PaintRect16(m_surface, &dot, color);
@@ -429,8 +483,10 @@ void StatsGraph::RenderLegend(sint32 round)
 		COLORREF const color = value > 0.0 ? white : gray;
 		primitives_DrawText(m_surface, x + 16, y, m_series[s].name.c_str(), color, true);
 
-		if (m_share)
-			sprintf(text, "%.0f%%", total > 0.0 ? 100.0 * std::max(0.0, value) / total : 0.0);
+		if (value < 0.0)
+			strcpy(text, "-");
+		else if (m_share)
+			sprintf(text, "%.0f%%", total > 0.0 ? 100.0 * value / total : 0.0);
 		else
 			sprintf(text, "%.0f", value);
 		primitives_DrawText(m_surface, right - TextWidth(m_surface, text), y, text, color, true);
@@ -516,7 +572,9 @@ GraphWindow::GraphWindow()
 			ctp2_ListItem *item = static_cast<ctp2_ListItem *>(
 			    aui_Ldl::BuildHierarchyFromRoot("RankingListItem"));
 			ctp2_Static *label = static_cast<ctp2_Static *>(item->GetChildByIndex(0));
-			label->SetText(g_theStringDB->GetNameStr(k_CATEGORIES[i].name));
+			label->SetText(k_CATEGORIES[i].english
+			               ? Str(k_CATEGORIES[i].name, k_CATEGORIES[i].english)
+			               : g_theStringDB->GetNameStr(k_CATEGORIES[i].name));
 			m_category->AddItem(item);
 		}
 		m_category->SetSelectedItem(k_OVERALL);
