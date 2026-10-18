@@ -317,6 +317,7 @@ AUI_ERRCODE	aui_SDLMouse::BltWindowToPrimary(aui_Window *window)
 				windowDirtyRect,
 				k_AUI_BLITTER_FLAG_COPY );
 		Assert( errcode == AUI_ERRCODE_OK );
+		g_ui->MapLayerBlt(screenDirtyRect.left, screenDirtyRect.top, window, windowDirtyRect);
 		if ( errcode != AUI_ERRCODE_OK )
 		{
 			retcode = AUI_ERRCODE_BLTFAILED;
@@ -379,6 +380,7 @@ AUI_ERRCODE	aui_SDLMouse::BltDirtyRectInfoToPrimary()
 					windowDirtyRect,
 					blitFlags);
 			Assert(errcode == AUI_ERRCODE_OK);
+			g_ui->MapLayerBlt(screenDirtyRect.left, screenDirtyRect.top, window, windowDirtyRect);
 			if (errcode != AUI_ERRCODE_OK)
 			{
 				retcode = AUI_ERRCODE_BLTFAILED;
@@ -412,6 +414,7 @@ AUI_ERRCODE	aui_SDLMouse::BltBackgroundColorToPrimary(COLORREF color, aui_DirtyL
 	{
 		RECT *screenDirtyRect = colorAreas->GetNext(position);
 		AUI_ERRCODE errcode = g_ui->ColorBltToSecondary(screenDirtyRect, color,0);
+		g_ui->MapLayerBlt(screenDirtyRect->left, screenDirtyRect->top, NULL, screenDirtyRect);
 		Assert(errcode == AUI_ERRCODE_OK);
 		if (errcode != AUI_ERRCODE_OK)
 		{
@@ -439,6 +442,7 @@ AUI_ERRCODE	aui_SDLMouse::BltBackgroundImageToPrimary(aui_Image *image, RECT *im
 			image->TheSurface(),
 			&screenDirtyRect,
 			k_AUI_BLITTER_FLAG_COPY);
+		g_ui->MapLayerBlt(rectPtr->left, rectPtr->top, NULL, &screenDirtyRect);
 
 		Assert(errcode == AUI_ERRCODE_OK);
 		if (errcode != AUI_ERRCODE_OK)

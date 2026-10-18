@@ -19,6 +19,10 @@ struct aui_SpanList;
 
 struct aui_Stencil;
 aui_Stencil *aui_CreateStencil(aui_Surface *pSurface);
+// Mark row's pixels left..right-1 that StencilMixBlt16 takes from the bottom
+// surface (1) or not (0) in mask[0..right-left-1]
+void aui_StencilRowMask(const aui_Stencil *stencil, sint32 row,
+	sint32 left, sint32 right, uint8 *mask);
 
 
 
