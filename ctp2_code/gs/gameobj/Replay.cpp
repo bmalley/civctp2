@@ -153,6 +153,32 @@ namespace
 	}
 }
 
+namespace
+{
+	// REPLAY-<leader> beside the autosaves (CivApp::AutoSave)
+	bool GetReplayPath(MBCHAR *fullpath, bool create)
+	{
+		if (!g_theProfileDB || !g_civPaths) return false;
+
+		MBCHAR leaderName[k_MAX_NAME_LEN];
+		strcpy(leaderName, g_theProfileDB->GetLeaderName());
+		leaderName[SAVE_LEADER_NAME_SIZE] = '\0';
+		c3files_StripSpaces(leaderName);
+
+		MBCHAR path[_MAX_PATH];
+		g_civPaths->GetSavePath(C3SAVEDIR_GAME, path);
+
+		sprintf(fullpath, "%s%s%s", path, FILE_SEP, leaderName);
+		if (create && !c3files_PathIsValid(fullpath) && !c3files_CreateDirectory(fullpath))
+			return false;
+
+		strcat(fullpath, FILE_SEP);
+		strcat(fullpath, "REPLAY-");
+		strcat(fullpath, leaderName);
+		return true;
+	}
+}
+
 void replay_RecordRound(sint32 round)
 {
 	if (!g_theProfileDB || !g_theProfileDB->IsRecordReplay()
@@ -162,23 +188,9 @@ void replay_RecordRound(sint32 round)
 		return;
 	}
 
-	// Beside the autosaves (CivApp::AutoSave)
-	MBCHAR leaderName[k_MAX_NAME_LEN];
-	strcpy(leaderName, g_theProfileDB->GetLeaderName());
-	leaderName[SAVE_LEADER_NAME_SIZE] = '\0';
-	c3files_StripSpaces(leaderName);
-
-	MBCHAR path[_MAX_PATH];
-	g_civPaths->GetSavePath(C3SAVEDIR_GAME, path);
-
 	MBCHAR fullpath[_MAX_PATH];
-	sprintf(fullpath, "%s%s%s", path, FILE_SEP, leaderName);
-	if (!c3files_PathIsValid(fullpath) && !c3files_CreateDirectory(fullpath))
+	if (!GetReplayPath(fullpath, true))
 		return;
-
-	strcat(fullpath, FILE_SEP);
-	strcat(fullpath, "REPLAY-");
-	strcat(fullpath, leaderName);
 
 	std::vector<uint8> out;
 	FILE *file = fopen(fullpath, "rb");
@@ -207,4 +219,193 @@ void replay_RecordRound(sint32 round)
 	if (!file) return;
 	fwrite(&out[0], 1, out.size(), file);
 	fclose(file);
+}
+
+namespace
+{
+	class Reader
+	{
+	public:
+		Reader(const std::vector<uint8> &data, size_t start)
+		:   m_data(data), m_pos(start), m_ok(true) {}
+
+		bool    AtEnd() const   { return m_pos >= m_data.size(); }
+		bool    Ok() const      { return m_ok; }
+
+		uint32 U8()
+		{
+			if (m_pos + 1 > m_data.size()) { m_ok = false; m_pos = m_data.size(); return 0; }
+			return m_data[m_pos++];
+		}
+
+		uint32 U16()
+		{
+			uint32 lo = U8();
+			return lo | (U8() << 8);
+		}
+
+		uint32 U32()
+		{
+			uint32 lo = U16();
+			return lo | (U16() << 16);
+		}
+
+		std::string String()
+		{
+			size_t len = U8();
+			if (m_pos + len > m_data.size()) { m_ok = false; m_pos = m_data.size(); return ""; }
+			std::string s(m_data.begin() + m_pos, m_data.begin() + m_pos + len);
+			m_pos += len;
+			return s;
+		}
+
+		std::vector<uint8> RLE(size_t expected)
+		{
+			std::vector<uint8> out;
+			size_t len = U32();
+			if (m_pos + len > m_data.size() || (len & 1)) { m_ok = false; m_pos = m_data.size(); return out; }
+			out.reserve(expected);
+			for (size_t i = m_pos; i < m_pos + len; i += 2)
+				out.insert(out.end(), m_data[i], m_data[i + 1]);
+			m_pos += len;
+			if (out.size() != expected) m_ok = false;
+			return out;
+		}
+
+	private:
+		const std::vector<uint8> &  m_data;
+		size_t                      m_pos;
+		bool                        m_ok;
+	};
+}
+
+bool replay_LoadCurrent(ReplayGame &result)
+{
+	MBCHAR fullpath[_MAX_PATH];
+	if (!GetReplayPath(fullpath, false))
+		return false;
+
+	FILE *file = fopen(fullpath, "rb");
+	if (!file) return false;
+
+	std::vector<uint8> data;
+	uint8 buf[65536];
+	size_t got;
+	while ((got = fread(buf, 1, sizeof(buf), file)) > 0)
+		data.insert(data.end(), buf, buf + got);
+	fclose(file);
+
+	if (data.size() < 8 || memcmp(&data[0], "CTPREPL1", 8) != 0)
+		return false;
+
+	// The current map's land mask, to pick out this game
+	std::vector<uint8> currentLand;
+	if (g_theWorld)
+	{
+		sint32 const w = g_theWorld->GetXWidth();
+		sint32 const h = g_theWorld->GetYHeight();
+		currentLand.resize(w * h);
+		for (sint32 y = 0; y < h; ++y)
+			for (sint32 x = 0; x < w; ++x)
+				currentLand[y * w + x] = g_theWorld->IsWater(MapPoint(x, y)) ? 0 : 1;
+	}
+
+	// Sessions on the same map are one game (as tools/replay.py)
+	std::vector<ReplayGame> games;
+	bool sessionStart = false;
+	Reader r(data, 8);
+	while (!r.AtEnd() && r.Ok())
+	{
+		uint32 const kind = r.U8();
+		if (kind == 'H')
+		{
+			ReplayGame header;
+			header.w = r.U16();
+			header.h = r.U16();
+			uint32 const wrap = r.U8();
+			header.xwrap = (wrap & 1) != 0;
+			header.ywrap = (wrap & 2) != 0;
+			uint32 const n = r.U8();
+			for (uint32 i = 0; i < n; ++i)
+			{
+				ReplayPlayer player;
+				player.r = static_cast<uint8>(r.U8());
+				player.g = static_cast<uint8>(r.U8());
+				player.b = static_cast<uint8>(r.U8());
+				player.name = r.String();
+				header.players.push_back(player);
+			}
+			header.land = r.RLE(header.w * header.h);
+			if (!r.Ok()) break;
+
+			sessionStart = true;
+			if (games.empty()
+			 || games.back().w != header.w || games.back().h != header.h
+			 || games.back().land != header.land)
+			{
+				games.push_back(header);
+			}
+			else
+			{
+				games.back().players = header.players;
+			}
+		}
+		else if (kind == 'T' && !games.empty())
+		{
+			ReplayGame &game = games.back();
+			sint32 const round = static_cast<sint32>(r.U32());
+			ReplayRound rec;
+			std::string const date = r.String();
+			for (size_t i = 0; i < date.size(); ++i)
+			{
+				// The date strings carry formatting bytes; keep the printable part
+				if (date[i] >= ' ' && date[i] <= '~') rec.date += date[i];
+			}
+			size_t const first = rec.date.find_first_not_of(' ');
+			rec.date = (first == std::string::npos) ? "" : rec.date.substr(first);
+			rec.owners = r.RLE(game.w * game.h);
+			uint32 const count = r.U16();
+			for (uint32 i = 0; i < count; ++i)
+			{
+				ReplayCity city;
+				city.x = static_cast<uint16>(r.U16());
+				city.y = static_cast<uint16>(r.U16());
+				city.owner = static_cast<uint8>(r.U8());
+				city.size = static_cast<uint8>(r.U8());
+				rec.cities.push_back(city);
+			}
+			if (!r.Ok()) break;
+
+			// A session's first round is where a save was loaded: what was
+			// recorded after it belongs to a timeline that was abandoned
+			if (sessionStart)
+			{
+				game.rounds.erase(game.rounds.lower_bound(round), game.rounds.end());
+				sessionStart = false;
+			}
+			game.rounds[round] = rec;
+		}
+		else
+		{
+			break;  // corrupt: keep what was read so far
+		}
+	}
+
+	for (size_t i = games.size(); i-- > 0; )
+	{
+		if (!games[i].rounds.empty() && games[i].land == currentLand)
+		{
+			result = games[i];
+			return true;
+		}
+	}
+	for (size_t i = games.size(); i-- > 0; )
+	{
+		if (!games[i].rounds.empty())
+		{
+			result = games[i];
+			return true;
+		}
+	}
+	return false;
 }
