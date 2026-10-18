@@ -52,7 +52,13 @@ public:
 protected:
 	aui_SDLUI()
 	:   aui_UI              (),
-	    aui_SDL             ()
+	    aui_SDL             (),
+	    m_mapMix            (NULL),
+	    m_mapWindow         (NULL),
+	    m_mapTexture        (NULL),
+	    m_uiTexture         (NULL),
+	    m_uiColors          (NULL),
+	    m_mapMask           (NULL)
 	{ ; };
 
 	AUI_ERRCODE InitCommon( void );
@@ -74,10 +80,30 @@ public:
 
 	virtual AUI_ERRCODE SDLDrawScreen( void );
 
+	virtual bool GetOutputScale(sint32 &num, sint32 &den);
+	virtual void SetMapLayer(aui_Surface *mix, const RECT *mixRect,
+		aui_Window *window, const RECT *viewport, double scale);
+	virtual void UpdateMapLayer(const RECT *rect);
+	virtual void MapLayerBlt(sint32 x, sint32 y, aui_Window *window, const RECT *windowRect);
+
 protected:
+	void DestroyMapLayer();
+	bool DrawMapLayer();
+
 	SDL_Window *m_SDLWindow;
 	SDL_Renderer *m_SDLRenderer;
 	SDL_Texture *m_SDLTexture;
+
+	// Map layer (see aui_UI::SetMapLayer)
+	aui_Surface *m_mapMix;
+	RECT         m_mapMixRect;
+	aui_Window  *m_mapWindow;
+	RECT         m_mapViewport;
+	double       m_mapScale;
+	SDL_Texture *m_mapTexture;      // m_mapMixRect of m_mapMix
+	SDL_Texture *m_uiTexture;       // ARGB primary, clear where the map shows
+	uint32      *m_uiColors;        // primary pixel -> ARGB
+	uint8       *m_mapMask;         // per screen pixel: copied from the map window
 };
 
 typedef aui_SDLUI aui_NativeUI;

@@ -1931,6 +1931,37 @@ struct aui_Stencil
 	spanIndex rowStart[1];
 };
 
+void aui_StencilRowMask(const aui_Stencil *stencil, sint32 row,
+	sint32 left, sint32 right, uint8 *mask)
+{
+	memset(mask, 0, right - left);
+	if (row < 0 || row >= stencil->height) return;
+
+	// Spans alternate bottom, top, bottom, ... from the row's start
+	bool   bottom = true;
+	sint32 pos    = 0;
+	for
+	(
+		spanIndex index = stencil->rowStart[row];
+		(pos < right) && (index != kSpanNull);
+		index = stencil->spans[index].next
+	)
+	{
+		sint32 length = stencil->spans[index].length;
+		if (length > 0)
+		{
+			sint32 from = std::max(pos, left);
+			sint32 to   = std::min(pos + length, right);
+			if (bottom && to > from)
+			{
+				memset(mask + from - left, 1, to - from);
+			}
+			pos += length;
+		}
+		bottom = !bottom;
+	}
+}
+
 static spanIndex CreateStencilRow(uint16 *src, sint32 width, aui_StencilSpan *spans, int index)
 {
 	uint16 last = 0;
@@ -1990,6 +2021,7 @@ aui_Stencil *aui_CreateStencil(aui_Surface *pSurface)
 
 	aui_Stencil *pBuffer = (aui_Stencil *)malloc(structMemory + numSpans * sizeof(aui_StencilSpan));
 
+	pBuffer->height = height;
 	pBuffer->spans = (aui_StencilSpan *)(((uint8 *)pBuffer) + structMemory);
 
 	spanIndex index = 0;

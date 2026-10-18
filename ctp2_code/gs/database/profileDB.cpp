@@ -207,6 +207,7 @@ ProfileDB::ProfileDB()
     m_dragScroll                        (TRUE),
     m_wheelZoom                         (FALSE),
     m_rightClickMove                    (FALSE),
+    m_mapFullResolution                 (FALSE),
     m_autoRenameCities                  (FALSE),
     m_autoOpenCityWindow                (TRUE),
     m_endTurnSound                      (TRUE),
@@ -423,6 +424,7 @@ ProfileDB::ProfileDB()
 	Var("DragScroll"                 , PV_BOOL  , &m_dragScroll                 , NULL);
 	Var("WheelZoom"                  , PV_BOOL  , &m_wheelZoom                  , NULL);
 	Var("RightClickMove"             , PV_BOOL  , &m_rightClickMove             , NULL);
+	Var("MapFullResolution"          , PV_BOOL  , &m_mapFullResolution          , NULL);
 
 	Var("AutoSwitchTabs"             , PV_BOOL  , &m_autoSwitchTabs             , NULL);
 	Var("AutoRenameCities"           , PV_BOOL  , &m_autoRenameCities           , NULL, false);
