@@ -589,8 +589,8 @@ static bool ui_CheckForDragScroll(sint32 x, sint32 y)
 	if (state != DRAG_MAP) return false;
 
 	// The map scrolls in whole steps: a tile across, half a tile down
-	sint32 hscroll = g_tiledMap->GetZoomTilePixelWidth();
-	sint32 vscroll = g_tiledMap->GetZoomTilePixelHeight() / 2;
+	sint32 hscroll = g_tiledMap->GetZoomTilePixelWidth() * g_tiledMap->GetSuperZoom();
+	sint32 vscroll = g_tiledMap->GetZoomTilePixelHeight() / 2 * g_tiledMap->GetSuperZoom();
 	sint32 deltaX  = (anchorX - x) / hscroll;
 	sint32 deltaY  = (anchorY - y) / vscroll;
 	if (deltaX == 0 && deltaY == 0) return false;
@@ -857,7 +857,7 @@ bool ui_CheckForScroll(void)
 				return false;
 			} else if(!scrolled_last_time) {
 				g_tiledMap->AddChatDirtyRectToMap();
-				g_tiledMap->UpdateMixFromMap(g_background->TheSurface());
+				g_tiledMap->UpdateMixFromMap(g_tiledMap->GetMixSurface());
 				scrolled_last_time = scrolled;
 			}
 		}
@@ -946,7 +946,7 @@ int ui_Process(void)
 	}
 	else if (curTicks > lastTicks + k_TICKS_PER_GENERIC_FRAME)
 	{
-		g_tiledMap->RestoreMixFromMap(g_background->TheSurface());
+		g_tiledMap->RestoreMixFromMap(g_tiledMap->GetMixSurface());
 		g_background->Draw();
 
 		lastTicks = curTicks;
