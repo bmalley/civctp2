@@ -314,6 +314,10 @@ private:
     sint32 m_wheelZoom;
     sint32 m_rightClickMove;
     sint32 m_mapFullResolution;
+    sint32 m_observerMode;
+    sint32 m_observerReveal;
+    sint32 m_observerTurnDelay;
+    sint32 m_observerFollow;
 
     sint32 m_autoRenameCities;
     sint32 m_autoOpenCityWindow;
@@ -809,6 +813,10 @@ public:
     BOOL   IsWheelZoom() const                  { return m_wheelZoom; }
     BOOL   IsRightClickMove() const             { return m_rightClickMove; }
     BOOL   IsMapFullResolution() const          { return m_mapFullResolution; }
+    BOOL   IsObserverMode() const               { return m_observerMode; }
+    BOOL   IsObserverReveal() const             { return m_observerReveal; }
+    sint32 GetObserverTurnDelay() const         { return m_observerTurnDelay; }
+    BOOL   IsObserverFollow() const             { return m_observerFollow; }
     BOOL GetShowEnemyHealth()                   { return m_showEnemyHealth; } //emod3
     BOOL GetDebugAI()                           { return m_debugai; }   //emod3
 

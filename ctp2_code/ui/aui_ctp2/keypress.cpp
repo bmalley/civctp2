@@ -414,6 +414,14 @@ sint32 ui_HandleKeypress(WPARAM wParam, LPARAM lParam)
 	}
 #endif
 
+	// In observer mode you have no units to give orders to: Space pauses
+	// and resumes the rounds instead
+	if (wParam == ' ' && Observer_IsActive())
+	{
+		Observer_TogglePause();
+		return 0;
+	}
+
 	if (!theKeyMap) return 0;
 
 	if (g_slicEngine && g_slicEngine->RunKeyboardTrigger(static_cast<char>(wParam)))

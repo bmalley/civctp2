@@ -208,6 +208,10 @@ ProfileDB::ProfileDB()
     m_wheelZoom                         (FALSE),
     m_rightClickMove                    (FALSE),
     m_mapFullResolution                 (FALSE),
+    m_observerMode                      (FALSE),
+    m_observerReveal                    (TRUE),
+    m_observerTurnDelay                 (2),
+    m_observerFollow                    (FALSE),
     m_autoRenameCities                  (FALSE),
     m_autoOpenCityWindow                (TRUE),
     m_endTurnSound                      (TRUE),
@@ -425,6 +429,10 @@ ProfileDB::ProfileDB()
 	Var("WheelZoom"                  , PV_BOOL  , &m_wheelZoom                  , NULL);
 	Var("RightClickMove"             , PV_BOOL  , &m_rightClickMove             , NULL);
 	Var("MapFullResolution"          , PV_BOOL  , &m_mapFullResolution          , NULL);
+	Var("ObserverMode"               , PV_BOOL  , &m_observerMode               , NULL);
+	Var("ObserverReveal"             , PV_BOOL  , &m_observerReveal             , NULL);
+	Var("ObserverTurnDelay"          , PV_NUM   , &m_observerTurnDelay          , NULL);
+	Var("ObserverFollow"             , PV_BOOL  , &m_observerFollow             , NULL);
 
 	Var("AutoSwitchTabs"             , PV_BOOL  , &m_autoSwitchTabs             , NULL);
 	Var("AutoRenameCities"           , PV_BOOL  , &m_autoRenameCities           , NULL, false);

@@ -103,6 +103,7 @@
 
 #include "soundmanager.h"
 #include "profileDB.h"
+#include "civapp.h"                     // Observer_HidesMoves
 
 #include "SlicEngine.h"
 #include "SlicObject.h"
@@ -857,7 +858,8 @@ PLAYER_INDEX SelectedItem::GetNextHumanPlayer()
 
 bool SelectedItem::IsAutoCenterOn() const
 {
-	return g_theProfileDB->IsAutoCenter() != 0;
+	// Observer mode moves the map only when following moves
+	return g_theProfileDB->IsAutoCenter() != 0 && !Observer_HidesMoves();
 }
 
 void SelectedItem::SetAutoCenter(const bool on)
