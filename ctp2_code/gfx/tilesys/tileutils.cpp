@@ -409,6 +409,7 @@ void tileutils_EncodeCopyRun16(Pixel16 **inBuf, int *pos, int width, Pixel16 **o
 
 		runLen++;
 
+		if (*pos >= width) break; // don't read past the end of the last row
 		pix16 = (**inBuf);
 		if (sourceDataIs565)
 			pix16 = ((pix16 & 0xFFC0) >> 1) | (pix16 & 0x001F);
@@ -440,6 +441,7 @@ void tileutils_EncodeColorizeRun16(Pixel16 **inBuf, int *pos, int width, Pixel16
 
 		runLen++;
 
+		if (*pos >= width) break; // don't read past the end of the last row
 		pix16 = (**inBuf);
 		if (sourceDataIs565)
 			pix16 = ((pix16 & 0xFFC0) >> 1) | (pix16 & 0x001F);
@@ -470,6 +472,7 @@ void tileutils_EncodeShadowRun16(Pixel16 **inBuf, int *pos, int width, Pixel16 *
 
 		runLen++;
 
+		if (*pos >= width) break; // don't read past the end of the last row
 		pix16 = (**inBuf);
 		if (sourceDataIs565)
 			pix16 = ((pix16 & 0xFFC0) >> 1) | (pix16 & 0x001F);
@@ -498,6 +501,7 @@ char tileutils_EncodeSkipRun16(Pixel16 **inBuf, int *pos, int width, Pixel16 **o
 
 		runLen++;
 
+		if (*pos >= width) break; // don't read past the end of the last row
 		pix16 = (**inBuf);
 		if (sourceDataIs565)
 			pix16 = ((pix16 & 0xFFC0) >> 1) | (pix16 & 0x001F);
