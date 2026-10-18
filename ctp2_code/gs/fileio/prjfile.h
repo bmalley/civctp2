@@ -62,6 +62,7 @@ public:
     void freeData(void *);
 
     bool exists(char const * fname) const;
+    bool SamePaths(ProjectFile const & other) const;
 
     char const * getError() const { return m_error_string; }
 
