@@ -109,6 +109,7 @@
 #include "km_screen.h"
 #include "optionswindow.h"
 #include "infowindow.h"
+#include "ReplayWindow.h"
 #include "MessagePool.h"
 #include "message.h"
 
@@ -856,6 +857,9 @@ void StatsMenuCallback(ctp2_Menu *menu, CTP2_MENU_ACTION action, sint32 itemInde
 	case	CP_MENU_ITEM_3:
 			InfoWindow::SelectWonderTab();
 			break;
+	case	CP_MENU_ITEM_4:
+			ReplayWindow::Open();
+			break;
 	default:
 			break;
 	}
@@ -1155,6 +1159,8 @@ void ControlPanelWindow::RebuildMenus()
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_OPEN_INFO_SCREEN)),(void *)CP_MENU_ITEM_2);
 	mb->AddMenuItem(menu, g_theStringDB->GetNameStr("str_tbl_ldl_Open_Wonders"),
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_TIMELINE)),(void *)CP_MENU_ITEM_3);
+	mb->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+		"",(void *)CP_MENU_ITEM_4);
 
 	menu = mb->GetMenu("MainMenu", "OptionsActivator");
 	menu->Clear();
@@ -1411,6 +1417,8 @@ void ControlPanelWindow::BuildStatsMenu()
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_OPEN_INFO_SCREEN)),(void *)CP_MENU_ITEM_2);
 	m_mainMenuBar->AddMenuItem(menu, g_theStringDB->GetNameStr("str_tbl_ldl_Open_Wonders"),
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_TIMELINE)),(void *)CP_MENU_ITEM_3);
+	m_mainMenuBar->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+		"",(void *)CP_MENU_ITEM_4);
 }
 
 void ControlPanelWindow::BuildOptionsMenu()

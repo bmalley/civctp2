@@ -3094,6 +3094,17 @@ str_profile_ObserverReveal                      "Observer: Show The Whole Map"  
 str_profile_ObserverTurnDelay                   "Observer: Seconds Per Turn (0 = Step)"        # 0: press End Turn to play each round
 str_profile_ObserverFollow                      "Observer: Follow Every Move"                  # Animate and center on every move: slow
 str_profile_RecordReplay                        "Record Map Timelapse"                         # REPLAY-<leader> beside the autosaves; ctp/tools/replay.py
+str_ldl_REPLAY_TITLE                            "MAP TIMELAPSE"
+str_ldl_REPLAY_BUTTON                           "Timelapse"
+str_ldl_REPLAY_PLAY                             "Play"
+str_ldl_REPLAY_PAUSE                            "Pause"
+str_ldl_REPLAY_BACK                             "<"
+str_ldl_REPLAY_FORWARD                          ">"
+str_ldl_REPLAY_ROUND                            "Round %d / %d"
+str_ldl_REPLAY_CIVS                             "Civilization"
+str_ldl_REPLAY_CITIES                           "Cities"
+str_ldl_REPLAY_NONE                             "No timelapse recorded for this game yet (Record Map Timelapse, Ctrl+P)."
+str_ldl_Timelapse                               "Map Timelapse"
 str_profile_AutoSwitchTabs                      "Auto-Switch Control Panel Tab"
 str_profile_AutoRenameCities                    "Enable Rename City When Creating City"
 str_profile_AutoOpenCityWindow                  "Open Build Manager When Creating City"

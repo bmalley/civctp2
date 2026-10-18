@@ -140,6 +140,7 @@ libuiinterface_la_SOURCES = \
 	battleviewwindow.cpp \
 	infowindow.cpp \
 	rankingtab.cpp \
+	ReplayWindow.cpp \
 	scoretab.cpp \
 	timelinetab.cpp \
 	sciencevictorydialog.cpp

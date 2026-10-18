@@ -63,6 +63,7 @@
 #include "ctp2_TabGroup.h"
 #include "radarmap.h"
 #include "linegraph.h"
+#include "ReplayWindow.h"
 #include "AvlTree.h"
 
 #include "ldl_user.h"
@@ -678,6 +679,9 @@ AUI_ERRCODE aui_Ldl::BuildObjectFromType(const MBCHAR *typeString,
 	} else
 	if(!stricmp(typeString, "ctp2_LineGraph")) {
 		region = (aui_Region *) new LineGraph(&retval, aui_UniqueId(), ldlName);
+	} else
+	if(!stricmp(typeString, "ctp2_ReplayMap")) {
+		region = (aui_Region *) new ReplayMap(&retval, aui_UniqueId(), ldlName);
 	} else
 	if (!stricmp(typeString, "ctp2_ListItem")) {
 		region = (aui_Region *) new ctp2_ListItem(&retval, ldlName);
