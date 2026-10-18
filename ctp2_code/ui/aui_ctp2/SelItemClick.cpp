@@ -938,8 +938,10 @@ void SelectedItem::NewRegisterClick(const MapPoint &pos, const aui_MouseEvent *d
 	if(button == SELECT_BUTTON_MAX)
 		return;
 
-	// RightClickMove: right-click moves the selected army; right-clicking
-	// the army itself still opens its context menu.
+	// RightClickMove: a right press starts a drag that shows the path to
+	// the tile under the mouse, and the release moves the selected army
+	// there (EndRightDrag). Right-clicking the army itself still opens its
+	// context menu.
 	if(mode == SELECT_MODE_CTP2 &&
 	   button == SELECT_BUTTON_RIGHT &&
 	   g_theProfileDB->IsRightClickMove() &&
@@ -950,7 +952,10 @@ void SelectedItem::NewRegisterClick(const MapPoint &pos, const aui_MouseEvent *d
 		m_selected_army[vPlayer].GetPos(army_pos);
 		if(army_pos != pos)
 		{
-			RightMoveClick(pos, data, doubleClick);
+			m_rightDrag = RIGHT_DRAG_ACTIVE;
+			m_rightDragReleasedFrames = 0;
+			MapPoint dest = pos;
+			SetDrawablePathDest(dest, true);
 			return;
 		}
 	}
@@ -1308,6 +1313,58 @@ void SelectedItem::RightMoveClick(const MapPoint &pos, const aui_MouseEvent *dat
 	MapPoint dest = pos;
 	SetDrawablePathDest(dest, true);
 	MoveArmyClick(pos, data, doubleClick);
+}
+
+/// Escape during a right drag: hide the path; the release then does nothing
+bool SelectedItem::CancelRightDrag()
+{
+	if(m_rightDrag != RIGHT_DRAG_ACTIVE)
+		return false;
+
+	m_rightDrag  = RIGHT_DRAG_CANCELLED;
+	m_is_pathing = false;
+	return true;
+}
+
+/// Right button released at pos (NULL: off the map). Moves the selected
+/// army there, unless the drag was cancelled or ends on the army itself.
+void SelectedItem::EndRightDrag(const MapPoint *pos, const aui_MouseEvent *data)
+{
+	bool active = m_rightDrag == RIGHT_DRAG_ACTIVE;
+	m_rightDrag = RIGHT_DRAG_NONE;
+	if(!active)
+		return;
+
+	PLAYER_INDEX player = GetVisiblePlayer();
+	MapPoint army_pos;
+	if(pos &&
+	   m_select_state[player] == SELECT_TYPE_LOCAL_ARMY &&
+	   m_selected_army[player].IsValid() &&
+	   (m_selected_army[player].GetPos(army_pos), army_pos != *pos))
+	{
+		RightMoveClick(*pos, data, false);
+	}
+	else
+	{
+		m_is_pathing = false;
+	}
+}
+
+/// Called every frame: ends a right drag whose release never reached the
+/// map (e.g. let go over a window), once the button has been up for a while.
+void SelectedItem::CheckRightDragReleased(bool buttonDown)
+{
+	if(m_rightDrag == RIGHT_DRAG_NONE || buttonDown)
+	{
+		m_rightDragReleasedFrames = 0;
+		return;
+	}
+
+	if(++m_rightDragReleasedFrames > 15)
+	{
+		m_rightDrag  = RIGHT_DRAG_NONE;
+		m_is_pathing = false;
+	}
 }
 
 void SelectedItem::StartMoveClick(const MapPoint &pos, const aui_MouseEvent *data, bool doubleClick)

@@ -61,7 +61,8 @@ enum SEV_TYPE {
 	SEV_RGRAB,
 	SEV_LDROP,
 	SEV_LDRAG,
-	SEV_LDOUBLE
+	SEV_LDOUBLE,
+	SEV_RDROP
 };
 
 struct SavedMouseEvent {
@@ -142,6 +143,49 @@ void Background::MouseRGrabInside(aui_MouseEvent *data)
 
 
 
+
+	data->position.x += X();
+	data->position.y += Y();
+}
+
+// Right drag (RightClickMove): follow the mouse so the path is redrawn
+void Background::MouseRDragInside(aui_MouseEvent *data)
+{
+	if (IsDisabled()) return;
+	if (GetWhichSeesMouse() && GetWhichSeesMouse() != this) return;
+	if (!GetWhichSeesMouse()) SetWhichSeesMouse(this);
+
+	MapPoint tmp;
+	if (g_tiledMap && g_tiledMap->GetMouseTilePos(tmp)) {
+		m_current_mouse_tile = tmp;
+	}
+
+	if (data->movecount == 0) {
+		ProcessLastMouseMoveThisFrame(data);
+	}
+
+	if (g_tiledMap != NULL) {
+		g_tiledMap->SetHiliteMouseTile(m_current_mouse_tile);
+		g_tiledMap->DrawHilite(TRUE);
+	}
+}
+
+void Background::MouseRDropInside(aui_MouseEvent *data)
+{
+	if (IsDisabled()) return;
+
+	if (GetWhichSeesMouse() && GetWhichSeesMouse() != this) return;
+	SetWhichSeesMouse(this);
+
+	data->position.x -= X();
+	data->position.y -= Y();
+
+	SavedMouseEvent *ev = new SavedMouseEvent;
+	memcpy(&ev->event, data, sizeof(aui_MouseEvent));
+	ev->type = SEV_RDROP;
+	s_savedEvents.AddTail(ev);
+
+	m_rbutton_isdown = FALSE;
 
 	data->position.x += X();
 	data->position.y += Y();
@@ -393,8 +437,15 @@ AUI_ERRCODE Background::Idle(void)
 			case SEV_LDOUBLE:
 				g_tiledMap->Click(&ev->event, TRUE);
 				break;
+			case SEV_RDROP:
+				g_tiledMap->RightDrop(&ev->event);
+				break;
 		}
 		delete s_savedEvents.RemoveHead();
+	}
+
+	if (g_selected_item && g_c3ui->TheMouse()) {
+		g_selected_item->CheckRightDragReleased(g_c3ui->TheMouse()->GetLatestMouseEvent()->rbutton != 0);
 	}
 
 #if 0
