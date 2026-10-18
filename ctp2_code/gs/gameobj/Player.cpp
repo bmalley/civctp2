@@ -6937,9 +6937,16 @@ void Player::GameOver(GAME_OVER reason, sint32 data)
 		}
 	}
 
-	if (!IsRobot() && m_owner == g_selected_item->GetVisiblePlayer() &&
+	// An observed civ is a robot, but its end is the observer's end too
+	bool const observed = IsRobot() && Observer_IsActive();
+	if ((!IsRobot() || observed) && m_owner == g_selected_item->GetVisiblePlayer() &&
 		(!g_slicEngine->GetTutorialActive() || g_slicEngine->GetTutorialPlayer() == m_owner))
 	{
+		if (observed)
+		{
+			Observer_PauseForGameOver();
+		}
+
 		close_AllScreens();
 
 		if (reason == GAME_OVER_LOST_SCIENCE ||

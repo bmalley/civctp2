@@ -177,6 +177,12 @@ void HighScoreWinButtonActionCallback( aui_Control *control, uint32 action, uint
 	{
 		popup->RemoveWindow();
 
+		if (Observer_IsActive())
+		{
+			Observer_ContinueAfterGameOver();
+			return;
+		}
+
 		if(g_turn->IsHotSeat() || g_turn->IsEmail())
 		{
 			Player* player = g_player[g_selected_item->GetVisiblePlayer()];
@@ -484,7 +490,14 @@ sint32 victorywin_UpdateData( sint32 type )
 		s_staticControls[k_VICWIN_MAIN_TITLE]->SetText(s_stringTable->GetString(0));
 	}
 
-	if (disableContinue)
+	// An observer can watch on, after its civ is gone too, unless it died with
+	// cities left (a scenario loss): those can't be drawn once it's removed
+	Player const * visible = g_player[g_selected_item->GetVisiblePlayer()];
+	if (Observer_IsActive() && (!visible || !visible->m_isDead || visible->GetNumCities() == 0))
+	{
+		s_highScoreWin->m_continueButton->Enable(TRUE);
+	}
+	else if (disableContinue)
 	{
 		s_highScoreWin->m_continueButton->Enable(FALSE);
 	}
