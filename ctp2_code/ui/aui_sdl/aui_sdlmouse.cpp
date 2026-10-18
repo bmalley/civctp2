@@ -5,6 +5,7 @@
 
 #include "aui_ui.h"
 #include "aui_sdlmouse.h"
+#include "aui_rectangle.h"
 
 #include "ctp2_listbox.h"
 #include "c3_listbox.h"
@@ -20,6 +21,47 @@ sint32                   aui_Mouse::m_mouseRefCount = 0;
 SDL_mutex*               aui_SDLMouse::s_cs          = NULL;
 
 int SDLMouseMessageHandler(void* userdata, SDL_Event* event);
+
+// Whether copying srcRect of src to x, y would change the secondary surface.
+// Most frames redraw windows (the map's sprites, the control panel) without
+// changing a pixel; the screen is only uploaded and presented if one did.
+static bool BltChangesSecondary(sint32 x, sint32 y, aui_Surface *src, const RECT *srcRect)
+{
+	aui_Surface *dest = g_ui->Secondary();
+	if (!src || !dest || !dest->Buffer() || src->BitsPerPixel() != dest->BitsPerPixel())
+	{
+		return true;
+	}
+
+	RECT from       = *srcRect;
+	RECT srcBounds  = { 0, 0, src->Width(), src->Height() };
+	if (!Rectangle_Clip(&from, &srcBounds)) return false;
+	RECT to         = from;
+	OffsetRect(&to, x - srcRect->left, y - srcRect->top);
+	RECT destBounds = { 0, 0, dest->Width(), dest->Height() };
+	if (!Rectangle_Clip(&to, &destBounds)) return false;
+	OffsetRect(&from, to.left - from.left + srcRect->left - x, to.top - from.top + srcRect->top - y);
+
+	// Window surfaces only have a buffer while locked
+	uint8 *srcBuf = NULL;
+	if (src->Lock(NULL, (LPVOID *)&srcBuf, 0) != AUI_ERRCODE_OK || !srcBuf)
+	{
+		return true;
+	}
+
+	const sint32 bytesPerPixel = src->BitsPerPixel() / 8;
+	const size_t bytes         = (to.right - to.left) * bytesPerPixel;
+	bool         changed       = false;
+	for (sint32 row = 0; row < to.bottom - to.top && !changed; ++row)
+	{
+		const uint8 *a = srcBuf + (from.top + row) * src->Pitch() + from.left * bytesPerPixel;
+		const uint8 *b = dest->Buffer() + (to.top + row) * dest->Pitch() + to.left * bytesPerPixel;
+		changed = memcmp(a, b, bytes) != 0;
+	}
+
+	src->Unlock(srcBuf);
+	return changed;
+}
 
 uint32 HandleMouseAnimation(uint32 interval, void *param)
 {
@@ -310,6 +352,9 @@ AUI_ERRCODE	aui_SDLMouse::BltWindowToPrimary(aui_Window *window)
 		RECT screenDirtyRect = *windowDirtyRect;
 		OffsetRect(&screenDirtyRect, windowX, windowY);
 
+		if (BltChangesSecondary(screenDirtyRect.left, screenDirtyRect.top, windowSurface, windowDirtyRect))
+			g_ui->ScreenChanged();
+
 		AUI_ERRCODE errcode = g_ui->BltToSecondary(
 				screenDirtyRect.left,
 				screenDirtyRect.top,
@@ -373,6 +418,9 @@ AUI_ERRCODE	aui_SDLMouse::BltDirtyRectInfoToPrimary()
 
 		if (!g_civApp->IsInBackground()) // Actual Drawing
 		{
+			if (BltChangesSecondary(screenDirtyRect.left, screenDirtyRect.top, windowSurface, windowDirtyRect))
+				g_ui->ScreenChanged();
+
 			errcode = g_ui->BltToSecondary(
 					screenDirtyRect.left,
 					screenDirtyRect.top,
@@ -389,11 +437,15 @@ AUI_ERRCODE	aui_SDLMouse::BltDirtyRectInfoToPrimary()
 		}
 	}
 
-	errcode = g_ui->BltSecondaryToPrimary(blitFlags);
-	Assert(errcode == AUI_ERRCODE_OK);
-	if (errcode != AUI_ERRCODE_OK)
+	// The whole screen: only when something changed
+	if (g_ui->IsScreenChanged())
 	{
-		retcode = AUI_ERRCODE_BLTFAILED;
+		errcode = g_ui->BltSecondaryToPrimary(blitFlags);
+		Assert(errcode == AUI_ERRCODE_OK);
+		if (errcode != AUI_ERRCODE_OK)
+		{
+			retcode = AUI_ERRCODE_BLTFAILED;
+		}
 	}
 
 	if (!g_theProfileDB || !g_theProfileDB->IsUseDirectXBlitter())
@@ -414,6 +466,7 @@ AUI_ERRCODE	aui_SDLMouse::BltBackgroundColorToPrimary(COLORREF color, aui_DirtyL
 	{
 		RECT *screenDirtyRect = colorAreas->GetNext(position);
 		AUI_ERRCODE errcode = g_ui->ColorBltToSecondary(screenDirtyRect, color,0);
+		g_ui->ScreenChanged();
 		g_ui->MapLayerBlt(screenDirtyRect->left, screenDirtyRect->top, NULL, screenDirtyRect);
 		Assert(errcode == AUI_ERRCODE_OK);
 		if (errcode != AUI_ERRCODE_OK)
@@ -442,6 +495,7 @@ AUI_ERRCODE	aui_SDLMouse::BltBackgroundImageToPrimary(aui_Image *image, RECT *im
 			image->TheSurface(),
 			&screenDirtyRect,
 			k_AUI_BLITTER_FLAG_COPY);
+		g_ui->ScreenChanged();
 		g_ui->MapLayerBlt(rectPtr->left, rectPtr->top, NULL, &screenDirtyRect);
 
 		Assert(errcode == AUI_ERRCODE_OK);

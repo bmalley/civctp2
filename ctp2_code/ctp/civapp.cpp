@@ -1263,6 +1263,9 @@ sint32 CivApp::InitializeApp(HINSTANCE hInstance, int iCmdShow)
 #if defined(_DEBUG) || defined(DEBUG)
 	flags |= SDL_INIT_NOPARACHUTE;
 #endif// _DEBUG || DEBUG
+	// SDL keeps the desktop from blanking or idling by default, so an open
+	// game left alone counted as someone at the desk. Play is input anyway.
+	SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1");
 	int rc = SDL_Init(flags);
 	if (rc != 0)
 	{
