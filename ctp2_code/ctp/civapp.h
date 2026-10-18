@@ -73,6 +73,8 @@ extern BOOL g_runInBackground;
 bool Observer_IsActive();
 bool Observer_HidesMoves();
 void Observer_TogglePause();
+void Observer_PauseForGameOver();
+void Observer_ContinueAfterGameOver();
 
 class CivApp
 {

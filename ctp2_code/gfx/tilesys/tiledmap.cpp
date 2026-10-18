@@ -5229,7 +5229,16 @@ void TiledMap::CopyVision()
 	sint32  newPlayer   = g_selected_item->GetVisiblePlayer();
 	if (g_player[newPlayer])
 	{
-		m_localVision->SetAmOnScreen(false);
+		// A dead player's vision is deleted (Player::RemoveDeadPlayers):
+		// only touch the old one while a player still owns it
+		for (sint32 p = 0; p < k_MAX_PLAYERS; ++p)
+		{
+			if (g_player[p] && g_player[p]->m_vision == m_localVision)
+			{
+				m_localVision->SetAmOnScreen(false);
+				break;
+			}
+		}
 		m_localVision = g_player[newPlayer]->m_vision;
 		m_oldPlayer   = newPlayer;
 		m_localVision->SetAmOnScreen(true);

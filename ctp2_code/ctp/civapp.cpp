@@ -2578,6 +2578,30 @@ bool Observer_HidesMoves()
 	return Observer_IsActive() && !g_theProfileDB->IsObserverFollow();
 }
 
+// The game is over for your civ: the victory or defeat screen is up, so stop
+// the rounds behind it
+void Observer_PauseForGameOver()
+{
+	s_observerPaused = true;
+	StatusBar::SetText("Game over: observer mode paused (Space resumes)");
+}
+
+// Continue on the high-score window: watch on. If your civ died, the game has
+// made the next civ the stop player; the observer follows it from here
+void Observer_ContinueAfterGameOver()
+{
+	sint32 const stop = NewTurnCount::GetStopPlayer();
+	Player *visible = g_player[g_selected_item->GetVisiblePlayer()];
+	if ((!visible || visible->m_isDead) && stop >= 0 && stop < k_MAX_PLAYERS && g_player[stop])
+	{
+		g_selected_item->SetPlayerOnScreen(stop);
+		g_tiledMap->CopyVision();
+		g_radarMap->Update();
+	}
+	s_observerPaused = false;
+	StatusBar::SetText("Observer mode running (Space pauses)");
+}
+
 void Observer_TogglePause()
 {
 	s_observerPaused = !s_observerPaused;
