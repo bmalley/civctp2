@@ -110,6 +110,7 @@
 #include "optionswindow.h"
 #include "infowindow.h"
 #include "ReplayWindow.h"
+#include "GraphWindow.h"
 #include "MessagePool.h"
 #include "message.h"
 
@@ -858,6 +859,9 @@ void StatsMenuCallback(ctp2_Menu *menu, CTP2_MENU_ACTION action, sint32 itemInde
 			InfoWindow::SelectWonderTab();
 			break;
 	case	CP_MENU_ITEM_4:
+			GraphWindow::Open(-1);
+			break;
+	case	CP_MENU_ITEM_5:
 			ReplayWindow::Open();
 			break;
 	default:
@@ -1159,8 +1163,10 @@ void ControlPanelWindow::RebuildMenus()
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_OPEN_INFO_SCREEN)),(void *)CP_MENU_ITEM_2);
 	mb->AddMenuItem(menu, g_theStringDB->GetNameStr("str_tbl_ldl_Open_Wonders"),
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_TIMELINE)),(void *)CP_MENU_ITEM_3);
-	mb->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+	mb->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Graphs") ? g_theStringDB->GetNameStr("str_ldl_Graphs") : "Graphs"),
 		"",(void *)CP_MENU_ITEM_4);
+	mb->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+		"",(void *)CP_MENU_ITEM_5);
 
 	menu = mb->GetMenu("MainMenu", "OptionsActivator");
 	menu->Clear();
@@ -1417,8 +1423,10 @@ void ControlPanelWindow::BuildStatsMenu()
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_OPEN_INFO_SCREEN)),(void *)CP_MENU_ITEM_2);
 	m_mainMenuBar->AddMenuItem(menu, g_theStringDB->GetNameStr("str_tbl_ldl_Open_Wonders"),
 		KeyListItem::GetKeyFromKMScreen(theKeyMap->get_keycode(KEY_FUNCTION_TIMELINE)),(void *)CP_MENU_ITEM_3);
-	m_mainMenuBar->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+	m_mainMenuBar->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Graphs") ? g_theStringDB->GetNameStr("str_ldl_Graphs") : "Graphs"),
 		"",(void *)CP_MENU_ITEM_4);
+	m_mainMenuBar->AddMenuItem(menu, (g_theStringDB->GetNameStr("str_ldl_Timelapse") ? g_theStringDB->GetNameStr("str_ldl_Timelapse") : "Map Timelapse"),
+		"",(void *)CP_MENU_ITEM_5);
 }
 
 void ControlPanelWindow::BuildOptionsMenu()

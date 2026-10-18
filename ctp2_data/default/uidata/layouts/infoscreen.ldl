@@ -300,6 +300,15 @@ InfoDialog:CTP2_3TAB_DIALOG_WINDOW {
 					string text "str_ldl_REPLAY_BUTTON"
 				} # Timelapse
 
+				# Opens the large graph window (GraphWindow)
+				LargeGraph:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+					int xpix     329
+					int ypix     255
+					int widthpix 144
+
+					string text "str_ldl_GRAPH_BUTTON"
+				} # LargeGraph
+
 				# The graph
 				InfoGraph {
 					int xpix      13
@@ -454,6 +463,61 @@ ReplayDialog:CTP2_DIALOG_WINDOW {
 		int		ypix		514
 		int		widthpix	50
 		string	text	"str_ldl_REPLAY_FORWARD"
+	}
+
+	CloseButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		618
+		int		ypix		514
+		int		widthpix	136
+		string	text	"str_ldl_CLOSE_BUTTON"
+		string	shortcut	"ESC"
+	}
+
+	Background:CTP2_DIALOG_BG {
+		int		widthpix	800
+		int		heightpix	558
+		string	image00	"uptg23a.tga"
+		string	image02	"uptg23c.tga"
+		string	image03	"dw_lb.tga"
+		string	image05	"dw_rb.tga"
+	}
+}
+
+###################
+#
+# LARGE GRAPH (GraphWindow): a Ranking category, bigger and with values
+#
+GraphDialog:CTP2_DIALOG_WINDOW {
+	string	title	"str_ldl_GRAPH_TITLE"
+	int		widthpix	800
+	int		heightpix	558
+
+	RankLabel:CTP2_STATIC_BACKGROUND {
+		int		xpix		40
+		int		ypix		43
+		string	just	"left"
+		string	text	"str_ldl_RANKING_RANK"
+	}
+
+	RankSelect:RANKING_PULLDOWN_TOGGLE {
+		int		xpix		68
+		int		ypix		40
+	}
+
+	# The graph and its legend (StatsGraph)
+	Graph {
+		string	objecttype	"ctp2_StatsGraph"
+		int		xpix		36
+		int		ypix		76
+		int		widthpix	718
+		int		heightpix	430
+	}
+
+	ShareButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		36
+		int		ypix		514
+		int		widthpix	136
+		string	text	"str_ldl_ZEROSUM_BUTTON"
 	}
 
 	CloseButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {

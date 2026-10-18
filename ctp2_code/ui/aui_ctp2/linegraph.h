@@ -63,6 +63,12 @@ enum eRankingCategories
 };
 
 class  LineGraph;
+class  Strengths;
+
+/// A ranking category's value for a player at a turn (eRankingCategories),
+/// as the Ranking graphs show it
+sint32 linegraph_GetCombinedStrength(Strengths const & a_Strengths, sint32 a_Turn, sint32 a_Category);
+
 struct LineGraphData;
 
 #include "aui_control.h"
