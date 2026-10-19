@@ -1207,7 +1207,7 @@ void CtpAi::BeginTurn(const PLAYER_INDEX player)
 		if(player == i)
 			continue;
 
-		Player * other_player = g_player[player];
+		Player * other_player = g_player[i];
 		if(other_player == NULL)
 			continue;
 
