@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <unistd.h>             // _exit
 #include <map>
+#include <vector>
 #include <string>
 #include <string.h>
 #include "Advances.h"
@@ -48,6 +49,11 @@ namespace
 	// The strategic states each player used in its last turn, kept as its next turn
 	// begins: Diplomat::BeginTurn clears them before the round is recorded
 	std::string s_strategies[k_MAX_PLAYERS];
+
+	// Cities captured since the last recorded round, to report whether the new
+	// owner still holds them and has units in them at the next round
+	struct Captured { Unit city; sint32 owner; };
+	std::vector<Captured> s_captured;
 
 	FILE *File()
 	{
@@ -151,6 +157,8 @@ namespace
 			        "\"city\":%s,\"size\":%d}\n",
 			        s_lastRound + 1, city.GetOwner(), newOwner, cause,
 			        Json(city.GetName()).c_str(), city.PopCount());
+			Captured c = { city, newOwner };
+			s_captured.push_back(c);
 		}
 		return GEV_HD_Continue;
 	}
@@ -159,9 +167,10 @@ namespace
 	{
 		Unit city;
 		sint32 cause, killer;
-		if (s_file && args->GetCity(0, city) && city.IsValid() && args->GetInt(0, cause)
-		 && args->GetPlayer(0, killer))
+		// No killer when the last pop dies (PLAYER_UNASSIGNED), e.g. a size-1 city captured
+		if (s_file && args->GetCity(0, city) && city.IsValid() && args->GetInt(0, cause))
 		{
+			if (!args->GetPlayer(0, killer)) killer = -1;
 			fprintf(s_file, "{\"t\":\"citykilled\",\"r\":%d,\"owner\":%d,\"by\":%d,\"cause\":%d,"
 			        "\"city\":%s}\n",
 			        s_lastRound + 1, city.GetOwner(), killer, cause, Json(city.GetName()).c_str());
@@ -244,6 +253,12 @@ bool airun_IsActive()
 	return File() != NULL;
 }
 
+bool airun_Experiment(char which)
+{
+	static const char *letters = getenv("CTP2_AIX");
+	return letters && strchr(letters, which) != NULL;
+}
+
 bool airun_GetSeed(uint32 &seed)
 {
 	const char *s = getenv("CTP2_SEED");
@@ -269,6 +284,17 @@ void airun_RecordRound(sint32 round)
 	if (!f || !g_player || round == s_lastRound) return;
 	Hook();
 	s_lastRound = round;
+
+	// The cities captured since the last round: still held, and how many units are in them
+	for (size_t i = 0; i < s_captured.size(); ++i)
+	{
+		Unit const &city = s_captured[i].city;
+		bool const held = city.IsValid() && city.GetOwner() == s_captured[i].owner;
+		fprintf(f, "{\"t\":\"capstate\",\"r\":%d,\"city\":%s,\"owner\":%d,\"held\":%d,\"units\":%d}\n",
+		        round, Json(held ? city.GetName() : "").c_str(), s_captured[i].owner, held ? 1 : 0,
+		        held ? g_theWorld->GetCell(city.RetPos())->GetNumUnits() : -1);
+	}
+	s_captured.clear();
 
 	fprintf(f, "{\"t\":\"round\",\"r\":%d,\"rng\":%d,\"players\":[", round,
 	        g_rand ? g_rand->CallCount() : -1);
