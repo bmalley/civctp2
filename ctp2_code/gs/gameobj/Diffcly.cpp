@@ -94,16 +94,16 @@ void Difficulty::Serialize(CivArchive &archive)
 }
 
 double diffutil_GetAiAdjustment(const sint32 diff,
-                                const sint32 playerId,
+                                const double rank_percent,
                                 const double & max_behind_value,
                                 const double & min_behind_value,
                                 const double &  max_ahead_value,
                                 const double &  min_ahead_value
                                )
 {
+	// rank_percent: the AI's strength over the strongest human's (ahead, > 1) or the
+	// weakest human's (behind, < 1), from MapAnalysis::ComputeHandicapRatios
 	const DifficultyRecord *rec = g_theDifficultyDB->Get(diff);
-	double const	rank_percent		=
-		MapAnalysis::GetMapAnalysis().GetScienceHandicapRatio(playerId);
 	double percent_spread;
 	double value_spread;
 	double rank_spread_percent;
@@ -131,8 +131,8 @@ double diffutil_GetAiAdjustment(const sint32 diff,
 
 		percent_spread = rec->GetAIMaxAhead() - rec->GetAIMinAhead();
 		value_spread =  max_ahead_value - min_ahead_value;
-		rank_spread_percent = (rec->GetAIMinAhead() - rank_percent) / fabs(percent_spread);
-		value = max_ahead_value + (value_spread * rank_spread_percent);
+		rank_spread_percent = (rank_percent - rec->GetAIMinAhead()) / fabs(percent_spread);
+		value = min_ahead_value + (value_spread * rank_spread_percent);
 	}
 
 	return value;
@@ -143,7 +143,7 @@ double diffutil_GetAiTechnologyCost(const sint32 diff, const sint32 playerId, co
 	const DifficultyRecord *rec = g_theDifficultyDB->Get(diff);
 
 	return diffutil_GetAiAdjustment(diff,
-	                                playerId,
+	                                MapAnalysis::GetMapAnalysis().GetScienceHandicapRatio(playerId),
 	                                rec->GetAIMaxBehindTechnologyCost(age),
 	                                rec->GetAIMinBehindTechnologyCost(age),
 	                                rec->GetAIMaxAheadTechnologyCost(age),
@@ -156,7 +156,7 @@ double diffutil_GetAiProductionCostAdjustment(const sint32 diff, const sint32 pl
 	const DifficultyRecord *rec = g_theDifficultyDB->Get(diff);
 
 	return diffutil_GetAiAdjustment(diff,
-	                                playerId,
+	                                MapAnalysis::GetMapAnalysis().GetProductionHandicapRatio(playerId),
 	                                rec->GetAIMaxBehindProductionCostAdjustment(age),
 	                                rec->GetAIMinBehindProductionCostAdjustment(age),
 	                                rec->GetAIMaxAheadProductionCostAdjustment(age),
@@ -169,7 +169,7 @@ double diffutil_GetAiGoldAdjustment(const sint32 diff, const sint32 playerId, co
 	const DifficultyRecord *rec = g_theDifficultyDB->Get(diff);
 
 	return diffutil_GetAiAdjustment(diff,
-	                                playerId,
+	                                MapAnalysis::GetMapAnalysis().GetGoldHandicapRatio(playerId),
 	                                rec->GetAIMaxBehindGoldCostAdjustment(age),
 	                                rec->GetAIMinBehindGoldCostAdjustment(age),
 	                                rec->GetAIMaxAheadGoldCostAdjustment(age),
