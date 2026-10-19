@@ -796,7 +796,7 @@ STRATEGY_SEIGE {
 
     GoalElement { Goal GOAL_DEFEND              Priority   607000  MaxEval   2  MaxExec   1 PerCity }
     GoalElement { Goal GOAL_GARRISON            Priority   807000  MaxEval   2  MaxExec   1 PerCity }
-    GoalElement { Goal GOAL_SEIGE               Priority   705000  MaxEval  25  MaxExec   7 }
+    GoalElement { Goal GOAL_SEIGE               Priority   817000  MaxEval  25  MaxExec   7 } // above GARRISON: at war, take cities before topping up garrisons
     GoalElement { Goal GOAL_HARASS_CITY         Priority   600000  MaxEval   3  MaxExec   1 }
     GoalElement { Goal GOAL_ATTACK              Priority   600000  MaxEval  25  MaxExec  10 }
     GoalElement { Goal GOAL_HARASS              Priority   595000  MaxEval  25  MaxExec  10 }
@@ -886,7 +886,7 @@ STRATEGY_ATTACK {
 
     GoalElement { Goal GOAL_DEFEND              Priority   507000  MaxEval   2  MaxExec   1 PerCity }
     GoalElement { Goal GOAL_GARRISON            Priority   807000  MaxEval   2  MaxExec   1 PerCity }
-    GoalElement { Goal GOAL_SEIGE               Priority   600000  MaxEval  25  MaxExec   5 }
+    GoalElement { Goal GOAL_SEIGE               Priority   817000  MaxEval  25  MaxExec   5 } // above GARRISON: at war, take cities before topping up garrisons
     GoalElement { Goal GOAL_ATTACK              Priority   725000  MaxEval  25  MaxExec  25 }
     GoalElement { Goal GOAL_HARASS              Priority   600000  MaxEval  25  MaxExec  25 }
     GoalElement { Goal GOAL_BOMBARD             Priority   607000  MaxEval  25  MaxExec  10 }

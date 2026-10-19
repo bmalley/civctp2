@@ -194,17 +194,19 @@ UNIT_BUILD_LIST_DEFENSE {
 ## 19 #########################################################
 
 UNIT_BUILD_LIST_OFFENSE {
+  // The governor builds the last unit it can build, so list attackers in the
+  // order they become available (ending in Artillery, Mobile SAM, Cavalry made
+  // the late game build Mobile SAMs)
   Unit UNIT_WARRIOR
   Unit UNIT_HOPLITE
-//  Unit UNIT_CHARIOT
   Unit UNIT_SWORDSMAN
   Unit UNIT_KNIGHT
-  Unit UNIT_INFANTRYMAN
-  Unit UNIT_TANK
-  Unit UNIT_FUSION_TANK
-  Unit UNIT_ARTILLERY
-  Unit UNIT_MOBILE_SAM
   Unit UNIT_CAVALRY
+  Unit UNIT_MACHINE_GUNNER
+  Unit UNIT_TANK
+  Unit UNIT_MARINE
+  Unit UNIT_FUSION_TANK
+  Unit UNIT_HOVER_INFANTRY
 }
 
 ## 20 #########################################################
