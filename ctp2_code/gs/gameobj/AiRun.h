@@ -15,5 +15,7 @@ bool airun_IsActive();
 bool airun_GetSeed(uint32 &seed);
 void airun_RecordRound(sint32 round);
 void airun_RecordTurn(sint32 player, sint32 round);
+// CTP2_AIX=letters: AI experiments switched on for a test run (see each caller)
+bool airun_Experiment(char which);
 
 #endif
