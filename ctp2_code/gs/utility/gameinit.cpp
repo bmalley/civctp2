@@ -52,6 +52,7 @@
 #include "gameinit.h"
 
 #include "AchievementTracker.h"
+#include "AiRun.h"                      // airun_GetSeed
 #include "AdvanceRecord.h"
 #include "Advances.h"
 #include "AgeRecord.h"
@@ -1455,6 +1456,7 @@ sint32 gameinit_Initialize(sint32 mWidth, sint32 mHeight, CivArchive *archive)
 
 	seed = g_oldRandSeed ? g_oldRandSeed : GetTickCount();
 #endif
+	airun_GetSeed(seed);
 
 	srand(seed);
 
