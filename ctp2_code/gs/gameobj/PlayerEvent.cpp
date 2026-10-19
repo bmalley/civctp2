@@ -342,6 +342,8 @@ STDEHANDLER(FinishBeginTurnEvent)
 
 	p->m_strengths->Calculate();
 
+	airun_RecordTurn(p->m_owner, p->GetCurRound());
+
 	// Once a round, at the turn of the player playing (or watching)
 	if (p->m_owner == NewTurnCount::GetStopPlayer())
 	{
