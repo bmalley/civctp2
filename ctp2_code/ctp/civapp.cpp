@@ -270,6 +270,7 @@
 #include "newturncount.h"               // NewTurnCount::GetStopPlayer
 #include "StatusBar.h"
 #include "wonderutil.h"                 // wonderutil_GetGlobalRadar
+#include "AiRun.h"                     // airun_IsActive
 #include "unitutil.h"
 #include "UVDB.h"
 #include "victorywin.h"
@@ -2670,9 +2671,11 @@ static void ProcessObserver()
 		s_observerTurnReady = Os::GetTicks();
 	}
 
+	// An AI test run ends the turn at once
 	sint32 const delay = g_theProfileDB->GetObserverTurnDelay();
-	if (s_observerPaused || delay <= 0
-	 || Os::GetTicks() - s_observerTurnReady < uint32(delay) * 1000)
+	if (!airun_IsActive()
+	 && (s_observerPaused || delay <= 0
+	  || Os::GetTicks() - s_observerTurnReady < uint32(delay) * 1000))
 	{
 		return;
 	}
