@@ -83,8 +83,8 @@ STDEHANDLER(LandForPeace_ProposalResponseEvent)
 	sint32 at_risk_value_percent =
 		MapAnalysis::GetMapAnalysis().AtRiskCitiesValue(receiver,sender);
 
-	sint32 at_risk_value = (sint32) ((double)at_risk_value_percent / 100.0) *
-		MapAnalysis::GetMapAnalysis().TotalValue(receiver);
+	sint32 at_risk_value = (sint32) (((double)at_risk_value_percent / 100.0) *
+		MapAnalysis::GetMapAnalysis().TotalValue(receiver));
 
 	if (receiver_diplomat.GetTrust(sender) < COLDWAR_REGARD)
 		return GEV_HD_Continue;
