@@ -144,6 +144,18 @@ uint32 GetTickCount()
 sint32 MessageBox(HWND parent, const CHAR* msg, const CHAR* title, sint32 flags)
 {
 	fprintf(stderr, "Messagebox(%s): %s\n", (title ? title : "null"), (msg ? msg : "null"));
+	// An AI test run (CTP2_AIRUN, patch 0023) has nobody to click: carry on as
+	// if the box got its "go on" answer, rather than wait for ever
+	if (getenv("CTP2_AIRUN"))
+	{
+		switch (flags & 7) {
+			case MB_YESNO:
+			case MB_YESNOCANCEL:     return IDYES;
+			case MB_ABORTRETRYIGNORE: return IDIGNORE;
+			case MB_RETRYCANCEL:     return IDCANCEL;
+			default:                 return IDOK;
+		}
+	}
 #ifdef USE_SDL
 	SDL_MessageBoxData data;
 
