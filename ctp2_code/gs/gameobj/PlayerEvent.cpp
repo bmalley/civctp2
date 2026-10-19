@@ -89,6 +89,7 @@
 #include "MaterialPool.h"
 #include "newturncount.h"               // NewTurnCount::GetStopPlayer
 #include "Replay.h"
+#include "AiRun.h"
 
 extern TurnCount *g_turn;
 extern CivApp *g_civApp;
@@ -345,6 +346,7 @@ STDEHANDLER(FinishBeginTurnEvent)
 	if (p->m_owner == NewTurnCount::GetStopPlayer())
 	{
 		replay_RecordRound(p->GetCurRound());
+		airun_RecordRound(p->GetCurRound());
 	}
 
 	if ( p->m_owner == g_selected_item->GetVisiblePlayer() )

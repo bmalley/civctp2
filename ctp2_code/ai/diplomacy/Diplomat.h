@@ -327,6 +327,9 @@ public:
 
 	const StrategyRecord & GetCurrentStrategy() const;
 
+	// The strategic states merged into the current strategy (AI test runs)
+	const AiStateList & GetStrategicStates() const { return m_bestStrategicStates; }
+
 	void InitDiplomaticState( const PLAYER_INDEX & foreignerId );
 
 	void NextDiplomaticState( const PLAYER_INDEX & foreignerId );
