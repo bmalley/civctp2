@@ -23,6 +23,7 @@
 #include "GameEventUser.h"
 #include "GameEventManager.h"   // g_gevManager
 #include "player.h"             // g_player
+#include "RandGen.h"            // g_rand
 #include "Score.h"
 #include "StrategyRecord.h"
 #include "Unit.h"
@@ -251,6 +252,17 @@ bool airun_GetSeed(uint32 &seed)
 	return true;
 }
 
+// CTP2_AIRUN_TURNS=1: also a line at each player's turn with the synced random
+// generator's call count, to find where two runs of one seed part
+void airun_RecordTurn(sint32 player, sint32 round)
+{
+	static const bool on = getenv("CTP2_AIRUN_TURNS") != NULL;
+	FILE *f = File();
+	if (!f || !on) return;
+	fprintf(f, "{\"t\":\"turn\",\"r\":%d,\"p\":%d,\"rng\":%d}\n", round, player,
+	        g_rand ? g_rand->CallCount() : -1);
+}
+
 void airun_RecordRound(sint32 round)
 {
 	FILE *f = File();
@@ -258,7 +270,8 @@ void airun_RecordRound(sint32 round)
 	Hook();
 	s_lastRound = round;
 
-	fprintf(f, "{\"t\":\"round\",\"r\":%d,\"players\":[", round);
+	fprintf(f, "{\"t\":\"round\",\"r\":%d,\"rng\":%d,\"players\":[", round,
+	        g_rand ? g_rand->CallCount() : -1);
 	bool first = true;
 	for (sint32 p = 0; p < k_MAX_PLAYERS; ++p)
 	{
