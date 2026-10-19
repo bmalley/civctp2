@@ -822,10 +822,27 @@ char * c3debug_StackTrace(void)
 
 		caller_name = Debug_FunctionNameAndOffsetGet (caller, &offset);
 
+		// Also the address relative to its module (a PIE loads at a random base), so a
+		// frame can be resolved later with addr2line -f -C -e ctp2 0x<rel>
+		size_t relative = caller;
+		const char *module = "?";
+#ifdef __linux__
+		Dl_info info;
+		if (dladdr((void*)caller, &info) != 0)
+		{
+			relative = caller - (size_t)info.dli_fbase;
+			if (info.dli_fname)
+			{
+				module = strrchr(info.dli_fname, '/');
+				module = module ? module + 1 : info.dli_fname;
+			}
+		}
+#endif
+
 #if SIZE_MAX == UINT64_MAX
-		sprintf(function_name, "  0x%016zx  [%s + 0x%zx]\n", caller, caller_name, offset);
+		sprintf(function_name, "  0x%016zx  %s+0x%zx  [%s + 0x%zx]\n", caller, module, relative, caller_name, offset);
 #elif SIZE_MAX == UINT32_MAX
-		sprintf(function_name, "  0x%08zx  [%s + 0x%zx]\n", caller, caller_name, offset);
+		sprintf(function_name, "  0x%08zx  %s+0x%zx  [%s + 0x%zx]\n", caller, module, relative, caller_name, offset);
 #else
 #error Code is only implemented for 32 or 64 bit or your compiler does not the needed macros
 #endif
