@@ -1481,7 +1481,7 @@ bool Diplomat::CanAfford( const PLAYER_INDEX senderId,
 		return false;
 
 	if (receiverId != -1 &&
-		proposal.second_type == PROPOSAL_REQUEST_GIVE_GOLD &&
+		proposal.first_type == PROPOSAL_REQUEST_GIVE_GOLD &&
 		proposal.first_arg.gold > g_player[receiverId]->m_gold->GetLevel())
 		return false;
 
