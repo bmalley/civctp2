@@ -1,4 +1,5 @@
 #include "c3.h"
+#include "c3debug.h"            // c3debug_StackTrace
 
 #ifndef WIN32
 
@@ -148,6 +149,9 @@ sint32 MessageBox(HWND parent, const CHAR* msg, const CHAR* title, sint32 flags)
 	// if the box got its "go on" answer, rather than wait for ever
 	if (getenv("CTP2_AIRUN"))
 	{
+		// Where it came from, since nobody will see the box ("No such object" has
+		// preceded two of the harness's three lost games)
+		fprintf(stderr, "%s", c3debug_StackTrace());
 		switch (flags & 7) {
 			case MB_YESNO:
 			case MB_YESNOCANCEL:     return IDYES;
