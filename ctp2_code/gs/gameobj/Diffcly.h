@@ -118,7 +118,7 @@ public:
 };
 
 double diffutil_GetAiAdjustment(const sint32 diff,
-                                const sint32 playerId,
+                                const double rank_percent,
                                 const double & max_behind_value,
                                 const double & min_behind_value,
                                 const double &  max_ahead_value,
