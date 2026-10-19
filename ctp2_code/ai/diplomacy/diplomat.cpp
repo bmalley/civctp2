@@ -4465,12 +4465,6 @@ void Diplomat::UpdateAttributes()
 			}
 		}
 
-		sint32 last_incursion = GetLastBorderIncursionBy(foreignerId);
-		if(last_incursion >= 0 && last_incursion + 5 < NewTurnCount::GetCurrentRound())
-		{
-			continue;
-		}
-
 		if ( AgreementMatrix::s_agreements.
 			HasAgreement(m_playerId, foreignerId, PROPOSAL_TREATY_DECLARE_WAR) )
 			continue;
