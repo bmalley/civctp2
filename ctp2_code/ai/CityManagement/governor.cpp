@@ -1335,12 +1335,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		rec = g_theTerrainImprovementDB->Get(best_growth_improvement);
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusFood(tmp_bonus);
 		bonusFood += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusProduction(tmp_bonus);
 		bonusProduction += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusGold(tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
@@ -1398,12 +1401,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		rec = g_theTerrainImprovementDB->Get(best_production_improvement);
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusFood(tmp_bonus);
 		bonusFood += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusProduction(tmp_bonus);
 		bonusProduction += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusGold(tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
@@ -1431,12 +1437,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		rec = g_theTerrainImprovementDB->Get(best_gold_improvement);
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusFood(tmp_bonus);
 		bonusFood += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusProduction(tmp_bonus);
 		bonusProduction += tmp_bonus;
 
+		tmp_bonus = 0; // left as it was when the effect has no such bonus
 		effect->GetBonusGold(tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
