@@ -9697,6 +9697,67 @@ bool Player::IsConnected(MapPoint const & center, sint32 maxSquaredDistance, sin
 	return distance != std::numeric_limits<sint32>::max();
 }
 
+namespace
+{
+	// One search of Player::CalcEmpireCenter, from the centre so far to the next
+	// city, with the move costs of the tiles it looked at: the search reads
+	// nothing else, so its answer holds while those costs stay the same.
+	struct EmpireCenterStep
+	{
+		bool                                    m_valid  = false;
+		MapPoint                                m_start;
+		MapPoint                                m_dest;
+		bool                                    m_found  = false;
+		MapPoint                                m_center;   // the centre after this city
+		std::vector<std::pair<sint32, sint16> > m_tiles;    // x * world height + y, move cost
+
+		bool Holds(MapPoint const & start, MapPoint const & dest) const
+		{
+			if (!m_valid || m_start != start || m_dest != dest) return false;
+
+			sint32 const height = g_theWorld->GetYHeight();
+			for (size_t i = 0; i < m_tiles.size(); ++i)
+			{
+				Cell const * cell = g_theWorld->GetCell(m_tiles[i].first / height, m_tiles[i].first % height);
+				if (cell->GetMoveCost() != m_tiles[i].second) return false;
+			}
+			return true;
+		}
+	};
+
+	// Each player's searches from the last call, kept while the map is the same
+	struct EmpireCenterSearches
+	{
+		sint32                          m_width  = 0;
+		sint32                          m_height = 0;
+		bool                            m_xWrap  = false;
+		bool                            m_yWrap  = false;
+		std::vector<EmpireCenterStep>   m_steps;
+	};
+
+	std::vector<EmpireCenterSearches> s_empireCenterSearches;
+
+	EmpireCenterSearches & GetEmpireCenterSearches(PLAYER_INDEX player)
+	{
+		if (s_empireCenterSearches.size() <= size_t(player))
+			s_empireCenterSearches.resize(player + 1);
+
+		EmpireCenterSearches & searches = s_empireCenterSearches[player];
+		if (searches.m_width  != g_theWorld->GetXWidth()
+		 || searches.m_height != g_theWorld->GetYHeight()
+		 || searches.m_xWrap  != bool(g_theWorld->IsXwrap())
+		 || searches.m_yWrap  != bool(g_theWorld->IsYwrap()))
+		{
+			searches.m_width  = g_theWorld->GetXWidth();
+			searches.m_height = g_theWorld->GetYHeight();
+			searches.m_xWrap  = g_theWorld->IsXwrap();
+			searches.m_yWrap  = g_theWorld->IsYwrap();
+			searches.m_steps.clear();
+		}
+		return searches;
+	}
+}
+
 MapPoint Player::CalcEmpireCenter() const
 {
 	if(m_all_cities->Num() == 0)
@@ -9715,17 +9776,48 @@ MapPoint Player::CalcEmpireCenter() const
 
 	MapPoint empireCenter = m_all_cities->Get(0)->GetPos();
 
+	// Every player's centre is recomputed each turn, one search per city.
+	// A search whose start, city and tiles are as last time is not run again.
+	EmpireCenterSearches & searches = GetEmpireCenterSearches(m_owner);
+	searches.m_steps.resize(m_all_cities->Num() - 1);
+	std::vector<sint32> searched;
+
 	for(sint32 i = 1; i < m_all_cities->Num(); ++i)
 	{
 		cityNum++;
 
+		MapPoint const      dest = m_all_cities->Get(i)->GetPos();
+		EmpireCenterStep &  step = searches.m_steps[i - 1];
+		if (step.Holds(empireCenter, dest))
+		{
+			empireCenter = step.m_center;
+			continue;
+		}
+
+		step.m_valid = true;
+		step.m_start = empireCenter;
+		step.m_dest  = dest;
+
 		float costs = 0.0f;
 		Path path;
+		searched.clear();
 
-		if(g_city_astar.FindSimpleDistancePath(empireCenter, m_all_cities->Get(i)->GetPos(), m_owner, path, costs))
+		step.m_found = g_city_astar.FindSimpleDistancePath(empireCenter, dest, m_owner, path, costs, &searched);
+		if (step.m_found)
 		{
 			path.RestoreIndexAndCurrentPos(path.Num() / cityNum);
 			path.GetCurrentPoint(empireCenter);
+		}
+		step.m_center = empireCenter;
+
+		std::sort(searched.begin(), searched.end());
+		searched.erase(std::unique(searched.begin(), searched.end()), searched.end());
+		sint32 const height = g_theWorld->GetYHeight();
+		step.m_tiles.resize(searched.size());
+		for (size_t t = 0; t < searched.size(); ++t)
+		{
+			step.m_tiles[t].first  = searched[t];
+			step.m_tiles[t].second = sint16(g_theWorld->GetCell(searched[t] / height, searched[t] % height)->GetMoveCost());
 		}
 	}
 
