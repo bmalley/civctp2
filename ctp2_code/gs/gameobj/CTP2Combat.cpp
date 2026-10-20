@@ -118,7 +118,10 @@ DamageTracker s_trackedUnits[k_MAX_TRACKED_UNITS];
 
 #else
 
-#define COMBATRAND(x) (g_rand->Next(x))
+#define COMBATRAND(x) (m_simRand ? m_simRand->Next(x) : g_rand->Next(x))
+
+// True while CTP2Combat::Simulate runs: combat units then only keep their own hit points
+static bool s_simulating = false;
 
 static void combat_print(sint32 level, const char *fmt, ...)
 {
@@ -214,6 +217,13 @@ void CombatUnit::DeductHP(double amt)
 	Assert(m_unit.IsValid());
 	Assert(amt > 0);
 	m_hp -= amt;
+
+	if (s_simulating)
+	{
+		if (m_hp < 0.99999)
+			m_hp = 0;
+		return;
+	}
 
 	m_unit->SetHP(m_hp);
 
@@ -911,7 +921,9 @@ CTP2Combat::CTP2Combat
     m_defender            (defenders.GetOwner()),
     m_army_id             (attackers[0].GetArmy().m_id),
     m_battle              (NULL),
-    m_roundsSinceUpdate   (0x7ffffffe)
+    m_roundsSinceUpdate   (0x7ffffffe),
+    m_simRand             (NULL),
+    m_prediction          ()
 {
 	m_attackers.FillFrom(attackers);
 	m_defenders.FillFrom(defenders);
@@ -947,7 +959,7 @@ CTP2Combat::CTP2Combat
 	m_attackers.StartRound();
 	m_defenders.StartRound();
 
-	if(!g_theProfileDB->IsShowZoomedCombat())
+	if(s_simulating || !g_theProfileDB->IsShowZoomedCombat())
 		return;
 
 	if(m_attacker == g_selected_item->GetVisiblePlayer()
@@ -967,6 +979,46 @@ CTP2Combat::CTP2Combat
 	}
 
 	Assert(!IsDone());
+}
+
+CombatOdds CTP2Combat::Simulate
+(
+    CellUnitList &  attackers,
+    CellUnitList &  defenders,
+    sint32          trials,
+    uint32          seed
+)
+{
+	CombatOdds odds;
+	if (attackers.Num() <= 0 || defenders.Num() <= 0)
+		return odds;
+
+	RandomGenerator dice(static_cast<sint32>(seed % 0x7fffffff));
+	s_simulating = true;
+	for (sint32 t = 0; t < trials; ++t)
+	{
+		CTP2Combat fight(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, attackers, defenders);
+		fight.m_simRand = &dice;
+
+		// The real fight takes one round per GEV_RunCombat until IsDone; the limit is
+		// only a guard
+		for (sint32 round = 0; round < 1000 && !fight.IsDone(); ++round)
+		{
+			fight.ResolveOneRound();
+		}
+
+		sint32 const attackersLeft = fight.GetNumLivingAttackers();
+		sint32 const defendersLeft = fight.GetNumLivingDefenders();
+		++odds.trials;
+		if (defendersLeft <= 0 && attackersLeft > 0)
+			++odds.attackerWins;
+		else if (attackersLeft <= 0 && defendersLeft > 0)
+			++odds.defenderWins;
+		odds.attackerLeft += attackersLeft;
+		odds.defenderLeft += defendersLeft;
+	}
+	s_simulating = false;
+	return odds;
 }
 
 CTP2Combat::~CTP2Combat()

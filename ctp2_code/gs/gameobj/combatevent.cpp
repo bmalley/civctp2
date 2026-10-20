@@ -32,6 +32,8 @@
 #include "combatevent.h"
 #include "Events.h"
 #include "CTP2Combat.h"
+#include "AiRun.h"
+#include "TurnCnt.h"
 #include "GameEventUser.h"
 #include "Army.h"
 #include "MapPoint.h"
@@ -45,6 +47,13 @@
 #include "aui_button.h"
 #include "Globals.h"
 extern C3UI *g_c3ui;
+
+namespace
+{
+	// The stack sizes the current battle started with (for the test-run battle line)
+	sint32 s_attackersAtStart = 0;
+	sint32 s_defendersAtStart = 0;
+}
 
 STDEHANDLER(RunCombatEvent)
 {
@@ -73,6 +82,13 @@ STDEHANDLER(RunCombatEvent)
 	}
 	else if (g_theCurrentBattle->IsDone())
 	{
+		if (g_theCurrentBattle->GetPrediction().trials > 0)
+		{
+			airun_RecordBattle(attacker, defender, s_attackersAtStart, s_defendersAtStart,
+			                   g_theCurrentBattle->GetPrediction(),
+			                   g_theCurrentBattle->GetNumLivingAttackers(),
+			                   g_theCurrentBattle->GetNumLivingDefenders());
+		}
 		g_theCurrentBattle->KillUnits(GEV_INSERT_AfterCurrent); // insert unit kill event such that it is exectued after BattleAftermath event
 		g_gevManager->AddEvent(GEV_INSERT_AfterCurrent, // BattleAftermath event has to be added after unit kill to be executed before
 		                       GEV_BattleAftermath,
@@ -131,7 +147,20 @@ STDEHANDLER(StartCombatEvent)
 	    a.GetOwner() != defender.GetOwner()
 	   )
 	{
+		// Test runs with CTP2_AIRUN_ODDS: what a simulation expects of this fight, to check
+		// it against the outcome. Seeded from the fight itself; g_rand is not touched.
+		sint32 const trials = airun_OddsTrials();
+		CombatOdds odds;
+		if (trials > 0)
+		{
+			uint32 const seed = a.m_id * 2654435761u ^ (p.x << 16 | p.y) ^ (g_turn ? g_turn->GetRound() : 0);
+			odds = CTP2Combat::Simulate(*a.AccessData(), defender, trials, seed);
+		}
+		s_attackersAtStart = a.Num();
+		s_defendersAtStart = defender.Num();
+
 		g_theCurrentBattle = new CTP2Combat(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, *a.AccessData(), defender);
+		g_theCurrentBattle->SetPrediction(odds);
 	}
 
 	return GEV_HD_Continue;
