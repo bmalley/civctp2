@@ -138,6 +138,7 @@
 #include "Cell.h"
 #include "cellunitlist.h"
 #include "CityAstar.h"
+#include "TradeAstar.h"
 #include "citydata.h"
 #include "CityInfluenceIterator.h"
 #include "CitySizeRecord.h"
@@ -194,6 +195,7 @@
 #endif
 
 extern CityAstar    g_city_astar;
+extern TradeAstar   g_theTradeAstar;
 
 namespace
 {
@@ -219,6 +221,96 @@ namespace
 		return value > heldValue || (value == heldValue && value > 0.0 && index < heldIndex);
 	}
 
+
+	// A trade distance found by path search (tradeutil_GetTradeDistance), with the tiles
+	// the search looked at
+	struct TradeSearch
+	{
+		MapPoint            m_from;
+		MapPoint            m_to;
+		std::vector<uint64> m_tiles;        // a bit per tile, as TradeAstar::GetSearchedTiles
+		sint32              m_distance;
+		sint32              m_lastUsed;     // TradeSearches::m_calls when last looked up
+	};
+
+	// One player's trade distances, kept from one Governor::ManageGoodsTradeRoutes call
+	// to the next with the tile costs they were found on. A search only reads the
+	// costs of the tiles it looks at and is otherwise deterministic, so its distance
+	// holds until one of those tiles changes.
+	struct TradeSearches
+	{
+		sint32                                  m_width     = 0;
+		sint32                                  m_height    = 0;
+		bool                                    m_xWrap     = false;
+		bool                                    m_yWrap     = false;
+		sint32                                  m_calls     = 0;
+		std::vector<float>                      m_tileCosts;
+		std::unordered_map<uint64, TradeSearch> m_searches;     // by source and destination city
+
+		// Forget the searches the tiles changed since the last call could change.
+		void Update(std::vector<float> const & tileCosts)
+		{
+			++m_calls;
+			if (m_width  != g_theWorld->GetXWidth() || m_height != g_theWorld->GetYHeight() ||
+			    m_xWrap  != g_theWorld->IsXwrap()   || m_yWrap  != g_theWorld->IsYwrap()   ||
+			    m_tileCosts.size() != tileCosts.size())
+			{
+				m_width  = g_theWorld->GetXWidth();
+				m_height = g_theWorld->GetYHeight();
+				m_xWrap  = g_theWorld->IsXwrap();
+				m_yWrap  = g_theWorld->IsYwrap();
+				m_searches.clear();
+			}
+			else
+			{
+				std::vector<size_t> changed;
+				for (size_t i = 0; i < tileCosts.size(); ++i)
+				{
+					if (tileCosts[i] != m_tileCosts[i])
+					{
+						changed.push_back(i);
+					}
+				}
+
+				for (std::unordered_map<uint64, TradeSearch>::iterator s = m_searches.begin(); s != m_searches.end(); )
+				{
+					bool stale = (m_calls - s->second.m_lastUsed > 10);  // a city gone, or no longer a buyer
+					for (size_t c = 0; !stale && c < changed.size(); ++c)
+					{
+						stale = (s->second.m_tiles[changed[c] / 64] >> (changed[c] % 64)) & 1;
+					}
+					s = stale ? m_searches.erase(s) : std::next(s);
+				}
+			}
+			m_tileCosts = tileCosts;
+		}
+
+		// tradeutil_GetTradeDistance(from, to), with g_theTradeAstar's cost grid set to m_tileCosts
+		sint32 GetTradeDistance(Unit const & from, Unit const & to)
+		{
+#if defined(USE_PRECISETRADEROUTECALC)
+			uint64 const key = (static_cast<uint64>(from.m_id) << 32) | to.m_id;
+			std::unordered_map<uint64, TradeSearch>::iterator known = m_searches.find(key);
+			if (known != m_searches.end() && known->second.m_from == from.RetPos() && known->second.m_to == to.RetPos())
+			{
+				known->second.m_lastUsed = m_calls;
+				return known->second.m_distance;
+			}
+
+			TradeSearch & search = m_searches[key];
+			search.m_from     = from.RetPos();
+			search.m_to       = to.RetPos();
+			search.m_distance = tradeutil_GetTradeDistance(from, to);
+			search.m_lastUsed = m_calls;
+			search.m_tiles    = g_theTradeAstar.GetSearchedTiles();
+			return search.m_distance;
+#else
+			return tradeutil_GetTradeDistance(from, to);
+#endif
+		}
+	};
+
+	TradeSearches           s_tradeSearches[k_MAX_PLAYERS];
 
 	sint32 const            BORDER_DISTANCE_SEARCH_MULT = 4;
 	/// Value for a trade route not requiring caravans (should not occur)
@@ -4602,11 +4694,23 @@ void Governor::ManageGoodsTradeRoutes()
 	m_neededFreight = 0;
 
 	// The cheapest tile to carry freight over (TradeAstar::EntryCost rounds up), for the
-	// lowest a trade route's cost can be
+	// lowest a trade route's cost can be. Each tile's cost, or < 0 if unexplored, is kept for
+	// the path searches below: the map doesn't change while this runs.
 	double minTileFreight = std::numeric_limits<double>::max();
+	std::vector<float> tileFreight(static_cast<size_t>(g_theWorld->GetXWidth()) * g_theWorld->GetYHeight());
 	for (sint32 x = 0; x < g_theWorld->GetXWidth(); x++)
+	{
 		for (sint32 y = 0; y < g_theWorld->GetYHeight(); y++)
-			minTileFreight = std::min(minTileFreight, std::ceil(g_theWorld->GetCell(x, y)->CalcTerrainFreightCost()));
+		{
+			const double freight = std::ceil(g_theWorld->GetCell(x, y)->CalcTerrainFreightCost());
+			minTileFreight = std::min(minTileFreight, freight);
+			tileFreight[x * g_theWorld->GetYHeight() + y] =
+			    player_ptr->IsExplored(MapPoint(x, y)) ? static_cast<float>(freight) : -1.0f;
+		}
+	}
+	g_theTradeAstar.SetCostGrid(m_playerId, &tileFreight);
+	TradeSearches & tradeSearches = s_tradeSearches[m_playerId];
+	tradeSearches.Update(tileFreight);
 
 	UnitDynamicArray * city_list = player_ptr->GetAllCitiesList();
 	sint32             cityCount = city_list ? city_list->Num() : 0;
@@ -4616,10 +4720,6 @@ void Governor::ManageGoodsTradeRoutes()
 	for (sint32 i = 0; i < cityCount; i++)
 	{
 		Unit & city = city_list->Access(i);
-
-		// The trade distance from this city (an A* path) doesn't depend on the good, so look
-		// it up once per destination, not once per good: same result, fewer path searches.
-		std::unordered_map<uint32, sint32> tradeDistance;
 
 		for (sint32 g = 0; g < g_theResourceDB->NumRecords(); g++)
 		{
@@ -4713,9 +4813,9 @@ void Governor::ManageGoodsTradeRoutes()
 						continue;
 					}
 
-					std::unordered_map<uint32, sint32>::const_iterator known = tradeDistance.find(offer.m_city.m_id);
-					const sint32 cost = known != tradeDistance.end() ? known->second // # of caravans
-					                  : (tradeDistance[offer.m_city.m_id] = tradeutil_GetTradeDistance(city, offer.m_city));
+					// # of caravans; the trade distance (an A* path) doesn't depend on the good, and is
+					// kept from call to call while the tiles it was found on stay the same
+					const sint32 cost = tradeSearches.GetTradeDistance(city, offer.m_city);
 					const double valuePerCaravan = static_cast<double>(offer.m_price) / cost; // cost = tradeutil_GetAccurateTradeDistance returns > 1.0
 
 					if (Beats(valuePerCaravan, offer.m_index, bestValuePerCaravan, bestIndex)) // determine best offer (and its cost) that would be available, to set goal for # of caravans (m_neededFreight)
@@ -4769,6 +4869,8 @@ void Governor::ManageGoodsTradeRoutes()
 			}
 		}
 	}
+
+	g_theTradeAstar.SetCostGrid(PLAYER_INDEX_INVALID, NULL);
 
 	m_neededFreight -= total_freight - totalRoutes; // cravans needed to sell all goods available (with an offer); subtract those that already exist (and would be available if existing routes got killed); - 1 for each existing trade route
 	if(m_neededFreight < 0) // m_neededFreight should be >= 0
