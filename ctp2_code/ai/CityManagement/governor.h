@@ -338,6 +338,7 @@ private:
 	bool HasStopBuildings(const StrategyRecord::BuildListSequenceElement* elem, const CityData* cd) const;
 
 	sint32 GetNeededUnitType(const CityData *city, sint32 & list_num) const;
+	sint32 MixedUnitType(const CityData *city, sint32 list_num, sint32 type) const;
 
 	const UnitBuildListRecord * GetBuildListRecord(const StrategyRecord & strategy, const BUILD_UNIT_LIST list_type) const;
 

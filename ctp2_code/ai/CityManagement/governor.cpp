@@ -127,6 +127,7 @@
 
 #include "c3.h"                 // Pre-compiled header
 #include "governor.h"           // Own declarations: consistency check
+#include "TurnCnt.h"            // g_turn
 
 #include "AdvanceRecord.h"
 #include "AgreementMatrix.h"
@@ -3663,6 +3664,7 @@ void Governor::ComputeNextBuildItem(CityData *city, sint32 & cat, sint32 & type,
 			if (elem->GetAllUnitBuildList())
 			{
 				type = GetNeededUnitType(city, list_num);
+				type = MixedUnitType(city, list_num, type);
 				DPRINTF(k_DBG_AI, ("Unit build list is: %d", list_num));
 
 				if (type >= 0)
@@ -3675,6 +3677,7 @@ void Governor::ComputeNextBuildItem(CityData *city, sint32 & cat, sint32 & type,
 			else if (elem->GetGarrisonUnitBuildList())
 			{
 				type = GetNeededGarrisonUnitType(city, list_num); // Attention! GetNeededGarrisonUnitType also yiels other unit types and kind of replaces GetNeededUnitType
+				type = MixedUnitType(city, list_num, type);
 				if (type >= 0)
 				{
 					Assert(city->CanBuildUnit(type));
@@ -4502,6 +4505,73 @@ sint32 Governor::GetNeededFreightType(sint32 & list_num) const
 		return -1;
 
 	return list_ref.m_bestType;
+}
+
+// Mixed builds. ComputeBestUnitType takes the last unit in a list the player can build, so
+// every city builds the same single type, and one bad list order spoils an era (the late-game
+// Mobile SAMs). For the offence, defence and ranged lists, this scores each unit in the list
+// the city can build by its part in that role (attack, defence or ranged attack, times
+// firepower and hit points) over the square root of its shield cost (a stack holds 12 units,
+// so strength per unit counts too), keeps those within 75% of the best, and picks one in
+// proportion to its score. The pick comes from a hash of the city and the round, not from
+// g_rand: the same each time it's asked within a round, and no change to the synced stream.
+sint32 Governor::MixedUnitType(const CityData *city, sint32 list_num, sint32 type) const
+{
+	if (type < 0 || !city)
+		return type;
+	if (list_num != BUILD_UNIT_LIST_OFFENSE
+	 && list_num != BUILD_UNIT_LIST_DEFENSE
+	 && list_num != BUILD_UNIT_LIST_RANGED)
+		return type;
+
+	const StrategyRecord & strategy = Diplomat::GetDiplomat(m_playerId).GetCurrentStrategy();
+	const UnitBuildListRecord * list = GetBuildListRecord(strategy, static_cast<BUILD_UNIT_LIST>(list_num));
+	if (!list)
+		return type;
+
+	static const double cut = 0.75;
+
+	std::vector<std::pair<double, sint32> > scored;
+	double best = 0.0;
+	for (sint32 i = 0; i < list->GetNumUnit(); ++i)
+	{
+		sint32 const unit_type = list->GetUnit(i)->GetIndex();
+		if (!city->CanBuildUnit(unit_type) || !g_player[m_playerId]->CanBuildUnit(unit_type))
+			continue;
+		const UnitRecord * rec = g_theUnitDB->Get(unit_type);
+		double const role = list_num == BUILD_UNIT_LIST_OFFENSE ? rec->GetAttack()
+		                  : list_num == BUILD_UNIT_LIST_DEFENSE ? rec->GetDefense()
+		                  :                                       static_cast<double>(rec->GetZBRangeAttack());
+		double const score = role * rec->GetFirepower() * rec->GetMaxHP()
+		                   / sqrt(std::max<double>(1.0, rec->GetShieldCost()));
+		if (score <= 0.0)
+			continue;
+		scored.push_back(std::make_pair(score, unit_type));
+		best = std::max(best, score);
+	}
+
+	double total = 0.0;
+	for (size_t i = 0; i < scored.size(); ++i)
+	{
+		if (scored[i].first >= cut * best)
+			total += scored[i].first;
+	}
+	if (total <= 0.0)
+		return type;
+
+	uint32 h = static_cast<uint32>(city->GetHomeCity().m_id) * 2654435761u
+	         ^ static_cast<uint32>(g_turn ? g_turn->GetRound() : 0) * 40503u;
+	h ^= h >> 15;
+	double pick = (h % 10000) / 10000.0 * total;
+	for (size_t i = 0; i < scored.size(); ++i)
+	{
+		if (scored[i].first < cut * best)
+			continue;
+		if (pick < scored[i].first)
+			return scored[i].second;
+		pick -= scored[i].first;
+	}
+	return type;
 }
 
 sint32 Governor::ComputeBestUnitType(const UnitBuildListRecord *build_list_rec, const CityData *city) const
