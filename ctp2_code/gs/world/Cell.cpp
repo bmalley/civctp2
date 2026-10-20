@@ -45,6 +45,7 @@
 //----------------------------------------------------------------------------
 
 #include "c3.h"
+#include "PathCacheEpoch.h"      // pathcache_WorldChanged
 
 #include "Cell.h"
 #include "TerrainRecord.h"
@@ -208,6 +209,7 @@ void Cell::Serialize(CivArchive &archive)
 
 void Cell::CalculateTmpFutureMoveCosts(sint32 tileImpType)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	const TerrainImprovementRecord *impRec = g_theTerrainImprovementDB->Get(tileImpType);
 	const TerrainImprovementRecord::Effect *effect =
 	    terrainutil_GetTerrainEffect(impRec, m_terrain_type);
@@ -225,6 +227,7 @@ void Cell::CalculateTmpFutureMoveCosts(sint32 tileImpType)
 
 void Cell::ResetTmpFutureMoveCosts()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_tmp_future_move_cost = std::numeric_limits<sint16>::max();
 }
 
@@ -240,6 +243,7 @@ bool Cell::IsAnyUnitInCell() const
 
 bool Cell::InsertUnit(Unit id)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(!m_unit_army)
 	{
 		m_unit_army = new CellUnitList;
@@ -250,6 +254,7 @@ bool Cell::InsertUnit(Unit id)
 
 bool Cell::RemoveUnitReference(const Unit &u)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if (m_unit_army && m_unit_army->Del(u))
 	{
 		if(m_unit_army->Num() <= 0)
@@ -727,6 +732,7 @@ TradeRoute Cell::GetTradeRoute(sint32 index) const // returns trade route not re
 
 void Cell::InsertUnfinishedImprovement(const TerrainImprovement &imp)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(!m_objects) {
 		m_objects = new DynamicArray<ID>;
 	}
@@ -737,6 +743,7 @@ void Cell::InsertUnfinishedImprovement(const TerrainImprovement &imp)
 
 void Cell::RemoveUnfinishedImprovement(const TerrainImprovement &imp)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if (m_objects)
 	{
 		while (m_objects->Del(imp))
@@ -770,6 +777,7 @@ void Cell::RemoveUnfinishedImprovement(const TerrainImprovement &imp)
 
 void Cell::SetOwner(sint32 owner)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	// Diagnostic: m_cellOwner is a sint8, and m_playerLandArea[] below is
 	// indexed by owner+1 with no bounds check at all - a caller passing
 	// anything outside [-1, k_MAX_PLAYERS-1] silently truncates into
@@ -817,6 +825,7 @@ uint32 Cell_CELL_GetVersion(void)
 
 void Cell::Kill(void)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_terrain_type = (sint8)TERRAIN_DEAD ;
 }
 
@@ -874,6 +883,7 @@ Unit &Cell::AccessUnit(sint32 index)
 
 void Cell::SetCity(const Unit &c)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_city.m_id = c.m_id;
 	if(c.m_id != 0) {
 		m_env |= (k_BIT_ENV_CITY | k_BIT_ENV_CITY_RADIUS);
@@ -901,6 +911,7 @@ Unit Cell::GetCityOwner() const
 
 void Cell::SetCityOwner(const Unit &c)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Assert(!(m_env & k_MASK_ENV_CITY) || (c.m_id == m_city.m_id) || (c.m_id == 0) );
 
 	m_city.m_id = c.m_id;
@@ -966,6 +977,7 @@ TerrainImprovement Cell::AccessUnfinishedImprovement(sint32 index)
 
 void Cell::CreateGoodyHut()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if (!m_jabba)
 	{
 		m_jabba = new GoodyHut();
@@ -974,6 +986,7 @@ void Cell::CreateGoodyHut()
 
 void Cell::DeleteGoodyHut()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	delete m_jabba;
 	m_jabba = NULL;
 }
@@ -985,6 +998,7 @@ bool Cell::HasWormhole() const
 
 void Cell::SetWormhole(bool on)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(on)
 		m_env |= k_BIT_ENV_HAS_WORMHOLE;
 	else
@@ -993,6 +1007,7 @@ void Cell::SetWormhole(bool on)
 
 void Cell::SetTerrain(sint32 terrain)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_terrain_type = (sint8)terrain;
 	CalcMovementType();
 	CalcTerrainMoveCost();
@@ -1000,6 +1015,7 @@ void Cell::SetTerrain(sint32 terrain)
 
 void Cell::CalcMovementType()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_env = (m_env & (~(k_MASK_ENV_MOVEMENT_TYPE))) |
 		(g_theTerrainDB->Get(m_terrain_type)->GetMovementType() << k_SHIFT_ENV_MOVEMENT_TYPE);
 	if(m_env & (k_MASK_ENV_ROAD)) {
@@ -1020,6 +1036,7 @@ void Cell::CalcMovementType()
 
 void Cell::ClearUnitsNStuff()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 #ifdef BATTLE_FLAGS
 	m_battleFlags = 0;
 #endif
@@ -1054,6 +1071,7 @@ void Cell::SetGF(const sint16 v)
 
 void Cell::SetEnv(uint32 env)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_env = env;
 	CalcTerrainMoveCost();
 }
@@ -1079,6 +1097,7 @@ sint32 Cell::GetBaseMoveCosts()
 
 void Cell::CalcTerrainMoveCost()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	sint32 tmp = GetBaseMoveCosts();
 
 	for (sint32 i =  GetNumObjects() - 1 ; i >= 0; --i)
@@ -1289,6 +1308,7 @@ ID Cell::GetObject(sint32 index)
 
 void Cell::InsertBuiltImprovementType(sint32 type)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	const TerrainImprovementRecord *rec = g_theTerrainImprovementDB->Get(type);
 	if(!m_objects)
 		m_objects = new DynamicArray<ID>;
@@ -1333,6 +1353,7 @@ void Cell::InsertBuiltImprovementType(sint32 type)
 // Seems to remove all tile improvements
 void Cell::RemoveBuiltImprovementType(sint32 type)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (sint32 i = GetNumObjects() - 1; i >= 0; i--)
 	{
 		if((m_objects->Access(i).m_id & k_ID_TYPE_MASK) == k_BIT_GAME_OBJ_TYPE_BUILT_IMPROVEMENT)
