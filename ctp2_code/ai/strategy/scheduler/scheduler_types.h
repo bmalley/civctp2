@@ -65,14 +65,17 @@ typedef Plan*			Plan_ptr;
 typedef std::pair<Utility, Goal_ptr> Sorted_Goal_ptr;
 typedef std::pair<double, Agent_ptr> Sorted_Agent_ptr;
 
-template<class _T1, class _T2>
-bool operator <
-(
-    const Sorted_Goal_ptr& _X,
-    const Sorted_Goal_ptr& _Y
-)
+// Orders (utility, pointer) pairs by utility only, highest first. std::greater on the pair
+// would break ties by comparing the pointers, so the order, and with it the AI's choices,
+// would depend on where the heap put the objects: the same game drifts apart from run to
+// run. std::list::sort is stable, so equal utilities keep their order in the list.
+struct Greater_Utility
 {
-	return (_X.first < _Y.first);
+	template <class T>
+	bool operator()(const std::pair<Utility, T> & x, const std::pair<Utility, T> & y) const
+	{
+		return x.first > y.first;
+	}
 };
 
 typedef std::list<Agent_ptr> Agent_List;
