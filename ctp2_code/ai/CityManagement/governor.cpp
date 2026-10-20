@@ -158,6 +158,9 @@
 #include "installationtree.h"
 #include <limits>
 #include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 #include "mapanalysis.h"
 #include "net_action.h"
 #include "network.h"
@@ -194,6 +197,29 @@ extern CityAstar    g_city_astar;
 
 namespace
 {
+	// A city that could buy a good, for Governor::ManageGoodsTradeRoutes
+	struct GoodsOffer
+	{
+		Unit    m_city;
+		sint32  m_index;                // its place in the order offers were compared in
+		sint32  m_price;                // gold
+		sint32  m_minCost;              // caravans, at least
+		double  m_maxValuePerCaravan;   // m_price / m_minCost
+
+		bool operator < (const GoodsOffer & other) const
+		{
+			return m_maxValuePerCaravan > other.m_maxValuePerCaravan;
+		}
+	};
+
+	// Whether an offer replaces the one held: a higher value, or the same from an offer
+	// compared earlier. Comparing in order with a plain > picks the same one.
+	bool Beats(double value, sint32 index, double heldValue, sint32 heldIndex)
+	{
+		return value > heldValue || (value == heldValue && value > 0.0 && index < heldIndex);
+	}
+
+
 	sint32 const            BORDER_DISTANCE_SEARCH_MULT = 4;
 	/// Value for a trade route not requiring caravans (should not occur)
 	double const            VALUE_FREE_LUNCH 	        =
@@ -4575,6 +4601,13 @@ void Governor::ManageGoodsTradeRoutes()
 
 	m_neededFreight = 0;
 
+	// The cheapest tile to carry freight over (TradeAstar::EntryCost rounds up), for the
+	// lowest a trade route's cost can be
+	double minTileFreight = std::numeric_limits<double>::max();
+	for (sint32 x = 0; x < g_theWorld->GetXWidth(); x++)
+		for (sint32 y = 0; y < g_theWorld->GetYHeight(); y++)
+			minTileFreight = std::min(minTileFreight, std::ceil(g_theWorld->GetCell(x, y)->CalcTerrainFreightCost()));
+
 	UnitDynamicArray * city_list = player_ptr->GetAllCitiesList();
 	sint32             cityCount = city_list ? city_list->Num() : 0;
 	for (sint32 i = 0; i < cityCount; i++) {
@@ -4607,11 +4640,10 @@ void Governor::ManageGoodsTradeRoutes()
 					curDestRoute.m_id = 0;
 				}
 
-				Unit maxCity;
-				double bestValuePerCaravan = 0.0;
-				double maxValuePerCaravan = 0.0;
-				sint32 maxCost = 0;
-				sint32 maxNeededFreight = 0;
+				// The cities that could buy good g, in the order the offers were always compared
+				// in, with a lower bound on each one's cost: freight costs at least the cheapest
+				// tile's (less 5% for an orthogonal step) for each step of the straight-line distance.
+				std::vector<GoodsOffer> offers;
 				for (sint32 op = 1; op < k_MAX_PLAYERS; op++) // determine player offering highest price for good g
 				{
 					if (m_playerId != op) // skip all players not awailable for trading
@@ -4645,26 +4677,63 @@ void Governor::ManageGoodsTradeRoutes()
 						    curDestRoute->GetDestination().m_id == destCity.m_id) // exclude standing trade route destination
 							continue;
 
-						const sint32 price = tradeutil_GetTradeValue(m_playerId, destCity, g); // # of gold
-						std::unordered_map<uint32, sint32>::const_iterator known = tradeDistance.find(destCity.m_id);
-						const sint32 cost = known != tradeDistance.end() ? known->second // # of caravans
-						                  : (tradeDistance[destCity.m_id] = tradeutil_GetTradeDistance(city, destCity));
-						const double valuePerCaravan = static_cast<double>(price) / cost; // cost = tradeutil_GetAccurateTradeDistance returns > 1.0
-
-						if (valuePerCaravan > bestValuePerCaravan) // determine best offer (and its cost) that would be available, to set goal for # of caravans (m_neededFreight)
-						{
-							maxNeededFreight = cost;
-							bestValuePerCaravan = valuePerCaravan;
-						}
-
-						if ((valuePerCaravan > maxValuePerCaravan) && (cost < total_freight - totalRoutes)) // determine best offer that can be afforded (considering all currently available (used + unused) trade-units); - 1 for each existing trade route (lost when cancelling)
-						{
-							maxValuePerCaravan = valuePerCaravan;
-							maxCity = destCity;
-							maxCost = cost; // needed for bookkeeping concerning unused_freight when creating new routes
-						}
+						GoodsOffer offer;
+						offer.m_city  = destCity;
+						offer.m_index = static_cast<sint32>(offers.size());
+						offer.m_price = tradeutil_GetTradeValue(m_playerId, destCity, g); // # of gold
+						const double minFreight = 0.999 * 0.95 * minTileFreight *
+						    city.RetPos().NormalizedDistance(destCity.RetPos());
+						offer.m_minCost = std::min(DISTANCE_UNKNOWN,
+						    static_cast<sint32>(std::round(std::max<double>(tradeutil_GetNetTradeCosts(minFreight), 1.0))));
+						offer.m_maxValuePerCaravan = static_cast<double>(offer.m_price) / offer.m_minCost;
+						offers.push_back(offer);
 					}
-				} // determined player offering highest price for good g
+				}
+
+				// Best offers first, so the path search (tradeutil_GetTradeDistance, an A*) can be
+				// skipped for an offer that couldn't win even at its lowest cost. Ties go to the
+				// earlier offer, as when they were compared in order: the same choice either way.
+				std::stable_sort(offers.begin(), offers.end());
+
+				Unit maxCity;
+				double bestValuePerCaravan = 0.0;
+				double maxValuePerCaravan = 0.0;
+				sint32 bestIndex = 0;
+				sint32 maxIndex = 0;
+				sint32 maxCost = 0;
+				sint32 maxNeededFreight = 0;
+				for (size_t o = 0; o < offers.size(); o++)
+				{
+					const GoodsOffer & offer = offers[o];
+					const bool mayBeBest = Beats(offer.m_maxValuePerCaravan, offer.m_index, bestValuePerCaravan, bestIndex);
+					const bool mayBeMax  = Beats(offer.m_maxValuePerCaravan, offer.m_index, maxValuePerCaravan, maxIndex)
+					                    && (offer.m_minCost < total_freight - totalRoutes);
+					if (!mayBeBest && !mayBeMax)
+					{
+						continue;
+					}
+
+					std::unordered_map<uint32, sint32>::const_iterator known = tradeDistance.find(offer.m_city.m_id);
+					const sint32 cost = known != tradeDistance.end() ? known->second // # of caravans
+					                  : (tradeDistance[offer.m_city.m_id] = tradeutil_GetTradeDistance(city, offer.m_city));
+					const double valuePerCaravan = static_cast<double>(offer.m_price) / cost; // cost = tradeutil_GetAccurateTradeDistance returns > 1.0
+
+					if (Beats(valuePerCaravan, offer.m_index, bestValuePerCaravan, bestIndex)) // determine best offer (and its cost) that would be available, to set goal for # of caravans (m_neededFreight)
+					{
+						maxNeededFreight = cost;
+						bestValuePerCaravan = valuePerCaravan;
+						bestIndex = offer.m_index;
+					}
+
+					if (Beats(valuePerCaravan, offer.m_index, maxValuePerCaravan, maxIndex) && (cost < total_freight - totalRoutes)) // determine best offer that can be afforded (considering all currently available (used + unused) trade-units); - 1 for each existing trade route (lost when cancelling)
+					{
+						maxValuePerCaravan = valuePerCaravan;
+						maxIndex = offer.m_index;
+						maxCity = offer.m_city;
+						maxCost = cost; // needed for bookkeeping concerning unused_freight when creating new routes
+					}
+				}
+
 
 				m_neededFreight += maxNeededFreight;
 
