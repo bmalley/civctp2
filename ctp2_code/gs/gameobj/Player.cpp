@@ -166,6 +166,7 @@
 #include "citydata.h"
 #include "CityInfluenceIterator.h"
 #include "civapp.h"
+#include "AiRun.h"                       // airun_IsActive
 #include "civarchive.h"
 #include "CivilisationPool.h"           // g_theCivilisationPool
 #include "CivPaths.h"                   // g_civPaths
@@ -6942,6 +6943,13 @@ void Player::GameOver(GAME_OVER reason, sint32 data)
 	if ((!IsRobot() || observed) && m_owner == g_selected_item->GetVisiblePlayer() &&
 		(!g_slicEngine->GetTutorialActive() || g_slicEngine->GetTutorialPlayer() == m_owner))
 	{
+		// An AI test run has no one to press Continue: watch on at once
+		if (observed && airun_IsActive())
+		{
+			Observer_ContinueAfterGameOver();
+			return;
+		}
+
 		if (observed)
 		{
 			Observer_PauseForGameOver();
