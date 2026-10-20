@@ -37,6 +37,7 @@
 /// \brief  Handling of tile visibility (definitions)
 
 #include "c3.h"
+#include "PathCacheEpoch.h"      // pathcache_WorldChanged
 #include "Vision.h"
 
 #include "Army.h"
@@ -112,6 +113,7 @@ Vision::~Vision()
 
 void Vision::Clear()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (int x = 0; x < m_width; x++)
 	{
 		std::fill(m_array[x], m_array[x] + m_height, 0);
@@ -123,17 +125,20 @@ void Vision::Clear()
 
 void Vision::GarbageCollectUnseen()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_unseenCells->GarbageCollector();
 }
 
 void Vision::AddExplored(MapPoint pos, double radius)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	FillCircle(pos, radius, CIRCLE_OP_ADD); // makes also visible, i.e. removes ucell from m_unseenCells
 	FillCircle(pos, radius, CIRCLE_OP_SUBTRACT); // removes visibility, i.e. adds ucell to m_unseenCells
 }
 
 void Vision::SetTheWholeWorldExplored()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (int x = 0; x < m_width; x++)
 	{
 		for (int y = 0; y < m_height; y++)
@@ -145,6 +150,7 @@ void Vision::SetTheWholeWorldExplored()
 
 void Vision::SetTheWholeWorldUnexplored()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (int x = 0; x < m_width; x++)
 	{
 		for (int y = 0; y < m_height; y++)
@@ -160,6 +166,7 @@ void Vision::SetTheWholeWorldUnexplored()
 
 void Vision::SetTheWholeWorldUnseen()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (int x = 0; x < m_width; x++) {
 		for (int y = 0; y < m_height; y++) {
 			m_array[x][y] &= k_EXPLORED_BIT;
@@ -181,6 +188,7 @@ bool Vision::IsExplored(MapPoint pos) const
 void Vision::AddVisible(MapPoint pos, double radius,
 						DynamicArray<MapPoint> *removeadd)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	FillCircle(pos, radius, CIRCLE_OP_ADD, removeadd);
 
 	if(removeadd)
@@ -199,11 +207,13 @@ void Vision::AddVisible(MapPoint pos, double radius,
 void Vision::RemoveVisible(MapPoint pos, double radius,
 						   DynamicArray<MapPoint> *removeadd)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	FillCircle(pos, radius, CIRCLE_OP_SUBTRACT, removeadd);
 }
 
 void Vision::AddRadar(MapPoint pos, double radius)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	FillCircle(pos, radius, CIRCLE_OP_ADD_RADAR);
 }
 
@@ -233,6 +243,7 @@ bool Vision::GetLastSeen(const MapPoint &pos, UnseenCellCarton &ucell) const
 
 void Vision::MergeMap(Vision *src)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Assert(m_width == src->m_width && m_height == src->m_height);
 	Assert(m_owner != src->m_owner);
 
@@ -333,6 +344,7 @@ void Vision::MergeMap(Vision *src)
 
 void Vision::ModifyPoint(Vision *src, sint32 x, sint32 y)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(m_array[x][y] & k_EXPLORED_BIT)
 	{
 		if(m_array[x][y] & k_VISIBLE_REFERENCE_MASK)
@@ -382,6 +394,7 @@ void Vision::ModifyPoint(Vision *src, sint32 x, sint32 y)
 
 bool Vision::MergePoint(sint32 x, sint32 y)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	uint16 *hisVersion = &m_mergeFrom->m_array[x][y];
 	if(!(*hisVersion & k_EXPLORED_BIT))
 		return false;
@@ -466,6 +479,7 @@ void Vision::FillCircle
 	DynamicArray<MapPoint> *	removeadd
 )
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	double const	r	= radius + 0.5;
 	sint32 const	rsq	= sint32(r * r);
 
@@ -646,6 +660,7 @@ void Vision::DoFillCircleOp(const MapPoint &posRC, CIRCLE_OP op,
 
 void Vision::AddUnseen(const MapPoint &point)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(!IsExplored(point))
 	{
 		return;
@@ -670,6 +685,7 @@ void Vision::AddUnseen(const MapPoint &point)
 }
 
 void Vision::UpdateUnseen(const MapPoint &posRC){ //// in contrast to AddUnseen also update already seen ucells even for unexplored tiles
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
     
     MapPoint point(posRC);
     Convert(point); // essential for m_array[point.x][point.y]
@@ -698,6 +714,7 @@ void Vision::UpdateUnseen(const MapPoint &posRC){ //// in contrast to AddUnseen 
     }
 
 void Vision::RevealTradeRouteState(const MapPoint &iso){ // reaveals or removes trade route drawing depending on trade route state
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
     Cell *cell = g_theWorld->GetCell(iso);
     for(sint32 i = 0; i < cell->GetNumTradeRoutes(); i++){
 	TradeRoute route= cell->GetTradeRoute(i);
@@ -718,6 +735,7 @@ void Vision::RevealTradeRouteState(const MapPoint &iso){ // reaveals or removes 
     }
 
 void Vision::RevealTradeRouteTiles(TradeRoute route){ //// reveal trade route tiles (info gotten from the traders) to avoid knowledge of isolated cities (which can lead to invalid routes) and to make discovery of new trade route even more interesting and helpful for the AI
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
     
     const DynamicArray<MapPoint>* path= route.GetPath();
     sint32 const num = path->Num();
@@ -727,12 +745,14 @@ void Vision::RevealTradeRouteTiles(TradeRoute route){ //// reveal trade route ti
     }
 
 void Vision::RevealTradeRouteCities(TradeRoute route){ //// reveal source and destination cities (info gotten from the traders) to avoid human advantage from deducing unseen city pos (which the AI can't)
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
     
     RevealCity(route.GetSource());
     RevealCity(route.GetDestination());
     }
 
 void Vision::RevealCity(Unit city){ //// reveal city and its current state
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
     UnseenCellCarton ucell;
     MapPoint point;
 
@@ -744,6 +764,7 @@ void Vision::RevealCity(Unit city){ //// reveal city and its current state
 
 void Vision::Copy(const Vision *copy)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Assert(m_width == copy->m_width && m_height == copy->m_height);
 	if(m_width != copy->m_width || m_height != copy->m_height)
 	{
@@ -768,6 +789,7 @@ void Vision::Copy(const Vision *copy)
 
 void Vision::Serialize(CivArchive &archive)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	CHECKSERIALIZE
 
 	if(archive.IsStoring())
@@ -838,12 +860,14 @@ void Vision::Serialize(CivArchive &archive)
 
 void Vision::CopyCircle(Vision *src, const MapPoint &center, sint32 radius)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_mergeFrom = src;
 	FillCircle(center, (double) radius, CIRCLE_OP_MERGE);
 }
 
 void Vision::DeleteUnseenCells()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	DynamicArray<UnseenCellCarton>  array;
 	m_unseenCells->BuildList(array, 0xffffffff);
 
@@ -855,6 +879,7 @@ void Vision::DeleteUnseenCells()
 
 void Vision::AddUnseen(UnseenCell *ucell)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	UnseenCellCarton unseen(ucell);
 	m_unseenCells->Insert(unseen);
 }
@@ -867,5 +892,6 @@ void Vision::GetUnseenCellList(DynamicArray<UnseenCellCarton> &array)
 
 void Vision::ClearUnseen()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_unseenCells->Clear();
 }

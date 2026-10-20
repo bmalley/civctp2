@@ -92,6 +92,7 @@
 //----------------------------------------------------------------------------
 
 #include "c3.h"
+#include "PathCacheEpoch.h"      // pathcache_WorldChanged
 #include "UnitData.h"
 
 #include "AchievementTracker.h"
@@ -1523,6 +1524,7 @@ void UnitData::FightOneRound(Unit did, double defenders_bonus,
 
 void UnitData::DeductHP(double fp)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(GetDBRec()->GetIsSpecialForces() || Flag(k_UDF_IS_PROFESSIONAL)) {
 		m_hp -= fp;
 	} else {
@@ -1856,6 +1858,7 @@ void UnitData::BeginTurnCity(const Unit &me, UnitDynamicArray &dead)
 //set this unit visible to PLAYER_INDEX player
 void UnitData::SetVisible(PLAYER_INDEX player)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_visibility |= (1 << player);
 	m_temp_visibility |= (1 << player);
 	m_ever_visible |= (1 << player);
@@ -1868,6 +1871,7 @@ void UnitData::SetVisible(PLAYER_INDEX player)
 //set this unit invisible to PLAYER_INDEX player
 void UnitData::UnsetVisible(PLAYER_INDEX player)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_visibility &= ~(1 << player);
 
 	if (m_actor) {
@@ -1877,6 +1881,7 @@ void UnitData::UnsetVisible(PLAYER_INDEX player)
 
 void UnitData::BeginTurnVision(PLAYER_INDEX player)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	if(m_visibility & (1 << player)) {
 		m_temp_visibility |= (1 << player);
 	} else {
@@ -1901,6 +1906,7 @@ void UnitData::BeginTurnVision(PLAYER_INDEX player)
 void UnitData::ResetCityOwner(const Unit &me, const PLAYER_INDEX newo,
                               bool is_conquest, const CAUSE_REMOVE_CITY cause)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	DPRINTF(k_DBG_GAMESTATE, ("ResetCityOwner: %lx, new: %d, old: %d, conq: %d, cause: %d\n",
 							  me.m_id, newo, me.IsValid() ? me.GetOwner() : -1, is_conquest, cause));
 
@@ -2018,6 +2024,7 @@ void UnitData::ResetCityOwner(const Unit &me, const PLAYER_INDEX newo,
 void UnitData::ResetUnitOwner(const Unit &me, const PLAYER_INDEX new_owner,
                               CAUSE_REMOVE_ARMY rem_cause)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	for (sint32 i = GetNumCarried() - 1; i >= 0; i--)
 	{
 		if (m_cargo_list->Access(i).IsValid())
@@ -2545,6 +2552,7 @@ ORDER_RESULT UnitData::InterceptTrade()
 
 void UnitData::DoVision(UnitDynamicArray *revealedUnits)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	DynamicArray<Unit> array;
 	MapPoint topleft = m_pos;
 	double maxVisionRange = unitutil_GetMaxVisionRange();
@@ -3083,6 +3091,7 @@ double UnitData::CalcFuelUpkeep() const
 
 void UnitData::EndTurn()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	const UnitRecord *rec = GetDBRec();
 
 	// Emod adding cellowner
@@ -5341,6 +5350,7 @@ void UnitData::SetOwner(PLAYER_INDEX newo)
 
 void UnitData::SetType(sint32 type)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	DPRINTF(k_DBG_GAMESTATE, ("Update unit 0x%lx From type %d to type %d @ (%d,%d), turn=%d\n", m_id, m_type, type, m_pos.x, m_pos.y, g_player[m_owner]->m_current_round));
 
 	// A type change (e.g. an upgrade) can change GetVisionRange(), since that
@@ -5529,6 +5539,7 @@ sint32 UnitData::GetUpgradeCosts(sint32 upgradeType) const
 
 void UnitData::SetHP(const double hp)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	m_hp = hp;
 }
 
