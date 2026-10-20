@@ -37,11 +37,76 @@
 #include "Path.h"
 #include "World.h"          // g_theWorld
 #include "ArmyData.h"
+#include "UnitData.h"
+#include "UnitDynArr.h"
 #include "Diplomat.h"
 #include "player.h"
 #include "ctpaidebug.h"
+#include "AgreementMatrix.h"
+#include "PathCacheEpoch.h"
+
+#include <cstring>
+#include <map>
+#include <string>
 
 uint32 const    INCURSION_PERMISSION_ALL    = 0xffffffffu;
+
+uint32 g_pathCacheEpoch = 0;
+
+namespace
+{
+	// A kept search: what UnitAstar::FindPath returned, and the path and cost it left.
+	struct KeptPath
+	{
+		bool  searched;
+		bool  is_broken_path;
+		Path  path;
+		float total_cost;
+	};
+
+	// Everything a search reads that isn't covered by g_pathCacheEpoch, as bytes.
+	typedef std::map<std::string, KeptPath> KeptPaths;
+	KeptPaths s_keptPaths;
+	uint32    s_keptEpoch = 0;
+	sint32    s_keptOwner = -1;
+
+	template <typename T> void AddToKey(std::string & key, const T & value)
+	{
+		key.append(reinterpret_cast<const char *>(&value), sizeof(value));
+	}
+
+	void AddUnitToKey(std::string & key, const Unit & unit)
+	{
+		AddToKey(key, unit.m_id);
+		AddToKey(key, unit.GetType());
+		AddToKey(key, unit.GetHP());
+		AddToKey(key, unit.GetMovementPoints());
+		AddToKey(key, unit.GetFuel());
+		AddToKey(key, unit.IsVeteran());
+		AddToKey(key, unit.IsEntrenched());
+		AddToKey(key, unit.GetNumCarried());
+	}
+
+	bool SamePath(Path & a, Path & b)
+	{
+		if (a.Num() != b.Num()) return false;
+		MapPoint pa, pb;
+		a.GetStartPoint(pa);
+		b.GetStartPoint(pb);
+		if (pa != pb) return false;
+		Path ca(&a), cb(&b);
+		ca.Restart(pa);
+		cb.Restart(pb);
+		while (!ca.IsEnd() || !cb.IsEnd())
+		{
+			if (ca.IsEnd() != cb.IsEnd()) return false;
+			ca.Next(pa);
+			cb.Next(pb);
+			if (pa != pb) return false;
+		}
+		return true;
+	}
+}
 
 RobotAstar2 RobotAstar2::s_aiPathing;
 
@@ -394,12 +459,100 @@ bool RobotAstar2::FindPath( const PathType & pathType,
 	}
 
 	AI_DPRINTF(k_DBG_ASTAR, army.GetOwner(), -1, army.m_id,("\n"));
-	if(!UnitAstar::FindPath(army,
+
+	// The scheduler matches and moves several times a turn (MAX_MATCH_LIST_CYCLES),
+	// and an army that didn't move is searched again from the same tile to the
+	// same place: nearly half of all searches. Keep each result while nothing
+	// the search reads has changed. The map, vision, hit points and the like
+	// bump g_pathCacheEpoch; the army, the request and the owner's diplomacy
+	// are the key.
+	PLAYER_INDEX const owner = army.GetOwner();
+	if (s_keptEpoch != g_pathCacheEpoch || s_keptOwner != owner)
+	{
+		s_keptPaths.clear();
+		s_keptEpoch = g_pathCacheEpoch;
+		s_keptOwner = owner;
+	}
+
+	std::string key;
+	key.reserve(256);
+	AddToKey(key, pathType);
+	AddToKey(key, army.m_id);
+	AddToKey(key, army_move_type);
+	AddToKey(key, start);
+	AddToKey(key, dest);
+	AddToKey(key, check_dest);
+	AddToKey(key, trans_max_r);
+	AddToKey(key, additionalUnits);
+	AddToKey(key, nUnits);
+	AddToKey(key, move_intersection);
+	AddToKey(key, move_union);
+	AddToKey(key, m_army_minmax_move);
+	AddToKey(key, m_army_can_expel_stealth);
+	AddToKey(key, m_incursionPermission);
+	AddToKey(key, g_player[owner]->GetMaskAlliance());
+	uint32 carry_flags, carry_cargo_pod;
+	GetCarryOver(carry_flags, carry_cargo_pod);
+	AddToKey(key, carry_flags);
+	AddToKey(key, carry_cargo_pod);
+	for (sint32 i = 0; i < army.Num(); i++)
+	{
+		AddUnitToKey(key, army[i]);
+		UnitDynamicArray const * cargo = army[i].GetData()->GetCargoList();
+		for (sint32 j = 0; cargo && j < cargo->Num(); j++)
+		{
+			AddUnitToKey(key, cargo->Get(j));
+		}
+	}
+	Diplomat const & diplomat = Diplomat::GetDiplomat(owner);
+	for (PLAYER_INDEX p = 0; p < k_MAX_PLAYERS; p++)
+	{
+		if (p == owner || !g_player[p]) continue;
+		AddToKey(key, p);
+		AddToKey(key, diplomat.GetBaseRegard(p));
+		AddToKey(key, diplomat.HasWarOrDesiresPreemptivelyWith(p));
+		AddToKey(key, AgreementMatrix::s_agreements.TurnsAtWar(owner, p));
+	}
+
+	// (start == dest returns before the path is cleared, so it isn't kept)
+	KeptPaths::iterator kept = (start == dest) ? s_keptPaths.end() : s_keptPaths.find(key);
+	if (kept != s_keptPaths.end())
+	{
+#ifdef CTP2_PATHCACHE_CHECK
+		static unsigned long n_kept = 0, n_different = 0;
+		Path  check_path(&new_path);
+		Path  check_bad;
+		float check_cost = 0.0f;
+		bool  check_broken = false;
+		bool const check_searched = UnitAstar::FindPath(army, nUnits + additionalUnits, move_intersection,
+		    move_union, start, owner, dest, check_path, check_broken, check_bad, check_cost,
+		    true, cutoff, nodes_opened, check_dest);
+		if (check_searched != kept->second.searched || check_broken != kept->second.is_broken_path
+		 || (check_searched && (check_cost != kept->second.total_cost || !SamePath(check_path, kept->second.path))))
+		{
+			fprintf(stderr, "path cache check: different, army 0x%lx (%d,%d) to (%d,%d), found %d/%d, cost %f/%f\n",
+			        army.m_id, start.x, start.y, dest.x, dest.y, check_searched, kept->second.searched,
+			        check_cost, kept->second.total_cost);
+			++n_different;
+		}
+		if (++n_kept % 100000 == 0)
+		{
+			fprintf(stderr, "path cache check: %lu kept, %lu different\n", n_kept, n_different);
+		}
+#endif
+		new_path       = kept->second.path;
+		total_cost     = kept->second.total_cost;
+		is_broken_path = kept->second.is_broken_path;
+		EndKeptSearch();
+		return kept->second.searched && !is_broken_path;
+	}
+
+	bool const searched = UnitAstar::FindPath(army,
 	                        nUnits + additionalUnits,
 	                        move_intersection,
 	                        move_union,
 	                        start,
-	                        army.GetOwner(),
+	                        owner,
 	                        dest, new_path,
 	                        is_broken_path,
 	                        bad_path,
@@ -407,12 +560,20 @@ bool RobotAstar2::FindPath( const PathType & pathType,
 	                        true,
 	                        cutoff,
 	                        nodes_opened,
-	                        check_dest)
-	){
-		return false;
+	                        check_dest);
+
+	if (start == dest)
+	{
+		return searched && !is_broken_path;
 	}
 
-	return !is_broken_path;
+	KeptPath & entry     = s_keptPaths[key];
+	entry.searched       = searched;
+	entry.is_broken_path = is_broken_path;
+	entry.path           = new_path;
+	entry.total_cost     = total_cost;
+
+	return searched && !is_broken_path;
 }
 
 bool RobotAstar2::EntryCost( const MapPoint &prev,

@@ -32,6 +32,7 @@
 //----------------------------------------------------------------------------
 
 #include "c3.h"
+#include "PathCacheEpoch.h"      // pathcache_WorldChanged
 #include "World.h"
 
 #include "Cell.h"
@@ -91,6 +92,7 @@ extern  RadarMap        *g_radarMap;
 
 void World::RaiseWaters(void)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Cell	*c ;
 
 	sint32 const    w = GetWidth();
@@ -201,6 +203,7 @@ void World::FloodArmies(Cell *c)
 
 void World::ConvertToShallowWater(sint32 x, sint32 y, Cell *c)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Assert(c);
 
 	c->m_terrain_type = (sint8)TERRAIN_WATER_SHALLOW;
@@ -214,6 +217,7 @@ void World::ConvertToShallowWater(sint32 x, sint32 y, Cell *c)
 
 void World::ConvertToBeach(sint32 x, sint32 y, Cell *c)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Assert(c);
 
 	c->m_terrain_type = (sint8)TERRAIN_WATER_BEACH;
@@ -223,6 +227,7 @@ void World::ConvertToBeach(sint32 x, sint32 y, Cell *c)
 
 void World::MakeBeaches()
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	Cell	*c;
 
 	sint32 const    w = GetWidth();
