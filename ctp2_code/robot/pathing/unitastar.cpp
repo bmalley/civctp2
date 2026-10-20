@@ -78,6 +78,8 @@ namespace
 }
 
 UnitAstar::UnitAstar()
+:
+	m_dangerSearch(0)
 {
 	ClearMem();
 }
@@ -1182,6 +1184,11 @@ bool UnitAstar::FindPath(
 
 	m_army_strength.Set_Army_Strength(army, m_isTransporter);
 	m_army                = army;
+	if (++m_dangerSearch >= 0x80000000u)
+	{
+		m_dangerSearch = 1;
+		m_danger.assign(m_danger.size(), 0);
+	}
 	m_nUnits              = nUnits;
 	m_move_intersection   = move_intersection;
 	m_move_union          = move_union;
@@ -1280,6 +1287,25 @@ bool UnitAstar::VerifyMem() const
 }
 
 bool UnitAstar::CheckIsDangerForPos(const MapPoint & pos)
+{
+	size_t const tiles = static_cast<size_t>(g_theWorld->GetXWidth()) * g_theWorld->GetYHeight();
+	if (m_danger.size() != tiles)
+	{
+		m_danger.assign(tiles, 0);
+	}
+
+	uint32 & known = m_danger[static_cast<size_t>(pos.x) * g_theWorld->GetYHeight() + pos.y];
+	if ((known >> 1) == m_dangerSearch)
+	{
+		return (known & 1) != 0;
+	}
+
+	bool const danger = FindDangerForPos(pos);
+	known = (m_dangerSearch << 1) | (danger ? 1 : 0);
+	return danger;
+}
+
+bool UnitAstar::FindDangerForPos(const MapPoint & pos)
 {
 	Diplomat & diplomat = Diplomat::GetDiplomat(m_owner);
 	const bool isCivilian = m_army->IsCivilian();
