@@ -1290,7 +1290,7 @@ STDEHANDLER(MoveUnitsEvent)
 	sint32 new_cell_owner = g_theWorld->GetCell(to)->GetOwner();
 	sint32 army_owner = a->GetOwner();
 
-	Player *player_ptr = g_player[new_cell_owner];
+	Player *player_ptr = (new_cell_owner >= 0) ? g_player[new_cell_owner] : NULL;
 	if ( new_cell_owner != -1 &&
 		 new_cell_owner != army_owner &&
 		 player_ptr &&

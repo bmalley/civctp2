@@ -254,10 +254,10 @@ CombatField::~CombatField()
 {
 	for(sint32 i = 0; i < m_width; i++)
 	{
-		delete m_field[i];
+		delete [] m_field[i];
 	}
 
-	delete m_field;
+	delete [] m_field;
 }
 
 CombatUnit &CombatField::GetUnit(sint32 x, sint32 y)
@@ -544,8 +544,8 @@ void CombatField::InsertInPreferredCol(CombatUnit *u)
 	} while(full);
 
 	for(y = 0; y < m_height; y++) {
-		if((u->GetPriority() > m_field[col][y].GetPriority()) ||
-		   (!m_field[col][y].IsActive())) {
+		if((!m_field[col][y].IsActive()) ||
+		   (u->GetPriority() > m_field[col][y].GetPriority())) {
 			for(y2 = m_height - 1; y2 > y; y2--) {
 				m_field[col][y2] = m_field[col][y2 - 1];
 			}
