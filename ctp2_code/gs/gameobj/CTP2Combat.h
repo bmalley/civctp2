@@ -69,6 +69,22 @@ enum UNIT_TYPE {
 class Army;
 class Battle;
 class BattleEvent;
+class RandomGenerator;
+
+// What CTP2Combat::Simulate found: how a fight between two stacks ends, over a number of
+// trials of the real combat rules
+struct CombatOdds
+{
+	sint32 trials;
+	sint32 attackerWins;    // every defender dead
+	sint32 defenderWins;    // every attacker dead
+	double attackerLeft;    // attacker units alive at the end, summed over the trials
+	double defenderLeft;    // defender units alive at the end, summed over the trials
+
+	CombatOdds() : trials(0), attackerWins(0), defenderWins(0), attackerLeft(0.0), defenderLeft(0.0) {}
+	double AttackerWinChance() const { return trials ? double(attackerWins) / trials : 0.0; }
+	double DefenderWinChance() const { return trials ? double(defenderWins) / trials : 0.0; }
+};
 
 class CombatUnit {
 private:
@@ -199,8 +215,16 @@ public:
 	CTP2Combat(sint32 width, sint32 height, FILE *input);
 #else
 	CTP2Combat(sint32 width, sint32 height, CellUnitList &attackers, CellUnitList &defenders);
-
 	~CTP2Combat();
+
+	// Fights ATTACKERS against DEFENDERS TRIALS times by the real rules and counts the
+	// outcomes. It changes nothing: no hit points, no deaths, no battle view, and its dice
+	// come from a generator of its own seeded with SEED, not from the synced g_rand, so a
+	// game plays the same whether or not anything simulates fights.
+	static CombatOdds Simulate(CellUnitList &attackers, CellUnitList &defenders,
+	                           sint32 trials, uint32 seed);
+	const CombatOdds & GetPrediction() const { return m_prediction; }
+	void SetPrediction(const CombatOdds & odds) { m_prediction = odds; }
 #endif
 
 	bool ResolveOneRound();
@@ -243,6 +267,8 @@ private:
 	Battle *m_battle;
 	sint32 m_roundsSinceUpdate;
 	DynamicArray<Unit> m_deadUnits;
+	RandomGenerator *m_simRand;     // set while simulating: the dice for this fight
+	CombatOdds m_prediction;        // what Simulate expected of this fight (test runs)
 #endif
 
 #ifdef TEST_APP
