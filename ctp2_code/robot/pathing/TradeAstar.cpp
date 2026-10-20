@@ -45,7 +45,15 @@ bool TradeAstar::EntryCost(const MapPoint &prev, const MapPoint &pos,
 	is_zoc = false;
 	entry = ASTAR_CAN_ENTER;
 
-	if (!g_player[m_owner]->IsExplored(pos))
+	float gridCost = 0.0f;
+	if (m_costGrid && m_owner == m_gridOwner)
+	{
+		size_t const i = pos.x * g_theWorld->GetYHeight() + pos.y;
+		gridCost = (*m_costGrid)[i];
+		m_searched[i / 64] |= uint64(1) << (i % 64);
+	}
+
+	if (m_costGrid && m_owner == m_gridOwner ? gridCost < 0.0f : !g_player[m_owner]->IsExplored(pos))
 	{
 		cost = k_ASTAR_BIG;
 		entry = ASTAR_BLOCKED;
@@ -67,7 +75,8 @@ bool TradeAstar::EntryCost(const MapPoint &prev, const MapPoint &pos,
 		}
 	}
 
-	cost = float(ceil(g_theWorld->CalcTerrainFreightCost(pos)));
+	cost = (m_costGrid && m_owner == m_gridOwner) ? gridCost
+	     : float(ceil(g_theWorld->CalcTerrainFreightCost(pos)));
 	return true;
 }
 
@@ -83,6 +92,10 @@ bool TradeAstar::FindPath(const PLAYER_INDEX owner, const MapPoint &start, const
 	sint32 nodes_opened=0;
 	m_owner = owner;
 	m_start = start;
+	if (m_costGrid && m_owner == m_gridOwner)
+	{
+		m_searched.assign((m_costGrid->size() + 63) / 64, 0);
+	}
 
 	return Astar::FindPath(start, dest, a_path, total_cost, isunit,
 	        cutoff, nodes_opened);
