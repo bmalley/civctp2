@@ -2362,7 +2362,10 @@ void DirectorImpl::Process()
 			g_tiledMap->ProcessLayerSprites(g_tiledMap->GetMapViewRect(), 0);
 		}
 
-		m_nextProcessTime = GetTickCount() + 75;
+		// An AI test run (CTP2_AIRUN, patch 0023) steps at once: each turn
+		// change waits for a step, and nobody watches the animations
+		static bool const noWait = getenv("CTP2_AIRUN") && !getenv("CTP2_AIRUN_DRAW");
+		m_nextProcessTime = GetTickCount() + (noWait ? 0 : 75);
 	}
 }
 

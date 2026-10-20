@@ -4209,6 +4209,14 @@ void TiledMap::RedrawTile
 	const MapPoint *    point
 )
 {
+	// An AI test run (CTP2_AIRUN, patch 0023) draws nothing unless asked to
+	// (CTP2_AIRUN_DRAW)
+	static bool const noDraw = getenv("CTP2_AIRUN") && !getenv("CTP2_AIRUN_DRAW");
+	if (noDraw)
+	{
+		return;
+	}
+
 	if (TileIsVisible(point->x, point->y))
     {
 		MapPoint    pos;
