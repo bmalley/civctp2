@@ -39,6 +39,7 @@
 #include "Astar.h"
 #include "Army.h"
 #include "squad_Strength.h"
+#include <vector>
 
 class Cell;
 class CityData;
@@ -63,6 +64,7 @@ protected:
 			const bool       & check_dest);
 
 	bool CheckIsDangerForPos(const MapPoint & pos);
+	bool FindDangerForPos(const MapPoint & pos);
 	void InitArmy(const Army & army, sint32 & nUnits, uint32 & move_intersection, uint32 & move_union,
 				float & army_minmax_move);
 
@@ -171,6 +173,11 @@ private:
 	uint32 m_cargo_pod_intersection;
 	bool m_check_dest;
 	Squad_Strength m_army_strength;
+	// CheckIsDangerForPos's answer for each tile, kept for one path search: m_dangerSearch * 2,
+	// plus 1 for a danger, at x * world height + y (the search asks for a tile once per
+	// neighbour it enters from)
+	std::vector<uint32> m_danger;
+	uint32 m_dangerSearch;
 
 protected:
 	PLAYER_INDEX m_owner;
