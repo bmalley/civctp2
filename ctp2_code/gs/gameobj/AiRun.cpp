@@ -253,6 +253,17 @@ bool airun_IsActive()
 	return File() != NULL;
 }
 
+// The screen in a test run is an Xvfb nobody looks at. Unless CTP2_AIRUN_DRAW is
+// set: the main loop doesn't hold frames to 60 a second, the director doesn't wait
+// 75 ms between steps (each player's turn waited for one: half a second a round),
+// and neither the map nor the windows are drawn. Same game, seed for seed: the
+// round records of 100-round games match the drawn ones.
+bool airun_Fast()
+{
+	static const bool fast = getenv("CTP2_AIRUN") && !getenv("CTP2_AIRUN_DRAW");
+	return fast;
+}
+
 bool airun_Experiment(char which)
 {
 	static const char *letters = getenv("CTP2_AIX");
