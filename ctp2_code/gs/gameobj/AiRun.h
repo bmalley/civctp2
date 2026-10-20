@@ -23,4 +23,11 @@ void airun_RecordTurn(sint32 player, sint32 round);
 // CTP2_AIX=letters: AI experiments switched on for a test run (see each caller)
 bool airun_Experiment(char which);
 
+struct CombatOdds;
+// CTP2_AIRUN_ODDS=N: before each battle, simulate it N times (CTP2Combat::Simulate)
+sint32 airun_OddsTrials();
+// a "battle" line: what the simulation expected, and how the fight came out
+void airun_RecordBattle(sint32 attacker, sint32 defender, sint32 attackers, sint32 defenders,
+                        const CombatOdds &odds, sint32 attackersLeft, sint32 defendersLeft);
+
 #endif
