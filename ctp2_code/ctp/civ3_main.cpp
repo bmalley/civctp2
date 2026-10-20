@@ -605,6 +605,34 @@ static bool ui_CheckForDragScroll(sint32 x, sint32 y)
 }
 #endif
 
+/// Note in the log why a wheel turn over the game did nothing, at most
+/// once a second: the zoom has been seen to stop at the desk and not here.
+static void ui_LogWheelIgnored(const char *why)
+{
+	static uint32 last = 0;
+	uint32 now = GetTickCount();
+	if (last && now - last < 1000) return;
+	last = now;
+
+	sint32 x = g_c3ui && g_c3ui->TheMouse() ? g_c3ui->TheMouse()->X() : -1;
+	sint32 y = g_c3ui && g_c3ui->TheMouse() ? g_c3ui->TheMouse()->Y() : -1;
+	aui_Region *top = NULL;
+	if (g_c3ui)
+	{
+		tech_WLList<aui_Region *> *windows = g_c3ui->ChildList();
+		ListPos position = windows->GetHeadPosition();
+		for (size_t i = windows->L(); i && !top; i--)
+		{
+			aui_Region *window = windows->GetNext(position);
+			if (!window->IsHidden() && window->IsInside(x, y)) top = window;
+		}
+	}
+	fprintf(stderr, "wheel ignored: %s; mouse %d,%d; top window %p id %u at %d,%d %dx%d%s; list focus %p\n",
+	        why, x, y, (void *)top, top ? top->Id() : 0,
+	        top ? top->X() : 0, top ? top->Y() : 0, top ? top->Width() : 0, top ? top->Height() : 0,
+	        top && top == g_background ? " (map)" : "", (void *)aui_ListBox::GetMouseFocusListBox());
+}
+
 /// Handle mouse wheel operation
 /// \param delta Amount and direction of mouse wheel rotation
 void ui_HandleMouseWheel(sint16 delta)
@@ -612,7 +640,13 @@ void ui_HandleMouseWheel(sint16 delta)
 	if (!g_civApp)  return;
 	if (0 == delta) return; // no rotation
 
-	aui_ListBox * box = aui_ListBox::GetMouseFocusListBox();
+	// The list box focus can go stale: a list the mouse left quickly, or
+	// whose window closed under it, never hears the mouse go, and every
+	// wheel turn over the map then scrolled that list instead. So the map
+	// comes first when the mouse is over it.
+	bool overMap = g_c3ui && g_c3ui->TheMouse()
+	            && ui_IsMouseOverMap(g_c3ui->TheMouse()->X(), g_c3ui->TheMouse()->Y());
+	aui_ListBox * box = overMap ? NULL : aui_ListBox::GetMouseFocusListBox();
 
 	if(box)
 	{
@@ -622,14 +656,21 @@ void ui_HandleMouseWheel(sint16 delta)
 	else if (g_theProfileDB->IsWheelZoom())
 	{
 		// Zoom main map, keeping the tile under the mouse in place
-		if (!g_civApp->IsGameLoaded() || !g_tiledMap || !g_c3ui->TheMouse()
-		 || !ui_IsMouseOverMap(g_c3ui->TheMouse()->X(), g_c3ui->TheMouse()->Y()))
+		if (!g_civApp->IsGameLoaded() || !g_tiledMap)
 			return;
+		if (!overMap)
+		{
+			ui_LogWheelIgnored("not over the map");
+			return;
+		}
 
 		MapPoint before;
 		bool hasBefore = g_tiledMap->GetMouseTilePos(before);
 		if (!((delta > 0) ? g_tiledMap->ZoomIn() : g_tiledMap->ZoomOut()))
+		{
+			ui_LogWheelIgnored((delta > 0) ? "can't zoom in" : "can't zoom out");
 			return;
+		}
 
 		MapPoint after;
 		if (hasBefore && g_tiledMap->GetMouseTilePos(after))
