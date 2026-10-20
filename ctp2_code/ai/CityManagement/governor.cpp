@@ -157,6 +157,7 @@
 #include "Happy.h"
 #include "installationtree.h"
 #include <limits>
+#include <unordered_map>
 #include "mapanalysis.h"
 #include "net_action.h"
 #include "network.h"
@@ -4583,6 +4584,10 @@ void Governor::ManageGoodsTradeRoutes()
 	{
 		Unit & city = city_list->Access(i);
 
+		// The trade distance from this city (an A* path) doesn't depend on the good, so look
+		// it up once per destination, not once per good: same result, fewer path searches.
+		std::unordered_map<uint32, sint32> tradeDistance;
+
 		for (sint32 g = 0; g < g_theResourceDB->NumRecords(); g++)
 		{
 			if(city.CD()->IsLocalResource(g)) // only consider collected goods (not bought goods)
@@ -4641,7 +4646,9 @@ void Governor::ManageGoodsTradeRoutes()
 							continue;
 
 						const sint32 price = tradeutil_GetTradeValue(m_playerId, destCity, g); // # of gold
-						const sint32 cost = tradeutil_GetTradeDistance(city, destCity); // # of caravans
+						std::unordered_map<uint32, sint32>::const_iterator known = tradeDistance.find(destCity.m_id);
+						const sint32 cost = known != tradeDistance.end() ? known->second // # of caravans
+						                  : (tradeDistance[destCity.m_id] = tradeutil_GetTradeDistance(city, destCity));
 						const double valuePerCaravan = static_cast<double>(price) / cost; // cost = tradeutil_GetAccurateTradeDistance returns > 1.0
 
 						if (valuePerCaravan > bestValuePerCaravan) // determine best offer (and its cost) that would be available, to set goal for # of caravans (m_neededFreight)
