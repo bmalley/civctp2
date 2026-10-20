@@ -35,6 +35,8 @@
 #include "gstypes.h"
 #include "Astar.h"
 
+#include <vector>
+
 class CityAstar : public Astar
 {
 	PLAYER_INDEX m_owner;
@@ -70,11 +72,15 @@ public:
 	bool IsConnected(PLAYER_INDEX owner, const MapPoint &start, const MapPoint &dest,
 	  float &cost, sint32 &distance, sint32 maxSquaredDistance = -1, bool isLand = true);
 
+	// searched, if given, gets the tiles the search looked at, as x * world
+	// height + y, possibly more than once: the search read only their move
+	// costs, so it finds the same path while those stay the same.
 	bool FindSimpleDistancePath(const MapPoint & start,
 					  const MapPoint & dest,
 					  PLAYER_INDEX owner,
 					  Path & new_path,
-					  float & total_cost
+					  float & total_cost,
+					  std::vector<sint32> * searched = NULL
 					 );
 
 	bool FindRoadPath(const MapPoint & start,
@@ -89,6 +95,7 @@ private:
 	bool m_pathLand;
 	bool m_simpleDistance;
 	uint32 m_pathPenalizeCantEnter;
+	std::vector<sint32> * m_searched = NULL;
 	MapPoint m_start;
 	MapPoint m_dest;
 };

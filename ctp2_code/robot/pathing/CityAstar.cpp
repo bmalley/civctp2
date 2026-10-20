@@ -168,7 +168,11 @@ bool CityAstar::EntryCost
 		entry = ASTAR_CAN_ENTER;
 
 		if(m_simpleDistance)
+		{
+			if (m_searched)
+				m_searched->push_back(pos.x * g_theWorld->GetYHeight() + pos.y);
 			return true;
+		}
 
 		if(!g_player[m_owner]->IsExplored(pos))
 		{
@@ -299,7 +303,8 @@ bool CityAstar::FindSimpleDistancePath
     MapPoint const &    dest,
     PLAYER_INDEX        owner,
     Path &              new_path,
-    float &             total_cost
+    float &             total_cost,
+    std::vector<sint32> * searched
 )
 {
 	m_pathRoad              = false;
@@ -307,6 +312,7 @@ bool CityAstar::FindSimpleDistancePath
 	m_pathLand              = false;
 	m_maxSquaredDistance    = -1;
 	m_simpleDistance        = true;
+	m_searched              = searched;
 	m_start                 = start;
 	m_dest                  = dest;
 	m_pathPenalizeCantEnter = 0x0;
@@ -317,6 +323,7 @@ bool CityAstar::FindSimpleDistancePath
 	sint32 nodes_opened     = 0;
 
 	FindPath(start, dest, new_path, total_cost, false, Astar_MaxSearchNodes(), nodes_opened);
+	m_searched              = NULL;
 
 	return total_cost > 0.0;
 }
@@ -345,6 +352,7 @@ bool CityAstar::FindRoadPath
 	sint32 nodes_opened     = 0;
 
 	FindPath(start, dest, new_path, total_cost, false, Astar_MaxSearchNodes(), nodes_opened);
+	m_searched              = NULL;
 
 	return total_cost > 0.0;
 }
