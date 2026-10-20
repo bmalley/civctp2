@@ -96,6 +96,7 @@
 #include "c3window.h"
 #include "c3windows.h"
 #include "civapp.h"
+#include "AiRun.h"                     // airun_Fast
 #include "CivPaths.h"                   // g_civPaths
 #include "civscenarios.h"               // g_civScenarios
 #include <clocale>
@@ -1933,6 +1934,10 @@ int WINAPI CivMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		               && !(g_director && !g_director->CaughtUp())
 		               && !g_network.IsActive();
 		int ticksPerFrame = idle ? TICKS_PER_IDLE_FRAME : TICKS_PER_FRAME;
+		if (airun_Fast())
+		{
+			ticksPerFrame = 0; // a test run: no frame to show, so no frame to wait for
+		}
 
 		SDL_Event event;
 		while (!g_letUIProcess) // There are breaks, too ;)
