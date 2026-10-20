@@ -1479,7 +1479,7 @@ void Scheduler::Prioritize_Goals()
 		t2 = GetTickCount();
 		AI_DPRINTF(k_DBG_SCHEDULER, m_playerId, goal_type, -1, ("//  Recalculate match value:    Elapsed time = %d ms\n", (t2 - t1)));
 
-		m_goals_of_type[goal_type].sort(std::greater<Sorted_Goal_ptr>());
+		m_goals_of_type[goal_type].sort(Greater_Utility());
 		AI_DPRINTF(k_DBG_SCHEDULER, m_playerId, goal_type, -1, ("//  Sorted goals:               Elapsed time = %d ms\n", (t2 - t1)));
 		t2 = GetTickCount();
 
@@ -1610,7 +1610,7 @@ bool Scheduler::Prune_Goals()
 			}
 		}
 
-		m_goals_of_type[goal_type].sort(std::greater<Sorted_Goal_ptr>());
+		m_goals_of_type[goal_type].sort(Greater_Utility());
 
 		sint32 goals_added = 0;
 		goal_ptr_iter = m_goals_of_type[goal_type].begin();
