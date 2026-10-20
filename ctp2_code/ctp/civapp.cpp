@@ -2389,7 +2389,7 @@ sint32 CivApp::ProcessUI(const uint32 target_milliseconds, uint32 &used_millisec
 				g_tiledMap->InvalidateMap();
 				g_tiledMap->ValidateMix();
 			}
-			else
+			else if (!airun_Fast()) // nobody watching a test run
 			{
 				if(g_tiledMap) {
 					g_tiledMap->CheckMapScale();

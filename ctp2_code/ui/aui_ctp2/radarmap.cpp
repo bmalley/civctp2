@@ -2316,6 +2316,13 @@ void RadarMap::DoRedrawTile(aui_Surface & surface, const Player & player, const 
 //---------------------------------------------------------------------------
 void RadarMap::RedrawTile(const MapPoint & pos)
 {
+	// An AI test run (CTP2_AIRUN, patch 0023) draws nothing unless asked to
+	// (CTP2_AIRUN_DRAW)
+	static bool const noDraw = getenv("CTP2_AIRUN") && !getenv("CTP2_AIRUN_DRAW");
+	if (noDraw) {
+		return;
+	}
+
 	Player * player = GetVisiblePlayerToRender();
 	if (!player) {
 		return;

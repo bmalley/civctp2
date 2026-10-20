@@ -11,7 +11,12 @@
 //   CTP2_AIRUN=FILE      append a JSON line per round and per event to FILE,
 //                        and end each observed turn without delay
 //   CTP2_AIRUN_ROUNDS=N  exit once round N has been recorded
+//   CTP2_AIRUN_DRAW=1    draw as a watched game does; otherwise a test run
+//                        draws nothing and doesn't wait on the clock
 bool airun_IsActive();
+// A test run that draws nothing and runs frames and the director flat out (all
+// screen work: the game plays the same, see airun_Fast in AiRun.cpp)
+bool airun_Fast();
 bool airun_GetSeed(uint32 &seed);
 void airun_RecordRound(sint32 round);
 void airun_RecordTurn(sint32 player, sint32 round);
