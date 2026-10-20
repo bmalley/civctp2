@@ -446,6 +446,14 @@ sint32 gameinit_PlaceInitalUnits(sint32 nPlayers, MapPoint player_start_list[k_M
 			}
 		}
 
+		sint32 const rotation = airun_StartRotation();
+		if (rotation > 0)
+		{
+			sint32 starts = 0;
+			while (starts < nPlayers - 1 && player_start_list[starts].x >= 0) ++starts;
+			if (starts > 0) which = (which + rotation) % starts;
+		}
+
 		if(player_start_list[which].x < 0)
 			break;
 

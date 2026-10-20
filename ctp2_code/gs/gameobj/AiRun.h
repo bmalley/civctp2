@@ -18,6 +18,11 @@ bool airun_IsActive();
 // screen work: the game plays the same, see airun_Fast in AiRun.cpp)
 bool airun_Fast();
 bool airun_GetSeed(uint32 &seed);
+// CTP2_AIRUN_STARTS=N: player i takes the map's start (i - 1 + N) mod (number of
+// starts) instead of start i - 1. The map generator places start 0 best and start 1
+// close to it, so player 1 always has the best land and player 2 beside it; rotating
+// moves that pairing to other players. 0 when unset.
+sint32 airun_StartRotation();
 void airun_RecordRound(sint32 round);
 void airun_RecordTurn(sint32 player, sint32 round);
 // CTP2_AIX=letters: AI experiments switched on for a test run (see each caller)
