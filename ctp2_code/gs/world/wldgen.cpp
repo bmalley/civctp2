@@ -127,7 +127,8 @@ World::World(const MapPoint & m, const int xw, const int yw)
     m_goodValue             (NULL),
     m_num_civ_starts        (0),
     m_current_plugin        (NULL),
-    m_distanceQueue         (NULL)
+    m_distanceQueue         (NULL),
+    m_capitolDistanceDirtyFlags(0xffffffff)  // every player's distances to compute once
 {
     Assert(0 < m_size.x);
     Assert(0 < m_size.y);
@@ -224,7 +225,8 @@ World::World(CivArchive &archive, BOOL fromMapFile)
     m_goodValue             (NULL),
     m_num_civ_starts        (0),
     m_current_plugin        (NULL),
-    m_distanceQueue         (NULL)
+    m_distanceQueue         (NULL),
+    m_capitolDistanceDirtyFlags(0xffffffff)  // not saved: compute them once after a load
 //  m_isXwrap, m_isYwrap, m_size: set by Serialize
 {
 	if ( fromMapFile )
