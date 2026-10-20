@@ -1041,6 +1041,16 @@ AUI_ERRCODE aui_UI::Draw( void )
 {
 	if ( !m_primary ) return AUI_ERRCODE_OK;
 
+	// An AI test run (CTP2_AIRUN, patch 0023) draws nothing unless asked to
+	// (CTP2_AIRUN_DRAW): nobody looks at its screen
+	static bool const noDraw = getenv("CTP2_AIRUN") && !getenv("CTP2_AIRUN_DRAW");
+	if (noDraw)
+	{
+		FlushDirtyList();
+		FlushDirtyRectInfoList();
+		return AUI_ERRCODE_OK;
+	}
+
 	AUI_ERRCODE errcode;
 
 	ClipAndConsolidate();
