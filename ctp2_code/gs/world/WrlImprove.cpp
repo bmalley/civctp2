@@ -26,6 +26,7 @@
 //----------------------------------------------------------------------------
 
 #include "c3.h"
+#include "PathCacheEpoch.h"      // pathcache_WorldChanged
 #include "World.h"
 
 #include "Cell.h"
@@ -74,12 +75,14 @@ World::InsertImprovement(const TerrainImprovement &imp, MapPoint const & pnt)
 void
 World::RemoveImprovement(const TerrainImprovement &imp, const MapPoint &pnt)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	GetCell(pnt)->RemoveImprovement(imp);
 }
 
 void
 World::InsertInstallation(Installation &inst, MapPoint const & pnt)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	GetCell(pnt)->m_env |= k_BIT_ENV_INSTALLATION;
 	g_theInstallationTree->Insert(inst);
 }
@@ -87,6 +90,7 @@ World::InsertInstallation(Installation &inst, MapPoint const & pnt)
 void
 World::RemoveInstallation(Installation &inst, MapPoint const & pnt)
 {
+	pathcache_WorldChanged(); // drop kept path searches (robotastar2.cpp)
 	g_theInstallationTree->Remove(inst);
 	if(g_theInstallationTree->GetCount(pnt) <= 0) {
 		GetCell(pnt)->m_env &= ~(k_BIT_ENV_INSTALLATION);

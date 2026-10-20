@@ -181,6 +181,17 @@ private:
 
 protected:
 	PLAYER_INDEX m_owner;
+
+	// What a search takes over from the search before it: InitArmy sets these, but
+	// RobotAstar2's searches for a given movement type don't call it. RobotAstar2 keeps
+	// search results (robotastar2.cpp), so they are part of its key.
+	void GetCarryOver(uint32 & flags, uint32 & cargo_pod_intersection) const
+	{
+		flags = (m_is_zero_attack ? 1u : 0u) | (m_is_cargo_pod ? 2u : 0u) | (m_can_space_land ? 4u : 0u);
+		cargo_pod_intersection = m_cargo_pod_intersection;
+	}
+	// A kept result stands in for a search: leave the members as a search leaves them
+	void EndKeptSearch() { ClearMem(); }
 };
 
 #endif
