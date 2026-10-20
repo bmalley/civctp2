@@ -1327,8 +1327,15 @@ CityData::CityData(CivArchive &archive)
 	m_sentInefficientMessageAlready = false;
 	Serialize(archive);
 
+	// Not saved: recalculated each turn, but read before that after a load
 	m_bonusFood      = 0.0;
 	m_bonusFoodCoeff = 0.0;
+	m_bonusProd      = 0.0;
+	m_bonusProdCoeff = 0.0;
+	m_bonusGold      = 0.0;
+	m_bonusGoldCoeff = 0.0;
+	m_bonusScie      = 0.0;
+	m_bonusScieCoeff = 0.0;
 
 	//m_secthappy = 0; //emod  - didnot initialize
 }
