@@ -36,6 +36,7 @@
 #include "MapPoint.h"           // own declarations: consistency check
 
 #include <algorithm>
+#include <vector>
 
 #include "civarchive.h"
 #include "World.h"              // g_theWorld
@@ -202,6 +203,80 @@ bool MapPoint::HasUnexploredNeighbor(sint32 player) const
 	return false;
 }
 
+namespace
+{
+	// The neighbour of an on-map point in each of the 8 directions, for
+	// MapPoint::GetNeighborPosition: found once per map with the coordinate
+	// conversion below, then looked up. Path searches ask for neighbours
+	// millions of times a turn.
+	struct NeighborTable
+	{
+		sint16                     m_width;
+		sint16                     m_height;
+		bool                       m_xWrap;
+		bool                       m_yWrap;
+		std::vector<MapPointData>  m_neighbor;   // [(y * width + x) * 8 + direction], x -1: off the map
+	};
+
+	NeighborTable s_neighbors = { 0, 0, false, false };
+
+	sint32 const k_NEIGHBOR_DIRECTIONS = 8;     // NORTH .. SOUTH
+
+	// The neighbour by coordinate conversion (what the table holds)
+#if defined(__GNUC__)
+	__attribute__((noinline))
+#endif
+	bool GetNeighborPositionUncached
+	(
+		MapPoint const &        from,
+		WORLD_DIRECTION const & direction,
+		MapPoint &              pos
+	)
+	{
+		OrthogonalPoint	point(from);
+		Assert(point.IsValid());
+
+		point.Move(direction);
+		bool const	isAtMap	= point.IsValid();
+		if (isAtMap)
+		{
+			pos = point.GetRC();
+		}
+
+		return isAtMap;
+	}
+
+	// Both kept out of MapPoint::GetNeighborPosition, so the lookup stays small
+#if defined(__GNUC__)
+	__attribute__((noinline))
+#endif
+	void FillNeighborTable()
+	{
+		size_t const n = static_cast<size_t>(g_mp_size.x) * g_mp_size.y * k_NEIGHBOR_DIRECTIONS;
+		s_neighbors.m_neighbor.assign(n, MapPointData(-1, -1));
+		for (sint16 y = 0; y < g_mp_size.y; ++y)
+		{
+			for (sint16 x = 0; x < g_mp_size.x; ++x)
+			{
+				MapPoint const from(x, y);
+				for (sint32 d = 0; d < k_NEIGHBOR_DIRECTIONS; ++d)
+				{
+					size_t const i = (static_cast<size_t>(y) * g_mp_size.x + x) * k_NEIGHBOR_DIRECTIONS + d;
+					MapPoint     to;
+					if (GetNeighborPositionUncached(from, static_cast<WORLD_DIRECTION>(d), to))
+					{
+						s_neighbors.m_neighbor[i] = to;
+					}
+				}
+			}
+		}
+		s_neighbors.m_width  = g_mp_size.x;
+		s_neighbors.m_height = g_mp_size.y;
+		s_neighbors.m_xWrap  = g_theWorld->IsXwrap();
+		s_neighbors.m_yWrap  = g_theWorld->IsYwrap();
+	}
+}
+
 //----------------------------------------------------------------------------
 //
 // Name       : MapPoint::GetNeighborPosition
@@ -224,17 +299,28 @@ bool MapPoint::GetNeighborPosition
 	MapPoint &              pos
 ) const
 {
-	OrthogonalPoint	point(*this);
-	Assert(point.IsValid());
-
-	point.Move(direction);
-	bool const	isAtMap	= point.IsValid();
-	if (isAtMap)
+#if defined(_SMALL_MAPPOINTS)
+	if ((direction >= 0) && (direction < k_NEIGHBOR_DIRECTIONS) && IsValid())
 	{
-		pos = point.GetRC();
-	}
+		if ((s_neighbors.m_width != g_mp_size.x)             || (s_neighbors.m_height != g_mp_size.y) ||
+		    (s_neighbors.m_xWrap != g_theWorld->IsXwrap())   || (s_neighbors.m_yWrap  != g_theWorld->IsYwrap()))
+		{
+			FillNeighborTable();
+		}
 
-	return isAtMap;
+		size_t const i = (static_cast<size_t>(y) * g_mp_size.x + x) * k_NEIGHBOR_DIRECTIONS + direction;
+		MapPointData const & to = s_neighbors.m_neighbor[i];
+		if (to.x < 0)
+		{
+			return false;
+		}
+		pos.x = to.x;
+		pos.y = to.y;
+		return true;
+	}
+#endif
+
+	return GetNeighborPositionUncached(*this, direction, pos);
 }
 
 //----------------------------------------------------------------------------
