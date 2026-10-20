@@ -35,6 +35,9 @@
 #include "CTP2Combat.h"         // CombatOdds
 #include "TurnCnt.h"            // g_turn
 
+extern MapPoint g_player_start_list[k_MAX_PLAYERS];   // gameinit.cpp
+extern sint32 g_player_start_score[k_MAX_PLAYERS];
+
 namespace
 {
 	FILE *  s_file          = NULL;
@@ -302,6 +305,12 @@ bool airun_GetSeed(uint32 &seed)
 	return true;
 }
 
+sint32 airun_StartRotation()
+{
+	const char *s = getenv("CTP2_AIRUN_STARTS");
+	return s && *s && getenv("CTP2_AIRUN") ? atoi(s) : 0;
+}
+
 // CTP2_AIRUN_TURNS=1: also a line at each player's turn with the synced random
 // generator's call count, to find where two runs of one seed part
 void airun_RecordTurn(sint32 player, sint32 round)
@@ -330,6 +339,51 @@ void airun_RecordRound(sint32 round)
 		        held ? g_theWorld->GetCell(city.RetPos())->GetNumUnits() : -1);
 	}
 	s_captured.clear();
+
+	// Once, before the first round: where each civ started (its first unit), which of
+	// the map generator's starts that is (0 is placed first, 1 near it) and its score, its continent and that continent's size, and the
+	// distance (tiles, wrap included) to every other start
+	static bool startDone = false;
+	if (!startDone)
+	{
+		startDone = true;
+		MapPoint pos[k_MAX_PLAYERS];
+		bool has[k_MAX_PLAYERS];
+		for (sint32 p = 0; p < k_MAX_PLAYERS; ++p)
+		{
+			has[p] = g_player[p] && g_player[p]->m_all_units && g_player[p]->m_all_units->Num() > 0;
+			if (has[p]) pos[p] = g_player[p]->m_all_units->Access(0).RetPos();
+		}
+		fprintf(f, "{\"t\":\"start\",\"w\":%d,\"h\":%d,\"players\":[",
+		        g_theWorld->GetXWidth(), g_theWorld->GetYHeight());
+		bool firstStart = true;
+		for (sint32 p = 1; p < k_MAX_PLAYERS; ++p)
+		{
+			if (!has[p]) continue;
+			sint16 cont = -1; bool isLand = false;
+			g_theWorld->GetContinent(pos[p], cont, isLand);
+			sint32 start = -1;
+			for (sint32 j = 0; j < k_MAX_PLAYERS && start < 0; ++j)
+			{
+				if (g_player_start_list[j] == pos[p]) start = j;
+			}
+			fprintf(f, "%s{\"p\":%d,\"x\":%d,\"y\":%d,\"start\":%d,\"score\":%d,\"units\":%d,\"cont\":%d,\"contsize\":%d,\"dist\":{",
+			        firstStart ? "" : ",", p, pos[p].x, pos[p].y, start,
+			        start >= 0 ? g_player_start_score[start] : -1,
+			        g_player[p]->m_all_units->Num(), isLand ? cont : -1,
+			        isLand ? g_theWorld->GetLandContinentSize(cont) : 0);
+			firstStart = false;
+			bool firstDist = true;
+			for (sint32 q = 1; q < k_MAX_PLAYERS; ++q)
+			{
+				if (q == p || !has[q]) continue;
+				fprintf(f, "%s\"%d\":%d", firstDist ? "" : ",", q, pos[p].NormalizedDistance(pos[q]));
+				firstDist = false;
+			}
+			fprintf(f, "}}");
+		}
+		fprintf(f, "]}\n");
+	}
 
 	fprintf(f, "{\"t\":\"round\",\"r\":%d,\"rng\":%d,\"players\":[", round,
 	        g_rand ? g_rand->CallCount() : -1);
