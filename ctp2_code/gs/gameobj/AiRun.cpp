@@ -32,6 +32,8 @@
 #include "UnitDynArr.h"
 #include "UnitRecord.h"
 #include "World.h"              // g_theWorld
+#include "CTP2Combat.h"         // CombatOdds
+#include "TurnCnt.h"            // g_turn
 
 namespace
 {
@@ -268,6 +270,28 @@ bool airun_Experiment(char which)
 {
 	static const char *letters = getenv("CTP2_AIX");
 	return letters && strchr(letters, which) != NULL;
+}
+
+sint32 airun_OddsTrials()
+{
+	static const sint32 trials = File() && getenv("CTP2_AIRUN_ODDS") ? atoi(getenv("CTP2_AIRUN_ODDS")) : 0;
+	return trials;
+}
+
+void airun_RecordBattle(sint32 attacker, sint32 defender, sint32 attackers, sint32 defenders,
+                        const CombatOdds &odds, sint32 attackersLeft, sint32 defendersLeft)
+{
+	FILE *f = File();
+	if (!f || odds.trials <= 0) return;
+	const char *result = defendersLeft <= 0 && attackersLeft > 0 ? "att"
+	                   : attackersLeft <= 0 && defendersLeft > 0 ? "def" : "draw";
+	fprintf(f, "{\"t\":\"battle\",\"r\":%d,\"att\":%d,\"def\":%d,\"na\":%d,\"nd\":%d,"
+	           "\"trials\":%d,\"p_att\":%.3f,\"p_def\":%.3f,\"left_att\":%.2f,\"left_def\":%.2f,"
+	           "\"res\":\"%s\",\"real_left_att\":%d,\"real_left_def\":%d}\n",
+	        g_turn ? g_turn->GetRound() : -1, attacker, defender, attackers, defenders,
+	        odds.trials, odds.AttackerWinChance(), odds.DefenderWinChance(),
+	        odds.attackerLeft / odds.trials, odds.defenderLeft / odds.trials,
+	        result, attackersLeft, defendersLeft);
 }
 
 bool airun_GetSeed(uint32 &seed)
