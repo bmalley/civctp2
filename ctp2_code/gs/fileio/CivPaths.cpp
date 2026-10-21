@@ -1016,7 +1016,9 @@ void CivPaths::SetLocalizedPath(const MBCHAR *path)
 {
 	sprintf(m_localizedPath, "%s", path);
 	ReplaceFileSeperator(m_localizedPath);
-	if(g_theProfileDB)
+	// path is often the profile's own language directory (FindAndSetLocalizedPath),
+	// and strcpy onto itself is undefined
+	if(g_theProfileDB && path != g_theProfileDB->GetLanguageDirectory())
 		g_theProfileDB->SetLanguageDirectory(path);
 }
 
