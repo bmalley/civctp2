@@ -666,7 +666,7 @@ sint32 ResourceMap::CalculateWrap(
 	TileInfo *tileInfo = g_tiledMap->GetTileInfo(pos);
 	if (tileInfo == NULL) return -1;
 
-	BaseTile *baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile *baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetDisplayTileNum());
 	if (baseTile == NULL) return -1;
 
 	sint16	river = tileInfo->GetRiverPiece();

@@ -167,6 +167,7 @@ void civilisation_CreateNewPlayer(sint32 pi, sint32 old_owner)
 		delete g_player[pi]->m_advances;
 		g_player[pi]->m_advances = new Advances(*(g_player[old_owner]->m_advances));
 		g_player[pi]->m_advances->SetOwner(pi);
+		g_player[pi]->SetDeepOceanVisible(g_player[old_owner]->GetDeepOceanVisible());
 		g_player[pi]->m_age = g_player[old_owner]->m_age;
 		g_player[old_owner]->GiveMap(pi);
 	}
