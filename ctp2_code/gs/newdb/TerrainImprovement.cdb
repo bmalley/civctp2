@@ -154,6 +154,7 @@ TerrainImprovement {
 		//Bit IsWonder  //remove?
 		Record Wonder[] IsWonder            // ties this tileimp to a wonder that must be built
 		Bit NeedsIrrigation                 // Can only be built on rivers or adjacent to rivers or other tileimps with flag IsIrrigation
+		Bit(Record Advance) NeedsIrrigationUntil // NeedsIrrigation no longer applies once the player has this advance
 		Bit IsIrrigation                    // 
 		Bit NextToCity                      // Can only be built on next to Cities or other NextToCity flags
 		Bit RiverOnly                       // Can only be built on rivers

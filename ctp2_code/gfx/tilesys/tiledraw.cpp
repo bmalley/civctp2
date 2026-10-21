@@ -3552,27 +3552,16 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 				amount[2] += cell->GetGoldFromTerrain(shown)    - cell->GetGoldFromTerrain(static_cast<sint8>(terrain));
 			}
 
-			// How much of this tile its city takes (CityData::CollectResources):
-			// all of a filled ring, a share of the ring being filled, none beyond
+			// Whether one of its city's workers works this tile (CityData::CollectResourcesFinally)
 			uint8 alpha = k_YIELD_ALPHA_FULL;
 			Unit const cityOwner = cell->GetCityOwner();
 			if (cityOwner.IsValid() && cityOwner.GetOwner() == g_selected_item->GetVisiblePlayer())
 			{
 				CityData const * cityData = cityOwner.GetData()->GetCityData();
 				double ratio = 1.0;
-				if (cityData && g_theProfileDB->IsCitiesWorkBestTiles())
+				if (cityData)
 				{
 					ratio = cityData->IsWorkedTile(pos) ? 1.0 : 0.0;
-				}
-				else if (cityData)
-				{
-					// The full radius first: a city that has filled its last ring has no
-					// partial ring, and GetUtilisationRatio then says 0 everywhere
-					sint32 fullSquaredRadius, partSquaredRadius;
-					cityData->GetFullAndPartialRadii(fullSquaredRadius, partSquaredRadius);
-					sint32 const squaredDistance = MapPoint::GetSquaredDistance(cityOwner.RetPos(), pos);
-					if (squaredDistance > fullSquaredRadius)
-						ratio = cityData->GetUtilisationRatio(squaredDistance);
 				}
 				if (ratio <= 0.0)
 					alpha = k_YIELD_ALPHA_UNWORKED;

@@ -1912,6 +1912,21 @@ void Player::BeginTurnProduction()
 		m_materialPool->AddMaterials(materialsFromFranchise);
 	}
 
+	// Buildings that give flat public works, e.g. the Capitol
+	for (i = 0; i < n; i++)
+	{
+		CityData * cd = m_all_cities->Access(i).CD();
+		for (sint32 b = 0; b < g_theBuildingDB->NumRecords(); b++)
+		{
+			sint32 pw;
+			if (cd->HasBuilding(b)
+			&&  buildingutil_Get(b, m_owner)->GetPublicWorksPerTurn(pw)
+			){
+				m_materialPool->AddMaterials(pw);
+			}
+		}
+	}
+
 	// End EMOD
 
 	m_productionFromFranchises = 0;
@@ -8304,7 +8319,8 @@ void Player::MakeConvertedCitiesUnhappy(sint32 convertedTo)
 	}
 }
 
-bool Player::CanBuildInfrastructure() const { return m_can_build_infrastructure != FALSE; }
+// Infrastructure (production into public works) from the start, not from Mass Production
+bool Player::CanBuildInfrastructure() const { return true; }
 bool Player::CanBuildCapitalization() const { return m_can_build_capitalization != FALSE; }
 
 //----------------------------------------------------------------------------

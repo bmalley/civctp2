@@ -1523,6 +1523,8 @@ void CityData::Copy(CityData *copy)
 	memcpy(m_ringGold,  copy->m_ringGold,  sizeof(sint32) * g_theCitySizeDB->NumRecords());
 	memcpy(m_ringSizes, copy->m_ringSizes, sizeof(sint32) * g_theCitySizeDB->NumRecords());
 	m_ringTiles = copy->m_ringTiles;
+	m_cityTiles = copy->m_cityTiles;
+	m_workedTiles = copy->m_workedTiles;
 #if defined(NEW_RESOURCE_PROCESS)
 	memcpy(m_farmersEff,    copy->m_farmersEff,    sizeof(double) * g_theCitySizeDB->NumRecords());
 	memcpy(m_laborersEff,   copy->m_laborersEff,   sizeof(double) * g_theCitySizeDB->NumRecords());
@@ -2510,6 +2512,99 @@ namespace
 	{
 		return a.food + a.prod + a.gold > b.food + b.prod + b.gold;
 	}
+
+	/// Food a citizen should have beyond what it eats, so that a city grows
+	double const k_GROWTH_FOOD_PER_CITIZEN = 3.0;
+
+	/// Orders indexes into a city's tiles by food: most first, or least first
+	struct TileFoodOrder
+	{
+		TileFoodOrder(std::vector<CityRingTile> const & tiles, bool most) : m_tiles(tiles), m_most(most) {}
+		bool operator()(sint32 a, sint32 b) const
+		{
+			return m_most ? m_tiles[a].food > m_tiles[b].food : m_tiles[a].food < m_tiles[b].food;
+		}
+		std::vector<CityRingTile> const & m_tiles;
+		bool                              m_most;
+	};
+
+	/// Best first for the tiles a city's workers take (CityData::TileScore)
+	bool CityTileIsBetter(CityRingTile const & a, CityRingTile const & b)
+	{
+		return CityData::TileScore(a) > CityData::TileScore(b);
+	}
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::TileScore
+//
+// Description: How much a worker on this tile is worth to a city: food
+//              first, then shields, then gold.
+//
+//----------------------------------------------------------------------------
+sint32 CityData::TileScore(CityRingTile const & tile)
+{
+	return 3 * tile.food + 2 * tile.prod + tile.gold;
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::PickWorkedTiles
+//
+// Description: Which tiles a city's workers work: one worker a tile, the
+//              best tiles first (m_cityTiles is sorted by TileScore).
+//
+// Parameters : workers : how many workers (and slaves) work tiles
+//              picked  : filled with indexes into m_cityTiles
+//
+// Remark(s)  : If the best tiles don't feed the city, the worked tiles with
+//              the least food are swapped for the unworked ones with the
+//              most, as long as that adds food, until the city is fed.
+//              Ties keep the iterator's order, so every machine picks the
+//              same tiles.
+//
+//----------------------------------------------------------------------------
+void CityData::PickWorkedTiles(sint32 workers, std::vector<sint32> & picked) const
+{
+	picked.clear();
+	sint32 const tileCount = static_cast<sint32>(m_cityTiles.size());
+	sint32 const worked    = std::max<sint32>(0, std::min<sint32>(workers, tileCount));
+
+	sint32 food = 0;
+	for (sint32 i = 0; i < worked; ++i)
+	{
+		picked.push_back(i);
+		food += m_cityTiles[i].food;
+	}
+
+	// Enough food to grow: what the citizens eat (at least the expected
+	// ration, as growth counts it) and k_GROWTH_FOOD_PER_CITIZEN each, in
+	// tile food before the government's food coefficient
+	double const coef   = std::max(0.1, g_player[m_owner]->GetFoodCoef());
+	double const needed = (std::max(GetFoodRequired(), GetFoodRequired() + GetRationsSaving())
+	                       + k_GROWTH_FOOD_PER_CITIZEN * PopCount()) / coef;
+	if (food >= needed || worked == 0 || worked == tileCount)
+		return;
+
+	// Unworked tiles by food, most first; worked ones by food, least first
+	std::vector<sint32> spare;
+	for (sint32 i = worked; i < tileCount; ++i)
+		spare.push_back(i);
+	std::vector<CityRingTile> const & tiles = m_cityTiles;
+	std::stable_sort(spare.begin(), spare.end(), TileFoodOrder(tiles, true));
+	std::vector<sint32> byFood(picked);
+	std::stable_sort(byFood.begin(), byFood.end(), TileFoodOrder(tiles, false));
+
+	size_t const swaps = std::min(spare.size(), byFood.size());
+	for (size_t k = 0; k < swaps && food < needed; ++k)
+	{
+		sint32 const gain = tiles[spare[k]].food - tiles[byFood[k]].food;
+		if (gain <= 0)
+			break;
+		std::replace(picked.begin(), picked.end(), byFood[k], spare[k]);
+		food += gain;
+	}
 }
 
 void CityData::CollectResources()
@@ -2540,6 +2635,7 @@ void CityData::CollectResources()
 	std::fill(m_ringGold,       m_ringGold      + maxRing,  0);
 	std::fill(m_ringSizes,      m_ringSizes     + maxRing,  0);
 	m_ringTiles.assign(maxRing, std::vector<CityRingTile>());
+	m_cityTiles.clear();
 
 #if defined(NEW_RESOURCE_PROCESS)
 	std::fill(m_farmersEff,     m_farmersEff    + maxRing,  0);
@@ -2596,6 +2692,7 @@ void CityData::CollectResources()
 		m_ringSizes[ring]++;
 		CityRingTile const tile = { it.Pos(), cell->GetFoodProduced(), cell->GetShieldsProduced(), cell->GetGoldProduced() };
 		m_ringTiles[ring].push_back(tile);
+		m_cityTiles.push_back(tile);
 		sint32 good;
 		if(g_theWorld->GetGood(it.Pos(), good))
 		{
@@ -2640,6 +2737,7 @@ void CityData::CollectResources()
 	{
 		std::stable_sort(m_ringTiles[ring].begin(), m_ringTiles[ring].end(), RingTileIsBetter);
 	}
+	std::stable_sort(m_cityTiles.begin(), m_cityTiles.end(), CityTileIsBetter);
 
 	CollectResourcesFinally();
 }
@@ -2698,37 +2796,42 @@ void CityData::CollectResourcesFinally()
 		partGoldTerrainTotal = hasPartialRing ? m_ringGold[m_workerPartialUtilizationIndex] : 0;
 	}
 
-	double const	utilizationRatio	= GetUtilisationRatio(partSquaredRadius);
+	// One worker a tile, CtP1-style: each worker (and slave) works one tile
+	// of the radius, the best first, and the centre is a tile like any other.
+	// The ring sums above stay for the AI's estimates.
+	PickWorkedTiles(WorkerCount() + SlaveCount(), m_workedTiles);
 
-	m_max_food_from_terrain = fullFoodTerrainTotal + partFoodTerrainTotal;
-	m_max_prod_from_terrain = fullProdTerrainTotal + partProdTerrainTotal;
-	m_max_gold_from_terrain = fullGoldTerrainTotal + partGoldTerrainTotal;
-
-	if (hasPartialRing && g_theProfileDB->IsCitiesWorkBestTiles()
-	    && m_ringTiles.size() == maxRing
-	    && static_cast<sint32>(m_ringTiles[m_workerPartialUtilizationIndex].size()) == m_ringSizes[m_workerPartialUtilizationIndex])
+	sint32 food = 0, prod = 0, gold = 0;
+	for (size_t i = 0; i < m_workedTiles.size(); ++i)
 	{
-		// The ring being filled: its best tiles in full, as many as the ring's
-		// share of workers is of its tiles, instead of that share of every tile
-		std::vector<CityRingTile> const & tiles  = m_ringTiles[m_workerPartialUtilizationIndex];
-		sint32 const                  worked = GetWorkedTilesInRing(m_workerPartialUtilizationIndex);
-		sint32 food = 0, prod = 0, gold = 0;
-		for (sint32 i = 0; i < worked; ++i)
-		{
-			food += tiles[i].food;
-			prod += tiles[i].prod;
-			gold += tiles[i].gold;
-		}
-
-		m_gross_food       = fullFoodTerrainTotal + food;
-		m_gross_production = fullProdTerrainTotal + prod;
-		m_gross_gold       = fullGoldTerrainTotal + (m_is_rioting ? 0 : gold);
+		CityRingTile const & tile = m_cityTiles[m_workedTiles[i]];
+		food += tile.food;
+		prod += tile.prod;
+		gold += tile.gold;
 	}
-	else
+
+	// Buildings that give flat gold, e.g. the Capitol
+	for (sint32 b = 0; b < g_theBuildingDB->NumRecords(); b++)
 	{
-		m_gross_food = fullFoodTerrainTotal + ceil(utilizationRatio * double(partFoodTerrainTotal));
-		m_gross_production = (sint32)(fullProdTerrainTotal + ceil(utilizationRatio * double(partProdTerrainTotal)));
-		m_gross_gold = (sint32)(fullGoldTerrainTotal + ceil(utilizationRatio * double(partGoldTerrainTotal)));
+		sint32 flatGold;
+		if (HasBuilding(b) && buildingutil_Get(b, m_owner)->GetGoldPerTurn(flatGold))
+			gold += flatGold;
+	}
+
+	m_gross_food       = food;
+	m_gross_production = prod;
+	m_gross_gold       = m_is_rioting ? 0 : gold;
+
+	// The most the city could take: every citizen on a tile
+	sint32 const everyone = std::min<sint32>(PopCount(), static_cast<sint32>(m_cityTiles.size()));
+	m_max_food_from_terrain = 0;
+	m_max_prod_from_terrain = 0;
+	m_max_gold_from_terrain = 0;
+	for (sint32 i = 0; i < everyone; ++i)
+	{
+		m_max_food_from_terrain += m_cityTiles[i].food;
+		m_max_prod_from_terrain += m_cityTiles[i].prod;
+		m_max_gold_from_terrain += m_cityTiles[i].gold;
 	}
 
 	m_gross_food += FoodFromTrade();
@@ -4296,8 +4399,45 @@ double CityData::CalculateGrossGrowthRate(double &overcrowdingCoeff, double &bas
 	}
 	else
 	{
-		return((m_food_delta + bonusFood) / static_cast<double>(PopCount()));
+		// Growth counts the standard ration: lean rations keep a city from
+		// starving but don't make it grow, and generous ones speed growth
+		double const growthFood = m_food_delta + bonusFood - GetRationsSaving();
+		if (growthFood <= 0.0)
+			return 0.0;
+
+		return (growthFood / static_cast<double>(PopCount())) * GetRationsGrowthFactor();
 	}
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::GetRationsSaving
+//
+// Description: The food the city's citizens don't eat because rations are
+//              below what the government's people expect; none at or
+//              above it.
+//
+//----------------------------------------------------------------------------
+double CityData::GetRationsSaving() const
+{
+	double const expected = g_theConstDB->Get(0)->GetBaseRations()
+	                      + g_player[m_owner]->GetRationsExpectation() * g_theConstDB->Get(0)->GetUnitRations();
+	double const standard = (PopCount() - SlaveCount()) * expected;
+	return std::max(0.0, standard - GetFoodRequired());
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::GetRationsGrowthFactor
+//
+// Description: Growth multiplier from rations above what the government's
+//              people expect: +25% a notch.
+//
+//----------------------------------------------------------------------------
+double CityData::GetRationsGrowthFactor() const
+{
+	double const notches = g_player[m_owner]->GetRationsLevel() - g_player[m_owner]->GetRationsExpectation();
+	return 1.0 + 0.25 * std::max(0.0, notches);
 }
 
 //----------------------------------------------------------------------------
@@ -10193,7 +10333,7 @@ sint32 CityData::HowMuchMoreFoodNeeded(sint32 bonusFood, bool onlyGrwoth, bool c
 	/////////////////////////////////////
 	// A better solution has to be found.
 	double currentFood;
-	double foodDelta = m_food_delta;
+	double foodDelta = m_food_delta - GetRationsSaving(); // as growth counts it
 	sint32 specalistFood = GetSpecialistsResources(POP_FARMER);
 	if(specalistFood != 0 && considerOnlyFromTerrain)
 	{
@@ -10251,11 +10391,9 @@ sint32 CityData::HowMuchMoreFoodNeeded(sint32 bonusFood, bool onlyGrwoth, bool c
 //	DPRINTF(k_DBG_GAMESTATE, ("foodForNextRing: %i\n", static_cast<sint32>(foodForNextRing)));
 //	DPRINTF(k_DBG_GAMESTATE, ("maxFoodFromTerrain: %i\n", static_cast<sint32>(maxFoodFromTerrain)));
 
-	if(food < foodForNextRing - maxFoodFromTerrain)
-	{
-		food = foodForNextRing - maxFoodFromTerrain;
-	}
-//	DPRINTF(k_DBG_GAMESTATE, ("FoodNextRing: %i\n", static_cast<sint32>(food)));
+	// No "food for the next ring" target: with one worker a tile a city has
+	// no rings to fill (CityData::PickWorkedTiles)
+	(void) foodForNextRing;
 
 //	DPRINTF(k_DBG_GAMESTATE, ("Food: %i\n", static_cast<sint32>(food)));
 //	DPRINTF(k_DBG_GAMESTATE, ("foodForNextPop: %i\n", static_cast<sint32>(foodForNextPop)));
@@ -10872,29 +11010,38 @@ sint32 CityData::GetWorkedTilesInRing(sint32 ring) const
 
 //----------------------------------------------------------------------------
 //
+// Name       : CityData::GetWorstWorkedTileScore
+//
+// Description: The TileScore of the worst tile a worker works; -1 if no
+//              worker works a tile.
+//
+//----------------------------------------------------------------------------
+sint32 CityData::GetWorstWorkedTileScore() const
+{
+	sint32 worst = -1;
+	for (size_t i = 0; i < m_workedTiles.size(); ++i)
+	{
+		sint32 const score = TileScore(m_cityTiles[m_workedTiles[i]]);
+		if (worst < 0 || score < worst)
+			worst = score;
+	}
+	return worst;
+}
+
+//----------------------------------------------------------------------------
+//
 // Name       : CityData::IsWorkedTile
 //
-// Description: Whether the city works the tile at pos when it works its best
-//              tiles (profile option CitiesWorkBestTiles).
+// Description: Whether one of the city's workers works the tile at pos.
 //
-// Remark(s)  : As of the last CollectResources; the centre is always worked.
+// Remark(s)  : As of the last CollectResourcesFinally.
 //
 //----------------------------------------------------------------------------
 bool CityData::IsWorkedTile(MapPoint const & pos) const
 {
-	sint32 const ring = GetRing(pos);
-	if (ring < 0)
-		return false;
-	if (ring <= m_workerFullUtilizationIndex || ring == 0)
-		return true;
-	if (ring != m_workerPartialUtilizationIndex || static_cast<size_t>(ring) >= m_ringTiles.size())
-		return false;
-
-	std::vector<CityRingTile> const & tiles  = m_ringTiles[ring];
-	sint32 const                  worked = std::min<sint32>(GetWorkedTilesInRing(ring), static_cast<sint32>(tiles.size()));
-	for (sint32 i = 0; i < worked; ++i)
+	for (size_t i = 0; i < m_workedTiles.size(); ++i)
 	{
-		if (tiles[i].pos == pos)
+		if (m_cityTiles[m_workedTiles[i]].pos == pos)
 			return true;
 	}
 	return false;

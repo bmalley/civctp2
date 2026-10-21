@@ -103,6 +103,8 @@ Building {
 	Bit(Int)   HappyInc
 	Bit        DoubleTelevangelists
 	Bit(Float) ProductionPercent
+	Bit(Int) PublicWorksPerTurn          // Flat public works a turn into the empire's pool
+	Bit(Int) GoldPerTurn                 // Flat gold (commerce) a turn in the city, before taxes
 	Bit(Float) FoodPercent
 	Bit(Float) CommercePercent
 	Bit(Float) SciencePercent
