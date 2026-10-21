@@ -113,6 +113,9 @@
 #include "GraphWindow.h"
 #include "MessagePool.h"
 #include "message.h"
+#include "MessageData.h"        // MessageData::GetTimeStamp
+#include "TurnYearStatus.h"     // TurnYearStatus::GetPastYearString
+#include "aui_bitmapfont.h"     // aui_BitmapFont
 
 #include "cursormanager.h"
 #include "debugwindow.h"
@@ -2102,9 +2105,13 @@ void ControlPanelWindow::AddMessage(Message &message, bool initializing)
 
 	staticThing = (ctp2_Static *)staticContainer->GetChildByIndex(1);
 
-	MBCHAR tempStr[k_MAX_MSG_LEN];
-	memset((char *)tempStr, 0, k_MAX_MSG_LEN);
-	strncpy(tempStr, message.GetText(), k_MAX_MSG_LEN-1);
+	// The date first: the message's time stamp is the year it was sent
+	MBCHAR tempStr[2 * k_MAX_MSG_LEN];
+	memset((char *)tempStr, 0, sizeof(tempStr));
+	snprintf(tempStr, k_MAX_MSG_LEN, "%s: ",
+	         TurnYearStatus::GetPastYearString(message.AccessData()->GetTimeStamp()));
+	size_t const dateLength = strlen(tempStr);
+	strncpy(tempStr + dateLength, message.GetText(), k_MAX_MSG_LEN - 1);
 
 	MBCHAR *begin,*end;
 	size_t length;
@@ -2135,7 +2142,33 @@ void ControlPanelWindow::AddMessage(Message &message, bool initializing)
 	}
 	staticThing->TextReloadFont();
 
-	staticThing->GetTextFont()->TruncateString(tempStr, staticThing->Width());
+	// Two lines, as the item is tall enough for them: break the first where
+	// word wrap would, and cut only the second short
+	aui_BitmapFont * font  = staticThing->GetTextFont();
+	sint32 const     width = staticThing->Width();
+	const MBCHAR *   rest  = tempStr;
+	const MBCHAR *   stop  = tempStr + strlen(tempStr);
+	RECT             wrap  = { 0, 0, width, 0 };
+	POINT            pen   = { 0, 0 };
+	font->GetLineInfo(&wrap, &pen, NULL, NULL, &rest, stop);
+	if (rest != stop && rest > tempStr)
+	{
+		size_t const firstLength = rest - tempStr;
+		if (tempStr[firstLength - 1] == ' ')
+		{
+			tempStr[firstLength - 1] = '\n';
+		}
+		else
+		{
+			memmove(tempStr + firstLength + 1, tempStr + firstLength, strlen(tempStr + firstLength) + 1);
+			tempStr[firstLength] = '\n';
+		}
+		font->TruncateString(tempStr + firstLength + 1, width);
+	}
+	else
+	{
+		font->TruncateString(tempStr, width);
+	}
 	staticThing->SetText(tempStr);
 	staticThing->SetTextColor(message.IsRead()?g_colorSet->GetColorRef(COLOR_GRAY):g_colorSet->GetColorRef(COLOR_BLACK));
 
