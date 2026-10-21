@@ -93,6 +93,19 @@ private:
 
 	ctp2_Static				*m_fortifiedBonusText;
 	ctp2_Static				*m_fortifiedBonusValue;
+
+	// The odds and the losses so far, and Skip
+	ctp2_Static				*m_oddsText;
+	ctp2_Static				*m_lossesText;
+	ctp2_Button				*m_skipButton;
+	double					m_startChance;      // the attackers' win chance at the start
+	// Texts for the rounds the view is about to play: shown once it has played them
+	MBCHAR					m_pendingOdds[256];
+	MBCHAR					m_pendingLosses[256];
+	bool					m_hasPending;
+
+	void					ReckonReadout(void);
+	void					ShowPendingReadout(void);
 };
 
 class RemoveBattleViewAction : public aui_Action
