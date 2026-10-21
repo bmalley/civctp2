@@ -440,6 +440,7 @@ public:
 				         );
 
 	void		DrawCityNames(aui_Surface *surf, sint32 layer);
+	void		DrawTileYields(aui_Surface *surf);
 
 	void		NextPlayer(void);
 	void		CopyVision();

@@ -161,6 +161,9 @@ enum KEY_FUNCTION
     KEY_FUNCTION_ENTER_COMMAND,
     KEY_FUNCTION_ENTER_COMMAND_ALTERNATE,
 
+    // Map controls added later (their strings follow the playtest ones in km_screen.ldl)
+    KEY_FUNCTION_TOGGLE_TILE_YIELDS,
+
     // Miscellaneous (CTP1, not shown at option|keyboard)
     // For these there are no strings available in km_screen.ldl.
     // Everything without strings in km_screen.ldl comes below.
@@ -197,6 +200,7 @@ class KEYMAP
     KEYPRESS_MAP key2func[MAX_KEYPRESS_MAP];
 
     uint32 hash_32to16(unsigned long val);
+    void load(FILE *fin, bool onlyUnbound);
 
 public:
     KEYMAP(BOOL useDefault);
