@@ -429,6 +429,35 @@ void airun_RecordRound(sint32 round)
 		s_battles[p] = s_kills[p] = s_losses[p] = 0;
 	}
 	fprintf(f, "]}\n");
+
+	// CTP2_AIRUN_CITIES=N: every N rounds, each city's size, workers and food
+	static sint32 const citiesEvery = getenv("CTP2_AIRUN_CITIES") ? atoi(getenv("CTP2_AIRUN_CITIES")) : 0;
+	if (citiesEvery > 0 && round % citiesEvery == 0)
+	{
+		fprintf(f, "{\"t\":\"cities\",\"r\":%d,\"players\":[", round);
+		bool firstPlayer = true;
+		for (sint32 p = 1; p < k_MAX_PLAYERS; ++p)
+		{
+			Player * pl = g_player[p];
+			if (!pl || !pl->m_all_cities) continue;
+			fprintf(f, "%s{\"p\":%d,\"rations\":%d,\"workday\":%d,\"wages\":%d,\"pw\":%d,\"list\":[",
+			        firstPlayer ? "" : ",", p, (sint32)pl->GetRationsLevel(), (sint32)pl->GetUnitlessWorkday(),
+			        (sint32)pl->GetUnitlessWages(), (sint32)pl->GetMaterialsStored());
+			firstPlayer = false;
+			for (sint32 c = 0; c < pl->m_all_cities->Num(); ++c)
+			{
+				CityData * cd = pl->m_all_cities->Access(c).CD();
+				fprintf(f, "%s[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d]", c ? "," : "",
+				        cd->PopCount(), cd->WorkerCount(), cd->EntertainerCount(),
+				        cd->PopCount() - cd->WorkerCount() - cd->EntertainerCount() - cd->SlaveCount(),
+				        (sint32)cd->GetGrossCityFood(), (sint32)cd->GetConsumedFood(), (sint32)cd->GetNetCityFood(),
+				        cd->GetGrowthRate(), cd->GetGrossCityProduction(), (sint32)cd->GetHappiness(),
+				        (sint32)cd->GetProducedFood(), (sint32)cd->GetFoodCrime());
+			}
+			fprintf(f, "]}");
+		}
+		fprintf(f, "]}\n");
+	}
 	fflush(f);
 
 	if (s_exitRound >= 0 && round >= s_exitRound)
