@@ -43,6 +43,8 @@
 #                            completion according to the position's terrain type (FutureUse)(E)
 #  - Added CanUpgrade flag for terrain dependent upgrading (Dec 24th 2006 Martin Gühmann)
 #  - Added HealRate flag to allow improvements to heal! (24-Jul-2009 EPW)
+#  - Added RiverBonusFood/Production/Gold and BonusGood with GoodBonusFood/
+#    Production/Gold: more for an improvement on a river or a given good.
 #-----------------------------------------------------------------------------
 
 TerrainImprovement {
@@ -158,6 +160,14 @@ TerrainImprovement {
 		Bit Obstacle                        // FU makes cell impassable
 		Bit NextToUrban
 		Bit(Float) HealRate                 //Unit HealRate on this improvement
+
+		Bit(Int) RiverBonusFood             // Added to BonusFood etc. when the tile has a river
+		Bit(Int) RiverBonusProduction
+		Bit(Int) RiverBonusGold
+		Record Resource[] BonusGood         // Goods that get GoodBonusFood etc. on top
+		Bit(Int) GoodBonusFood
+		Bit(Int) GoodBonusProduction
+		Bit(Int) GoodBonusGold
 
 	}
 
