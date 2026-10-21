@@ -2545,10 +2545,11 @@ void Player::EndTurn()
 	if (!g_theProfileDB->DontKillMessages())
 	{
 		sint32 numMessages = m_messages->Num();
+		sint32 const maxKept = IsRobot() ? k_MAX_MESSAGES_KEPT : k_MAX_MESSAGES_KEPT_HUMAN;
 
-		if (numMessages > k_MAX_MESSAGES_KEPT)
+		if (numMessages > maxKept)
 		{
-			for (i=0; i< (numMessages - k_MAX_MESSAGES_KEPT); i++)
+			for (i=0; i< (numMessages - maxKept); i++)
 			{
 				m_messages->Access(0).Kill();
 			}
