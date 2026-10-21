@@ -218,6 +218,7 @@
 #include "WonderRecord.h"
 #include "wonderutil.h"
 #include "World.h"
+#include "BattleOrdersWindow.h"         // the attack window
 
 extern AgreementPool *  g_theAgreementPool;
 extern Diplomacy_Log *  g_theDiplomacyLog;
@@ -7538,6 +7539,11 @@ bool ArmyData::MoveIntoForeigner(const MapPoint &pos)
 	      )
 	  )
 	{
+		// A human's attack: the attack window first (odds and orders), which attacks again
+		// if the player says so
+		if (BattleOrdersWindow::Intercept(Army(m_id), pos))
+			return false;
+
 		Battle(pos, defender);
 	}
 	else

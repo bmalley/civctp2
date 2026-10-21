@@ -213,6 +213,8 @@ ProfileDB::ProfileDB()
     m_observerTurnDelay                 (2),
     m_observerFollow                    (FALSE),
     m_recordReplay                      (TRUE),
+    m_battleOddsOnMap                   (TRUE),
+    m_askBeforeAttack                   (TRUE),
     m_autoRenameCities                  (FALSE),
     m_autoOpenCityWindow                (TRUE),
     m_endTurnSound                      (TRUE),
@@ -435,6 +437,8 @@ ProfileDB::ProfileDB()
 	Var("ObserverTurnDelay"          , PV_NUM   , &m_observerTurnDelay          , NULL);
 	Var("ObserverFollow"             , PV_BOOL  , &m_observerFollow             , NULL);
 	Var("RecordReplay"               , PV_BOOL  , &m_recordReplay               , NULL);
+	Var("BattleOddsOnMap"            , PV_BOOL  , &m_battleOddsOnMap            , NULL);
+	Var("AskBeforeAttack"            , PV_BOOL  , &m_askBeforeAttack            , NULL);
 
 	Var("AutoSwitchTabs"             , PV_BOOL  , &m_autoSwitchTabs             , NULL);
 	Var("AutoRenameCities"           , PV_BOOL  , &m_autoRenameCities           , NULL, false);
