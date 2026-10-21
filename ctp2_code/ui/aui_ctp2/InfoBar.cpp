@@ -75,6 +75,7 @@
 #include "UnseenCell.h"         // Unseen cell info is needed
 #include "gfx_options.h"        // g_graphicsOptions
 #include "profileDB.h"          // g_theProfileDB
+#include "BattleOrdersWindow.h" // battleodds_InfoBarText
 
 extern sint32		g_fog_toggle;
 extern sint32		g_god;
@@ -199,6 +200,14 @@ void InfoBar::SetTextFromMap(const MapPoint &point)
 	m_curX = point.x;
 	m_curY = point.y;
 	m_textFromMap = true;
+
+	// With an army selected, over an enemy: the battle odds come first
+	MBCHAR odds[k_MAX_INFOBAR_TEXT];
+	battleodds_InfoBarText(point, odds, sizeof(odds));
+	if(odds[0]) {
+		Concat(odds);
+		Concat("   |   ");
+	}
 
 	if(!g_player[g_selected_item->GetVisiblePlayer()] ||
 		!g_player[g_selected_item->GetVisiblePlayer()]->IsExplored(point)) {

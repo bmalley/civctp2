@@ -149,17 +149,24 @@ STDEHANDLER(StartCombatEvent)
 	{
 		// Test runs with CTP2_AIRUN_ODDS: what a simulation expects of this fight, to check
 		// it against the outcome. Seeded from the fight itself; g_rand is not touched.
+		// The attack window's orders, if a human gave some for this attack
+		BattleOrders orders;
+		bool const hasOrders = CTP2Combat::TakePendingOrders(a.m_id, p, orders)
+		                    || airun_Orders(orders);
+
 		sint32 const trials = airun_OddsTrials();
 		CombatOdds odds;
 		if (trials > 0)
 		{
 			uint32 const seed = a.m_id * 2654435761u ^ (p.x << 16 | p.y) ^ (g_turn ? g_turn->GetRound() : 0);
-			odds = CTP2Combat::Simulate(*a.AccessData(), defender, trials, seed);
+			odds = CTP2Combat::Simulate(*a.AccessData(), defender, trials, seed,
+			                            hasOrders ? &orders : NULL);
 		}
 		s_attackersAtStart = a.Num();
 		s_defendersAtStart = defender.Num();
 
-		g_theCurrentBattle = new CTP2Combat(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, *a.AccessData(), defender);
+		g_theCurrentBattle = new CTP2Combat(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, *a.AccessData(), defender,
+		                                    hasOrders ? &orders : NULL);
 		g_theCurrentBattle->SetPrediction(odds);
 	}
 

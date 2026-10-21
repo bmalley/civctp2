@@ -54,6 +54,7 @@
 #include "World.h"
 #include "Cell.h"
 #include "GameSettings.h"
+#include "TurnCnt.h"
 
 #else
 
@@ -159,7 +160,9 @@ CombatUnit::CombatUnit
     m_hp                  (hp),
     m_isVeteran           (isVeteran),
     m_type                (type),
-    m_valid               (true)
+    m_valid               (true),
+    m_maxHP               (hp),
+    m_reserve             (false)
 {
 	m_id = s_unitId++;
 	s_trackedUnits[m_id].m_unit = *this;
@@ -186,6 +189,8 @@ CombatUnit::CombatUnit
     m_hp              (hp),
     m_isVeteran       (u.IsVeteran()),
     m_valid           (true),
+    m_maxHP           (u->CalculateTotalHP()),
+    m_reserve         (false),
     m_alreadyExploded (false),
     m_alreadyAttacked (false),
     m_unit            (u)
@@ -422,7 +427,15 @@ void CombatField::Move()
 		rowPos = 0;
 
 		for(x = 0; x < m_width; x++) {
+			newRow[x].Invalidate();
+		}
+
+		for(x = 0; x < m_width; x++) {
 			if(m_field[x][y].IsActive()) {
+				// A unit in reserve keeps out of the front line (BattleOrders)
+				if(rowPos == k_FRONT_COL && m_field[x][y].IsReserve()) {
+					rowPos++;
+				}
 				newRow[rowPos++] = m_field[x][y];
 			}
 		}
@@ -468,6 +481,9 @@ void CombatField::Sort()
 				if(m_field[x][y].GetRangedAttack() > primaryStat) {
 					u->SetPreferredCol(k_RANGED_COL);
 					u->SetPriority(sint32((u->GetRangedAttack() * 2) + primaryStat));
+				} else if(u->IsReserve()) {
+					u->SetPreferredCol(k_RANGED_COL);
+					u->SetPriority(primaryStat);
 				} else {
 					u->SetPreferredCol(k_FRONT_COL);
 					u->SetPriority(primaryStat);
@@ -571,7 +587,8 @@ void CombatField::MoveRowForward(sint32 row)
 
 	for(x = k_FRONT_COL + 1; x < m_width; x++) {
 		if(m_field[x][row].IsActive() &&
-		   m_field[x][row].GetCombatType() != UNIT_TYPE_NONCOMBAT) {
+		   m_field[x][row].GetCombatType() != UNIT_TYPE_NONCOMBAT &&
+		   !m_field[x][row].IsReserve()) {
 
 			if(m_field[x][row].IsActive()) {
 				combat_print(k_COMBAT_DEBUG_VERBOSE, "MOVEH: %s@%d,%d -> %d,%d\n",
@@ -729,7 +746,69 @@ void CombatField::FillHoles()
 	}
 }
 
+// BattleOrders::LINE_WOUNDED_BACK: units that would stand in the front line with less than
+// half their hit points wait behind it, as long as some healthier unit can fight there
+void CombatField::MarkWoundedReserve()
+{
+	sint32 x, y;
+	bool healthyFighter = false;
+	for(x = 0; x < m_width; x++) {
+		for(y = 0; y < m_height; y++) {
+			CombatUnit &u = m_field[x][y];
+			if(!u.IsActive() || u.GetCombatType() == UNIT_TYPE_NONCOMBAT)
+				continue;
+			bool const wounded = u.GetHP() < 0.5 * u.GetMaxHP();
+			u.SetReserve(wounded);
+			if(!wounded)
+				healthyFighter = true;
+		}
+	}
+	if(!healthyFighter)
+		ClearReserve();
+}
+
+bool CombatField::HasReserve()
+{
+	for(sint32 x = 0; x < m_width; x++) {
+		for(sint32 y = 0; y < m_height; y++) {
+			if(m_field[x][y].IsActive() && m_field[x][y].IsReserve())
+				return true;
+		}
+	}
+	return false;
+}
+
+void CombatField::ClearReserve()
+{
+	for(sint32 x = 0; x < m_width; x++) {
+		for(sint32 y = 0; y < m_height; y++) {
+			m_field[x][y].SetReserve(false);
+		}
+	}
+}
+
 #ifndef TEST_APP
+bool CombatField::IsActiveUnit(uint32 unitId)
+{
+	for(sint32 x = 0; x < m_width; x++) {
+		for(sint32 y = 0; y < m_height; y++) {
+			if(m_field[x][y].IsActive() && m_field[x][y].m_unit.m_id == unitId)
+				return true;
+		}
+	}
+	return false;
+}
+
+void CombatField::AddActiveTo(CellUnitList &units)
+{
+	for(sint32 x = 0; x < m_width; x++) {
+		for(sint32 y = 0; y < m_height; y++) {
+			if(m_field[x][y].IsActive())
+				units.Insert(m_field[x][y].m_unit);
+		}
+	}
+}
+
 void CombatField::ReportUnits(Battle *battle, BattleEvent *event, bool initial)
 {
 	sint32 x, y;
@@ -903,10 +982,12 @@ void CombatField::FillFrom(CellUnitList &units)
 
 CTP2Combat::CTP2Combat
 (
-    sint32        w,
-    sint32        h,
-    CellUnitList &attackers,
-    CellUnitList &defenders
+    sint32                w,
+    sint32                h,
+    CellUnitList &        attackers,
+    CellUnitList &        defenders,
+    const BattleOrders *  orders,
+    sint32                attackersAtStart
 )
 :
     m_attackers           (w, h, true),
@@ -917,16 +998,24 @@ CTP2Combat::CTP2Combat
     m_retreated           (false),
     m_retreating          (false),
     m_noAttacksPossible   (false),
+    m_skipping            (false),
     m_attacker            (attackers.GetOwner()),
     m_defender            (defenders.GetOwner()),
     m_army_id             (attackers[0].GetArmy().m_id),
     m_battle              (NULL),
     m_roundsSinceUpdate   (0x7ffffffe),
     m_simRand             (NULL),
-    m_prediction          ()
+    m_prediction          (),
+    m_orders              (orders ? *orders : BattleOrders()),
+    m_attackersAtStart    (attackersAtStart > 0 ? attackersAtStart : attackers.Num()),
+    m_defendersAtStart    (defenders.Num()),
+    m_retreatByOrders     (false)
 {
 	m_attackers.FillFrom(attackers);
 	m_defenders.FillFrom(defenders);
+
+	if(m_orders.line == BattleOrders::LINE_WOUNDED_BACK)
+		m_attackers.MarkWoundedReserve();
 
 	m_defenders.Sort();
 	m_attackers.Sort();
@@ -983,21 +1072,31 @@ CTP2Combat::CTP2Combat
 
 CombatOdds CTP2Combat::Simulate
 (
-    CellUnitList &  attackers,
-    CellUnitList &  defenders,
-    sint32          trials,
-    uint32          seed
+    CellUnitList &        attackers,
+    CellUnitList &        defenders,
+    sint32                trials,
+    uint32                seed,
+    const BattleOrders *  orders,
+    sint32                attackersAtStart
 )
 {
 	CombatOdds odds;
 	if (attackers.Num() <= 0 || defenders.Num() <= 0)
 		return odds;
 
+	odds.attackers = attackers.Num();
+	odds.defenders = defenders.Num();
+
+	// A real fight may be going on (the battle view asks for its odds between rounds)
+	bool const wasSimulating   = s_simulating;
+	bool const somethingDied   = s_somethingDied;
+
 	RandomGenerator dice(static_cast<sint32>(seed % 0x7fffffff));
 	s_simulating = true;
 	for (sint32 t = 0; t < trials; ++t)
 	{
-		CTP2Combat fight(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, attackers, defenders);
+		CTP2Combat fight(k_COMBAT_WIDTH, k_COMBAT_HEIGHT, attackers, defenders,
+		                 orders, attackersAtStart);
 		fight.m_simRand = &dice;
 
 		// The real fight takes one round per GEV_RunCombat until IsDone; the limit is
@@ -1014,11 +1113,85 @@ CombatOdds CTP2Combat::Simulate
 			++odds.attackerWins;
 		else if (attackersLeft <= 0 && defendersLeft > 0)
 			++odds.defenderWins;
+		else if (fight.IsRetreated())
+			++odds.retreats;
 		odds.attackerLeft += attackersLeft;
 		odds.defenderLeft += defendersLeft;
+
+		for (sint32 i = 0; i < attackers.Num() && i < k_COMBAT_ODDS_UNITS; ++i)
+		{
+			if (fight.m_attackers.IsActiveUnit(attackers[i].m_id))
+				++odds.attackerSurvived[i];
+		}
+		for (sint32 i = 0; i < defenders.Num() && i < k_COMBAT_ODDS_UNITS; ++i)
+		{
+			if (fight.m_defenders.IsActiveUnit(defenders[i].m_id))
+				++odds.defenderSurvived[i];
+		}
 	}
-	s_simulating = false;
+	s_simulating    = wasSimulating;
+	s_somethingDied = somethingDied;
 	return odds;
+}
+
+CombatOdds CTP2Combat::SimulateFromNow(sint32 trials, uint32 seed)
+{
+	CellUnitList attackers;
+	CellUnitList defenders;
+	m_attackers.AddActiveTo(attackers);
+	m_defenders.AddActiveTo(defenders);
+	return Simulate(attackers, defenders, trials, seed, &m_orders, m_attackersAtStart);
+}
+
+namespace
+{
+	struct PendingOrders
+	{
+		uint32       army;
+		MapPoint     pos;
+		sint32       round;
+		BattleOrders orders;
+		bool         set;
+		PendingOrders() : army(0), pos(), round(-1), orders(), set(false) {}
+	};
+	PendingOrders s_pendingOrders;
+}
+
+void CTP2Combat::SetPendingOrders(uint32 army, const MapPoint &pos, const BattleOrders &orders)
+{
+	s_pendingOrders.army   = army;
+	s_pendingOrders.pos    = pos;
+	s_pendingOrders.round  = g_turn ? g_turn->GetRound() : 0;
+	s_pendingOrders.orders = orders;
+	s_pendingOrders.set    = true;
+}
+
+bool CTP2Combat::TakePendingOrders(uint32 army, const MapPoint &pos, BattleOrders &orders)
+{
+	if (!s_pendingOrders.set
+	 || s_pendingOrders.army != army
+	 || s_pendingOrders.pos != pos
+	 || s_pendingOrders.round != (g_turn ? g_turn->GetRound() : 0))
+	{
+		return false;
+	}
+	orders = s_pendingOrders.orders;
+	s_pendingOrders.set = false;
+	return true;
+}
+
+bool CTP2Combat::ShouldRetreat()
+{
+	sint32 const attackersLeft = m_attackers.NumAlive();
+	switch (m_orders.retreat)
+	{
+	case BattleOrders::RETREAT_OUTNUMBERED:
+		return attackersLeft < m_defenders.NumAlive();
+	case BattleOrders::RETREAT_HALF_LOST:
+		return attackersLeft * 2 <= m_attackersAtStart;
+	default:
+		return false;
+	}
 }
 
 CTP2Combat::~CTP2Combat()
@@ -1469,6 +1642,13 @@ void CTP2Combat::DoMovement()
 	m_attackers.Move();
 	m_defenders.Move();
 
+	// The reserve steps up when nobody else is left to hold the line
+	if(m_attackers.CountColumn(k_FRONT_COL) == 0 && m_attackers.HasReserve()) {
+		m_attackers.ClearReserve();
+		Balance();
+		m_attackers.Move();
+	}
+
 	if(m_battle) {
 		BattleEvent *placementEvent = new BattleEvent(BATTLE_EVENT_TYPE_PLACEMENT);
 		Assert(placementEvent);
@@ -1513,8 +1693,14 @@ bool CTP2Combat::ResolveOneRound()
 	}
 
 	bool playAnimations = true;
-	if(m_battle && (m_round > 1)) {
+	if(m_battle && m_skipping && !IsDone()) {
+		// Skipping: no pause for the view until the end
+		playAnimations = false;
+	} else if(m_battle && (m_round > 1)) {
 		if(IsDone() || s_somethingDied || ++m_roundsSinceUpdate >= g_theProfileDB->GetBattleSpeed()) {
+			if(m_skipping) {
+				m_battle->DropAnimations();
+			}
 			if(g_battleViewWindow && m_battle) {
 				g_battleViewWindow->UpdateBattle(m_battle);
 			}
@@ -1531,6 +1717,13 @@ bool CTP2Combat::ResolveOneRound()
 	if(m_retreating) {
 		m_retreated = true;
 	}
+#ifndef TEST_APP
+	// The attacker's orders: decide after the round, retreat in the next (as the button does)
+	else if(m_orders.retreat != BattleOrders::RETREAT_NEVER && !IsDone() && ShouldRetreat()) {
+		m_retreatByOrders = true;
+		Retreat();
+	}
+#endif
 
 
 
