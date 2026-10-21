@@ -43,6 +43,8 @@
 #include "colorset.h"           // g_colorSet
 #include "gamefile.h"           // g_isScenario
 #include "CivPaths.h"           // g_civPaths
+#include "Diffcly.h"            // diffutil_GetYearFromTurn
+#include "GameSettings.h"       // g_theGameSettings
 
 sTurnLengthOverride *TurnYearStatus::s_pTurnLengthOverride    = NULL;
 uint32               TurnYearStatus::s_turnLengthOverrideSize = 0;
@@ -57,6 +59,23 @@ const MBCHAR *TurnYearStatus::GetCurrentYear()
 	                     NewTurnCount::GetCurrentRound();
 
 	return TurnYearStatus::GetYearString(currentYear, round);
+}
+
+const MBCHAR *TurnYearStatus::GetPastYearString(sint32 year)
+{
+	sint32 round = -1;
+	if (s_useCustomYear && s_pTurnLengthOverride && g_theGameSettings)
+	{
+		// Custom years are listed by round: the first round that reached this year
+		sint32 const diff = g_theGameSettings->GetDifficulty();
+		round = NewTurnCount::GetCurrentRound();
+		while (round > 0 && diffutil_GetYearFromTurn(diff, round - 1) >= year)
+		{
+			--round;
+		}
+	}
+
+	return GetYearString(year, round);
 }
 
 const MBCHAR *TurnYearStatus::GetYearString(sint32 currentYear, sint32 round)

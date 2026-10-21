@@ -53,6 +53,8 @@ typedef sint32 PLAYER_INDEX;
 #define k_MAX_MSG_LEN	256
 
 #define k_MAX_MESSAGES_KEPT	30
+// A human player's message log keeps more: 30 is often less than a turn's worth
+#define k_MAX_MESSAGES_KEPT_HUMAN	300
 
 enum MESSAGE_RESPONSE_TYPE
 {

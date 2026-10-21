@@ -52,6 +52,9 @@ public:
 	static const MBCHAR *GetCurrentYear();
 	static const MBCHAR *GetCurrentRound();
 	static const MBCHAR *GetYearString(sint32 currentYear, sint32 round);
+	// The date of a past year (e.g. a message's time stamp), also with a
+	// scenario's custom year strings, which go by round
+	static const MBCHAR *GetPastYearString(sint32 year);
 	static         void  BuildTurnLengthOverride();
 	static         void  CleanupTurnLengthOverride();
 
