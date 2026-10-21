@@ -1694,7 +1694,10 @@ BOOL World::FindMaxCumScore(sint32 d, float **cum_score, sint32 &maxx, sint32 &m
 				if(dist < minDist) {
 					dontUse = TRUE;
 				}
-				if(index == 1 && !g_network.IsNetworkLaunch() && !g_network.IsActive()) {
+				// Single player put start 1 within maxDist of start 0, the human's;
+				// SpreadStarts places it like every other start
+				if(index == 1 && !g_network.IsNetworkLaunch() && !g_network.IsActive()
+				&& !g_theProfileDB->IsSpreadStarts()) {
 					if(dist > maxDist) {
 						dontUse = TRUE;
 					}
