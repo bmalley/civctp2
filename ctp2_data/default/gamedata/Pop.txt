@@ -7,28 +7,28 @@ POP_ENTERTAINER {
 
 POP_FARMER {
    EnableAdvance ADVANCE_AGRICULTURE
-   Food 30
+   Food 15
 }
 
 ############################################################
 
 POP_LABORER {
    EnableAdvance ADVANCE_INDUSTRIAL_REVOLUTION
-   Production 30
+   Production 20
 }
 
 ############################################################
 
 POP_MERCHANT {
    EnableAdvance ADVANCE_ECONOMICS
-   Commerce 20
+   Commerce 15
 }
 
 ############################################################
 
 POP_SCIENTIST {
    EnableAdvance ADVANCE_CLASSICAL_EDUCATION
-   Science 30
+   Science 20
 }
 
 ############################################################

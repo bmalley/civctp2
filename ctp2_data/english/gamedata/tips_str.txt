@@ -366,7 +366,7 @@ STATUSBAR_DOMADV_MAIN_PRODADV_BUTTON			"Click here to read what your production 
 TOOLTIP_DOMADV_MAIN_PRODADV_BUTTON			"Consult Production Advisor"
 STATUSBAR_DOMADV_MAIN_PROD_DISPLAY			"This is the total amount of industrial production in your nation."
 TOOLTIP_DOMADV_MAIN_PROD_DISPLAY			"Total Production"
-STATUSBAR_DOMADV_MAIN_RATIONS_SLIDER			"Use this to set the amount of rations per person."
+STATUSBAR_DOMADV_MAIN_RATIONS_SLIDER			"Rations per person. Lean rations stop starvation but never speed growth; each notch above standard gives +25% growth."
 TOOLTIP_DOMADV_MAIN_RATIONS_SLIDER			"Rations"
 STATUSBAR_DOMADV_MAIN_FOODADV_BUTTON			"Click here to consult your food advisor."
 TOOLTIP_DOMADV_MAIN_FOODADV_BUTTON			"Consult Food Advisor"

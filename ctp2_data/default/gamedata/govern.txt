@@ -7,13 +7,13 @@ GOVERNMENT_ANARCHY {
    HigherRankAdvice GOVERNMENT_ANARCHY_HIGHER_RANK_ADVICE
    RationsExpectation -1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation -1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation -1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 0.75
    ProductionCoef 0.75
    InfrastructureCoefficient 0.25
@@ -80,13 +80,13 @@ GOVERNMENT_COMMUNISM {
    HigherRankAdvice GOVERNMENT_COMMUNISM_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 0
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 0
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.15
    ProductionCoef 1.5
    InfrastructureCoefficient 0.5
@@ -153,13 +153,13 @@ GOVERNMENT_CORPORATE_REPUBLIC {
    HigherRankAdvice GOVERNMENT_CORPORATE_REPUBLIC_HIGHER_RANK_ADVICE
    RationsExpectation 1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 0
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.25
    ProductionCoef 1.3
    InfrastructureCoefficient 0.5
@@ -226,13 +226,13 @@ GOVERNMENT_DEMOCRACY {
    HigherRankAdvice GOVERNMENT_DEMOCRACY_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 0
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.25
    ProductionCoef 1.15
    InfrastructureCoefficient 0.5
@@ -299,13 +299,13 @@ GOVERNMENT_ECOTOPIA {
    HigherRankAdvice GOVERNMENT_ECOTOPIA_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 0
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.5
    ProductionCoef 1.15
    InfrastructureCoefficient 0.5
@@ -373,13 +373,13 @@ GOVERNMENT_FASCISM {
    HigherRankAdvice GOVERNMENT_FASCISM_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 0
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 0
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1
    ProductionCoef 1.3
    InfrastructureCoefficient 0.5
@@ -446,13 +446,13 @@ GOVERNMENT_MONARCHY {
    HigherRankAdvice GOVERNMENT_MONARCHY_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 0
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation -1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1
    ProductionCoef 1
    InfrastructureCoefficient 0.5
@@ -519,13 +519,13 @@ GOVERNMENT_REPUBLIC {
    HigherRankAdvice GOVERNMENT_REPUBLIC_HIGHER_RANK_ADVICE
    RationsExpectation 0
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation -1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 0
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.15
    ProductionCoef 1.15
    InfrastructureCoefficient 0.5
@@ -592,13 +592,13 @@ GOVERNMENT_TECHNOCRACY {
    HigherRankAdvice GOVERNMENT_TECHNOCRACY_HIGHER_RANK_ADVICE
    RationsExpectation 1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.15
    ProductionCoef 1.3
    InfrastructureCoefficient 0.5
@@ -665,13 +665,13 @@ GOVERNMENT_THEOCRACY {
    HigherRankAdvice GOVERNMENT_THEOCRACY_HIGHER_RANK_ADVICE
    RationsExpectation 1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation -1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation -1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.15
    ProductionCoef 1
    InfrastructureCoefficient 0.5
@@ -737,13 +737,13 @@ GOVERNMENT_TYRANNY {
    HigherRankAdvice GOVERNMENT_TYRANNY_HIGHER_RANK_ADVICE
    RationsExpectation -1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation -1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation -1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 0.85
    ProductionCoef 0.85
    InfrastructureCoefficient 0.5
@@ -810,13 +810,13 @@ GOVERNMENT_VIRTUAL_DEMOCRACY {
    HigherRankAdvice GOVERNMENT_VIRTUAL_DEMOCRACY_HIGHER_RANK_ADVICE
    RationsExpectation 1
    PositiveRationsCoef 1
-   NegativeRationsCoef 1
+   NegativeRationsCoef 2
    WorkdayExpectation 1
    PositiveWorkdayCoef 1
-   NegativeWorkdayCoef 1
+   NegativeWorkdayCoef 2
    WagesExpectation 1
    PositiveWagesCoef 1
-   NegativeWagesCoef 1
+   NegativeWagesCoef 2
    FoodCoef 1.25
    ProductionCoef 1.3
    InfrastructureCoefficient 0.5
