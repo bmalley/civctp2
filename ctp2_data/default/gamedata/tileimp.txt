@@ -86,6 +86,17 @@ TILEIMP_ADVANCED_FARMS {
       ProductionCost 500
       ProductionTime 2
       TilesetIndex 8
+      # placement bonuses (tools/bonusyields.py)
+      RiverBonusFood 5
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_DESERT_GOOD_FOUR
+      BonusGood TERRAIN_GRASSLAND_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_ONE
+      BonusGood TERRAIN_PLAINS_GOOD_TWO
+      BonusGood TERRAIN_PLAINS_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_FOUR
+      GoodBonusFood 10
    }
 }
 
@@ -133,6 +144,12 @@ TILEIMP_ADVANCED_MINES {
       ProductionCost 800
       ProductionTime 2
       TilesetIndex 17
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_TWO
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_GRASSLAND_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -146,6 +163,10 @@ TILEIMP_ADVANCED_MINES {
       ProductionCost 1000
       ProductionTime 2
       TilesetIndex 17
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_HILL_GOOD_ONE
+      BonusGood TERRAIN_HILL_GOOD_THREE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -159,6 +180,13 @@ TILEIMP_ADVANCED_MINES {
       ProductionCost 1200
       ProductionTime 2
       TilesetIndex 17
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_ONE
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_FOUR
+      BonusGood TERRAIN_ARCTIC_MOUNTAIN_GOOD_THREE
+      GoodBonusProduction 10
    }
 }
 
@@ -211,6 +239,9 @@ TILEIMP_ADVANCED_UNDERSEA_MINES {
       ProductionCost 1000
       ProductionTime 2
       TilesetIndex 57
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -222,6 +253,9 @@ TILEIMP_ADVANCED_UNDERSEA_MINES {
       ProductionCost 1200
       ProductionTime 2
       TilesetIndex 57
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -358,6 +392,27 @@ TILEIMP_AUTOMATED_FISHERIES {
       ProductionCost 1400
       ProductionTime 2
       TilesetIndex 67
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_BEACH_GOOD_ONE
+      BonusGood TERRAIN_WATER_BEACH_GOOD_TWO
+      BonusGood TERRAIN_WATER_BEACH_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -370,6 +425,20 @@ TILEIMP_AUTOMATED_FISHERIES {
       ProductionCost 1800
       ProductionTime 2
       TilesetIndex 67
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -472,9 +541,24 @@ TILEIMP_FARMS {
 
       BonusFood 10
       EnableAdvance ADVANCE_AGRICULTURE
+      # On or next to a river, a city or another farm, until Agricultural Revolution
+      NeedsIrrigation
+      NeedsIrrigationUntil ADVANCE_AGRICULTURAL_REVOLUTION
+      IsIrrigation
       ProductionCost 200
       ProductionTime 2
       TilesetIndex 5
+      # placement bonuses (tools/bonusyields.py)
+      RiverBonusFood 5
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_DESERT_GOOD_FOUR
+      BonusGood TERRAIN_GRASSLAND_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_ONE
+      BonusGood TERRAIN_PLAINS_GOOD_TWO
+      BonusGood TERRAIN_PLAINS_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_FOUR
+      GoodBonusFood 10
    }
 }
 
@@ -530,6 +614,27 @@ TILEIMP_FISHERIES {
       ProductionCost 500
       ProductionTime 2
       TilesetIndex 64
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_BEACH_GOOD_ONE
+      BonusGood TERRAIN_WATER_BEACH_GOOD_TWO
+      BonusGood TERRAIN_WATER_BEACH_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -542,6 +647,20 @@ TILEIMP_FISHERIES {
       ProductionCost 700
       ProductionTime 2
       TilesetIndex 64
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -666,6 +785,17 @@ TILEIMP_HYDROPONIC_FARMS {
       ProductionCost 1400
       ProductionTime 2
       TilesetIndex 11
+      # placement bonuses (tools/bonusyields.py)
+      RiverBonusFood 5
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_DESERT_GOOD_FOUR
+      BonusGood TERRAIN_GRASSLAND_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_ONE
+      BonusGood TERRAIN_PLAINS_GOOD_TWO
+      BonusGood TERRAIN_PLAINS_GOOD_THREE
+      BonusGood TERRAIN_PLAINS_GOOD_FOUR
+      GoodBonusFood 10
    }
 }
 
@@ -853,6 +983,12 @@ TILEIMP_MEGA_MINES {
       ProductionCost 1600
       ProductionTime 2
       TilesetIndex 20
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_TWO
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_GRASSLAND_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -866,6 +1002,10 @@ TILEIMP_MEGA_MINES {
       ProductionCost 2000
       ProductionTime 2
       TilesetIndex 20
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_HILL_GOOD_ONE
+      BonusGood TERRAIN_HILL_GOOD_THREE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -879,6 +1019,13 @@ TILEIMP_MEGA_MINES {
       ProductionCost 2400
       ProductionTime 2
       TilesetIndex 20
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_ONE
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_FOUR
+      BonusGood TERRAIN_ARCTIC_MOUNTAIN_GOOD_THREE
+      GoodBonusProduction 10
    }
 }
 
@@ -931,6 +1078,9 @@ TILEIMP_MEGA_UNDERSEA_MINES {
       ProductionCost 2200
       ProductionTime 2
       TilesetIndex 60
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -942,6 +1092,9 @@ TILEIMP_MEGA_UNDERSEA_MINES {
       ProductionCost 2400
       ProductionTime 2
       TilesetIndex 60
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -999,6 +1152,12 @@ TILEIMP_MINES {
       ProductionCost 300
       ProductionTime 2
       TilesetIndex 14
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_TWO
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_GRASSLAND_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -1011,6 +1170,10 @@ TILEIMP_MINES {
       ProductionCost 400
       ProductionTime 2
       TilesetIndex 14
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_HILL_GOOD_ONE
+      BonusGood TERRAIN_HILL_GOOD_THREE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -1023,6 +1186,13 @@ TILEIMP_MINES {
       ProductionCost 500
       ProductionTime 2
       TilesetIndex 14
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_ONE
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_FOUR
+      BonusGood TERRAIN_ARCTIC_MOUNTAIN_GOOD_THREE
+      GoodBonusProduction 10
    }
 }
 
@@ -1128,6 +1298,27 @@ TILEIMP_NETS {
       ProductionCost 200
       ProductionTime 2
       TilesetIndex 62
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_BEACH_GOOD_ONE
+      BonusGood TERRAIN_WATER_BEACH_GOOD_TWO
+      BonusGood TERRAIN_WATER_BEACH_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_FOUR
+      BonusGood TERRAIN_WATER_SHALLOW_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_ONE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_TWO
+      BonusGood TERRAIN_WATER_SHELF_GOOD_THREE
+      BonusGood TERRAIN_WATER_SHELF_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -1140,6 +1331,20 @@ TILEIMP_NETS {
       ProductionCost 300
       ProductionTime 2
       TilesetIndex 62
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_TWO
+      BonusGood TERRAIN_WATER_DEEP_GOOD_THREE
+      BonusGood TERRAIN_WATER_DEEP_GOOD_FOUR
+      GoodBonusFood 10
    }
 
    TerrainEffect {
@@ -2279,6 +2484,9 @@ TILEIMP_UNDERSEA_MINES {
       ProductionCost 400
       ProductionTime 2
       TilesetIndex 54
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -2289,6 +2497,9 @@ TILEIMP_UNDERSEA_MINES {
       ProductionCost 500
       ProductionTime 2
       TilesetIndex 54
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_WATER_DEEP_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -2417,6 +2628,12 @@ TILEIMP_RUINS {
       EnableAdvance ADVANCE_SUBNEURAL_ADS
       ProductionCost 1000
       TilesetIndex 150
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_DESERT_GOOD_ONE
+      BonusGood TERRAIN_DESERT_GOOD_TWO
+      BonusGood TERRAIN_DESERT_GOOD_THREE
+      BonusGood TERRAIN_GRASSLAND_GOOD_ONE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -2429,6 +2646,10 @@ TILEIMP_RUINS {
       EnableAdvance ADVANCE_SUBNEURAL_ADS
       ProductionCost 1000
       TilesetIndex 150
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_HILL_GOOD_ONE
+      BonusGood TERRAIN_HILL_GOOD_THREE
+      GoodBonusProduction 10
    }
 
    TerrainEffect {
@@ -2441,6 +2662,13 @@ TILEIMP_RUINS {
       EnableAdvance ADVANCE_SUBNEURAL_ADS
       ProductionCost 1000
       TilesetIndex 151
+      # placement bonuses (tools/bonusyields.py)
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_ONE
+      BonusGood TERRAIN_BROWN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_THREE
+      BonusGood TERRAIN_MOUNTAIN_GOOD_FOUR
+      BonusGood TERRAIN_ARCTIC_MOUNTAIN_GOOD_THREE
+      GoodBonusProduction 10
    }
 }
 
