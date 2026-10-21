@@ -77,6 +77,7 @@
 #include "buildingutil.h"
 #include "wonderutil.h"
 #include "MainControlPanel.h"
+#include "radarmap.h"            // g_radarMap
 #include <stdexcept>            // overflow_error
 
 namespace
@@ -287,6 +288,11 @@ void Advances::SetHasAdvance(AdvanceType advance, const bool init)
 		{
 			g_tiledMap->Refresh();
 			g_tiledMap->InvalidateMix();
+		}
+
+		if (g_radarMap)
+		{
+			g_radarMap->Update();   // the minimap's colours change too
 		}
 	}
 
