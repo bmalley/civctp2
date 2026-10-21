@@ -24,8 +24,8 @@ TERRAIN_FOREST {
    EnvBase {
       Score 50
       Food 10
-      Shield 5
-      Gold 10
+      Shield 10
+      Gold 20
       Defense 0.25
       Movement 200
       Freight 180
@@ -36,9 +36,9 @@ TERRAIN_FOREST {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -87,8 +87,8 @@ TERRAIN_PLAINS {
    EnvBase {
       Score 80
       Food 10
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0
       Movement 100
       Freight 90
@@ -99,9 +99,9 @@ TERRAIN_PLAINS {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -150,7 +150,7 @@ TERRAIN_TUNDRA {
    EnvBase {
       Score 0
       Food 0
-      Shield 5
+      Shield 10
       Gold 0
       Defense 0
       Movement 200
@@ -162,9 +162,9 @@ TERRAIN_TUNDRA {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -224,9 +224,9 @@ TERRAIN_GLACIER {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -275,8 +275,8 @@ TERRAIN_GRASSLAND {
    EnvBase {
       Score 80
       Food 15
-      Shield 5
-      Gold 5
+      Shield 10
+      Gold 10
       Defense 0
       Movement 100
       Freight 90
@@ -287,9 +287,9 @@ TERRAIN_GRASSLAND {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -339,7 +339,7 @@ TERRAIN_DESERT {
       Score 30
       Food 0
       Shield 0
-      Gold 5
+      Gold 10
       Defense 0
       Movement 200
       Freight 90
@@ -350,9 +350,9 @@ TERRAIN_DESERT {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -401,8 +401,8 @@ TERRAIN_SWAMP {
    EnvBase {
       Score 30
       Food 5
-      Shield 5
-      Gold 5
+      Shield 10
+      Gold 10
       Defense 0.25
       Movement 300
       Freight 270
@@ -413,9 +413,9 @@ TERRAIN_SWAMP {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -464,8 +464,8 @@ TERRAIN_JUNGLE {
    EnvBase {
       Score 40
       Food 5
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0.25
       Movement 300
       Freight 540
@@ -476,9 +476,9 @@ TERRAIN_JUNGLE {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -526,8 +526,8 @@ TERRAIN_MOUNTAIN {
    EnvBase {
       Score 40
       Food 0
-      Shield 15
-      Gold 10
+      Shield 20
+      Gold 20
       Defense 1
       Movement 400
       Freight 540
@@ -538,9 +538,9 @@ TERRAIN_MOUNTAIN {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -589,8 +589,8 @@ TERRAIN_HILL {
    EnvBase {
       Score 50
       Food 5
-      Shield 10
-      Gold 10
+      Shield 15
+      Gold 20
       Defense 0.5
       Movement 200
       Freight 180
@@ -601,9 +601,9 @@ TERRAIN_HILL {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -639,8 +639,8 @@ TERRAIN_WATER_SHALLOW {
    EnvBase {
       Score 60
       Food 10
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0
       Movement 100
       Freight 50
@@ -650,9 +650,9 @@ TERRAIN_WATER_SHALLOW {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -678,8 +678,8 @@ TERRAIN_WATER_DEEP {
    EnvBase {
       Score 50
       Food 10
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0
       Movement 100
       Freight 50
@@ -689,9 +689,9 @@ TERRAIN_WATER_DEEP {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -716,8 +716,8 @@ TERRAIN_WATER_VOLCANO {
    EnvBase {
       Score 70
       Food 0
-      Shield 25
-      Gold 15
+      Shield 40
+      Gold 30
       Defense 0
       Movement 100
       Freight 50
@@ -727,9 +727,9 @@ TERRAIN_WATER_VOLCANO {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -754,8 +754,8 @@ TERRAIN_WATER_BEACH {
    EnvBase {
       Score 90
       Food 10
-      Shield 10
-      Gold 10
+      Shield 15
+      Gold 20
       Defense 0
       Movement 100
       Freight 50
@@ -795,8 +795,8 @@ TERRAIN_WATER_SHELF {
    EnvBase {
       Score 50
       Food 5
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0
       Movement 100
       Freight 50
@@ -806,9 +806,9 @@ TERRAIN_WATER_SHELF {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -834,8 +834,8 @@ TERRAIN_WATER_TRENCH {
    EnvBase {
       Score 50
       Food 5
-      Shield 10
-      Gold 10
+      Shield 15
+      Gold 20
       Defense 0
       Movement 100
       Freight 50
@@ -845,9 +845,9 @@ TERRAIN_WATER_TRENCH {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -872,8 +872,8 @@ TERRAIN_WATER_RIFT {
    EnvBase {
       Score 60
       Food 5
-      Shield 20
-      Gold 5
+      Shield 30
+      Gold 10
       Defense 0
       Movement 100
       Freight 50
@@ -883,9 +883,9 @@ TERRAIN_WATER_RIFT {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -955,8 +955,8 @@ TERRAIN_BROWN_HILL {
    EnvBase {
       Score 40
       Food 0
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0.5
       Movement 200
       Freight 180
@@ -967,9 +967,9 @@ TERRAIN_BROWN_HILL {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -1017,8 +1017,8 @@ TERRAIN_BROWN_MOUNTAIN {
    EnvBase {
       Score 40
       Food 0
-      Shield 10
-      Gold 10
+      Shield 15
+      Gold 20
       Defense 1
       Movement 400
       Freight 540
@@ -1029,9 +1029,9 @@ TERRAIN_BROWN_MOUNTAIN {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -1080,8 +1080,8 @@ TERRAIN_WHITE_HILL {
    EnvBase {
       Score 10
       Food 0
-      Shield 5
-      Gold 5
+      Shield 10
+      Gold 10
       Defense 0.5
       Movement 200
       Freight 180
@@ -1091,9 +1091,9 @@ TERRAIN_WHITE_HILL {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -1141,8 +1141,8 @@ TERRAIN_WHITE_MOUNTAIN {
    EnvBase {
       Score 10
       Food 0
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 1
       Movement 400
       Freight 540
@@ -1152,9 +1152,9 @@ TERRAIN_WHITE_MOUNTAIN {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -1190,8 +1190,8 @@ TERRAIN_WATER_KELP {
    EnvBase {
       Score 80
       Food 15
-      Shield 10
-      Gold 5
+      Shield 15
+      Gold 10
       Defense 0
       Movement 100
       Freight 50
@@ -1201,9 +1201,9 @@ TERRAIN_WATER_KELP {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -1229,8 +1229,8 @@ TERRAIN_WATER_REEF {
    EnvBase {
       Score 80
       Food 10
-      Shield 15
-      Gold 5
+      Shield 20
+      Gold 10
       Defense 0
       Movement 100
       Freight 110
@@ -1240,9 +1240,9 @@ TERRAIN_WATER_REEF {
    }
 
    EnvCity {
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       CanUpgrade
    }
 
@@ -1270,8 +1270,8 @@ TERRAIN_SPECIAL1 {
    EnvBase {
       Score 80
       Food 15
-      Shield 5
-      Gold 5
+      Shield 10
+      Gold 10
       Defense 0
       Movement 100
       Freight 90
@@ -1282,9 +1282,9 @@ TERRAIN_SPECIAL1 {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
@@ -1318,7 +1318,7 @@ TERRAIN_SPECIAL2 {
       Score 10
       Food 0
       Shield 0
-      Gold 5
+      Gold 10
       Defense 0
       Movement 200
       Freight 90
@@ -1329,9 +1329,9 @@ TERRAIN_SPECIAL2 {
 
    EnvCity {
       Score 0
-      Food 10
-      Shield 15
-      Gold 15
+      Food 0
+      Shield 5
+      Gold 0
       Movement 50
       Freight 500
       CanUpgrade
