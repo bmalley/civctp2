@@ -87,17 +87,29 @@ STDEHANDLER(LandForPeace_ProposalResponseEvent)
 		MapAnalysis::GetMapAnalysis().TotalValue(receiver));
 
 	if (receiver_diplomat.GetTrust(sender) < COLDWAR_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_TRUST");
 		return GEV_HD_Continue;
+	}
 
 	if (at_risk_value_percent < 75)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_CITY");
 		return GEV_HD_Continue;
+	}
 
 	if ( at_risk_value < Unit(cityId)->GetCityData()->GetValue())
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_CITY");
 		return GEV_HD_Continue;
+	}
 
 	if (((double) MapAnalysis::GetMapAnalysis().TotalThreat(receiver) /
 		MapAnalysis::GetMapAnalysis().TotalThreat(sender)) > 1.25)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_CITY");
 		return GEV_HD_Continue;
+	}
 
 	if (AgreementMatrix::s_agreements.HasAgreement(sender, receiver, PROPOSAL_TREATY_DECLARE_WAR))
 	{
@@ -217,7 +229,10 @@ STDEHANDLER(PayTribute_ProposalResponseEvent)
 
 	if ((double) MapAnalysis::GetMapAnalysis().TotalThreat(sender) /
 		MapAnalysis::GetMapAnalysis().TotalThreat(receiver) < 1.25)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	double const	extort_gold_precise = 0.85 *
 		std::min<sint32>(3 * g_player[receiver]->m_gold->GetIncome(), g_player[receiver]->GetGold());
@@ -225,6 +240,7 @@ STDEHANDLER(PayTribute_ProposalResponseEvent)
 	sint32 extort_gold = ProposalAnalysis::RoundGold(static_cast<sint32>(extort_gold_precise));
 	if (extort_gold <= 0)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_WAR");
 		return GEV_HD_Continue;
 	}
 
@@ -265,7 +281,10 @@ STDEHANDLER(MutualWithdraw_ProposalResponseEvent)
 		return GEV_HD_Continue;
 
 	if (receiver_diplomat.DesireWarWith(sender))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	DiplomacyArg arg;
 	receiver_diplomat.ConsiderCounterResponse(sender, PROPOSAL_OFFER_WITHDRAW_TROOPS,
@@ -316,7 +335,10 @@ STDEHANDLER(PayForAdvance_ProposalResponseEvent)
 	else if (regard >= ALLIED_REGARD)
 		desired_gold_precise = proposal_sender_result.science * 0.8;
 	else
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
+	}
 
 	sint32 const desired_gold = ProposalAnalysis::RoundGold
 									(static_cast<sint32>(desired_gold_precise));
@@ -386,7 +408,10 @@ STDEHANDLER(AdvanceForGold_ProposalResponseEvent)
 	else if (regard >= ALLIED_REGARD)
 		max_cost = proposal_sender_result.science * 3;
 	else
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
+	}
 
 	if (AgreementMatrix::s_agreements.HasAgreement(sender, receiver, PROPOSAL_TREATY_RESEARCH_PACT) ||
 		AgreementMatrix::s_agreements.HasAgreement(sender, receiver, PROPOSAL_TREATY_ALLIANCE) ||
@@ -410,6 +435,10 @@ STDEHANDLER(AdvanceForGold_ProposalResponseEvent)
 		arg.advanceType = desired_advance;
 		receiver_diplomat.ConsiderCounterResponse(sender, PROPOSAL_OFFER_GIVE_ADVANCE,
 			arg, accept_priority, DIPLOMATIC_TONE_EQUAL);
+	}
+	else
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_NOTHING_WANTED");
 	}
 
 	return GEV_HD_Continue;
@@ -453,7 +482,10 @@ STDEHANDLER(AdvanceExchange_ProposalResponseEvent)
 	sint32 max_cost = 0;
 
 	if (regard < NEUTRAL_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
+	}
 
 	if (AgreementMatrix::s_agreements.HasAgreement(sender, receiver, PROPOSAL_TREATY_RESEARCH_PACT) ||
 		AgreementMatrix::s_agreements.HasAgreement(sender, receiver, PROPOSAL_TREATY_ALLIANCE) ||
@@ -543,7 +575,10 @@ STDEHANDLER(StopPiracy_ProposalResponseEvent)
 	piracy_income_from_sender = ProposalAnalysis::RoundGold(piracy_income_from_sender);
 
 	if (piracy_income_from_sender <= 0)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_NO_PIRACY");
 		return GEV_HD_Continue;
+	}
 
 	sint32 accept_priority =
 		receiver_diplomat.GetAcceptPriority(sender, PROPOSAL_REQUEST_STOP_PIRACY);
@@ -600,9 +635,11 @@ STDEHANDLER(GiveMap_ProposalResponseEvent)
 	}
 
 	sint32 turns_since_last_war = AgreementMatrix::s_agreements.TurnsSinceLastWar(sender, receiver);
-	if (( (turns_since_last_war >= 0) && (turns_since_last_war < 5)) ||
+	bool recent_war = (turns_since_last_war >= 0) && (turns_since_last_war < 5);
+	if (recent_war ||
 		receiver_diplomat.TestPublicRegard(sender, COLDWAR_REGARD))
 	{
+		receiver_diplomat.NoteRejectReason(sender, recent_war ? "DIP_REJECT_REASON_RECENT_WAR" : "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
 	}
 
@@ -628,6 +665,10 @@ STDEHANDLER(GiveMap_ProposalResponseEvent)
 			proposal_receiver_result.science > science_level * 0.10)
 		{
 			receiver_diplomat.ConsiderResponse(sender, RESPONSE_ACCEPT, accept_priority);
+		}
+		else
+		{
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RECENT_MAP");
 		}
 		return GEV_HD_Continue;
 	}
@@ -678,23 +719,41 @@ STDEHANDLER(PeaceTreaty_ProposalResponseEvent)
 	{
 
 		if (receiver_diplomat.TestEffectiveRegard(sender, COLDWAR_REGARD))
+		{
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 			return GEV_HD_Continue;
+		}
 	}
 
 	else if (!receiver_diplomat.TestEffectiveRegard(sender, NEUTRAL_REGARD))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetLastHotwarAttack(sender) < 10)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RECENT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetLastColdwarAttack(sender) < 5)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RECENT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetTrust(sender) < COLDWAR_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_TRUST");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.DesireWarWith(sender))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_WAR");
 		return GEV_HD_Continue;
+	}
 
 
 	if (receiver_diplomat.GetBorderIncursionBy(sender) &&
@@ -740,22 +799,40 @@ STDEHANDLER(AcceptAlliance_ProposalResponseEvent)
 		return GEV_HD_Continue;
 
 	if (!receiver_diplomat.TestEffectiveRegard(sender, ALLIED_REGARD))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetLastHotwarAttack(sender) < 25)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RECENT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetLastColdwarAttack(sender) < 15)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RECENT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetBorderIncursionBy(sender))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_INCURSION");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.GetTrust(sender) < FRIEND_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_TRUST");
 		return GEV_HD_Continue;
+	}
 
 	if (!receiver_diplomat.CanFormAlliance(sender))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_ALLIES");
 		return GEV_HD_Continue;
+	}
 
 	receiver_diplomat.ConsiderResponse(sender, RESPONSE_ACCEPT, accept_priority);
 
@@ -789,16 +866,25 @@ STDEHANDLER(CeasefireForGold_ProposalResponseEvent)
 		return GEV_HD_Continue;
 
 	if (receiver_diplomat.GetTrust(sender) < COLDWAR_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_TRUST");
 		return GEV_HD_Continue;
+	}
 
 	if (receiver_diplomat.DesireWarWith(sender))
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_WAR");
 		return GEV_HD_Continue;
+	}
 
 	sint32 extort_gold =
 	    std::min(3 * g_player[receiver]->m_gold->GetIncome(), static_cast<sint32>(g_player[receiver]->GetGold() * 0.85));
 
 	if (sender_proposal.detail.first_arg.gold > extort_gold)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_CANT_AFFORD");
 		return GEV_HD_Continue;
+	}
 
 	DiplomacyArg arg;
 	receiver_diplomat.ConsiderCounterResponse(sender, PROPOSAL_TREATY_CEASEFIRE,
@@ -886,6 +972,7 @@ STDEHANDLER(StopResearch_ProposalResponseEvent)
 		(sender_strength > DIPLOMATIC_STRENGTH_AVERAGE) ||
 		!appropriate_advance)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_RESEARCH");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 		return GEV_HD_Continue;
 	}
@@ -963,7 +1050,10 @@ STDEHANDLER(ReduceWeapons_ProposalResponseEvent)
 		receiver_diplomat.GetRejectPriority( sender, sender_proposal.detail.first_type);
 
 	if (receiver_diplomat.GetTrust(sender) < NEUTRAL_REGARD)
+	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_TRUST");
 		return GEV_HD_Continue;
+	}
 
 	sint32 sender_city_count = g_player[sender]->GetNumCities();
 	sint32 receiver_city_count = g_player[receiver]->GetNumCities();
@@ -1000,6 +1090,7 @@ STDEHANDLER(ReduceWeapons_ProposalResponseEvent)
 	}
 	else
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WEAPONS");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 
 		return GEV_HD_Continue;
@@ -1015,6 +1106,7 @@ STDEHANDLER(ReduceWeapons_ProposalResponseEvent)
 
 	if (reduce_percent <= 0.0)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WEAPONS");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 
 		return GEV_HD_Continue;
@@ -1076,6 +1168,7 @@ STDEHANDLER(ReducePollution_ProposalResponseEvent)
 
 	if (pollution_ratio > 1.5)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_POLLUTION");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 
 		return GEV_HD_Continue;
@@ -1095,6 +1188,7 @@ STDEHANDLER(ReducePollution_ProposalResponseEvent)
 	{
 		if (!AgreementMatrix::s_agreements.HasAgreement(sender,receiver,PROPOSAL_TREATY_PEACE))
 		{
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_NO_PEACE");
 			receiver_diplomat.ConsiderResponse(
 				sender,
 				RESPONSE_REJECT,
@@ -1186,12 +1280,14 @@ STDEHANDLER(HonorMilitaryAgreement_ProposalResponseEvent)
 
 	if (foreigner_strength > DIPLOMATIC_STRENGTH_VERY_STRONG)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_ENEMY_STRONG");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 		return GEV_HD_Continue;
 	}
 
 	if (!receiver_diplomat.TestEffectiveRegard(sender, FRIEND_REGARD))
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_REGARD");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 		return GEV_HD_Continue;
 	}
@@ -1266,6 +1362,7 @@ STDEHANDLER(HonorPollutionAgreement_ProposalResponseEvent)
 
 	if (requested_pollution > receiver_promised_pollution * 1.3)
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_POLLUTION_TERMS");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 		return GEV_HD_Continue;
 	}
@@ -1406,6 +1503,7 @@ STDEHANDLER(EndEmbargo_ProposalResponseEvent)
 
 	if (!receiver_diplomat.GetEmbargo(sender))
 	{
+		receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_NO_EMBARGO");
 		receiver_diplomat.ConsiderResponse(sender, RESPONSE_REJECT, reject_priority);
 		return GEV_HD_Continue;
 	}
@@ -1497,6 +1595,7 @@ STDEHANDLER(DefaultTreatyResponse_ProposalResponseEvent)
 			receiver_result.science < 0 ||
 			receiver_result.production < 0)
 		{
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_VALUE");
 			return GEV_HD_Continue;
 		}
 
@@ -1510,8 +1609,13 @@ STDEHANDLER(DefaultTreatyResponse_ProposalResponseEvent)
 
 		if (!includes_gift)
 		{
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_MORE");
 			return GEV_HD_Continue;
 		}
+
+		// noted first, so it stands if no case below accepts the gift
+		if (desire_type != PROPOSAL_MAX)
+			receiver_diplomat.NoteRejectReason(sender, "DIP_REJECT_REASON_WANT_MORE");
 
 		switch (desire_type)
 		{

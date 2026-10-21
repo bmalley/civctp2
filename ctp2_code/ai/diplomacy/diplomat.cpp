@@ -58,6 +58,8 @@
 
 #include <algorithm>            // std::min
 #include <functional>
+#include <map>                  // std::map, for s_rejectReasons
+#include <utility>              // std::pair
 
 #include "c3errors.h"
 #include "ConstRecord.h"        // g_theConstDB
@@ -2588,6 +2590,13 @@ void Diplomat::ExecuteResponse(const PLAYER_INDEX sender,
 
 		if (other_response == RESPONSE_COUNTER)
 		{
+			// The AI turned down a human's counter-proposal: a reason from regard
+			if (response.explainStrId < 0 &&
+				g_player[receiver] && !g_player[receiver]->IsRobot())
+			{
+				response.explainStrId = ExplainRejection(receiver, false);
+			}
+
 			DipWizard::NotifyResponse(response, m_playerId, other_player);
 			g_network.NotifyDiplomacyResponse(response, m_playerId, other_player);
 		}
@@ -2603,6 +2612,16 @@ void Diplomat::ExecuteResponse(const PLAYER_INDEX sender,
 	}
 	else
 	{
+		// The AI turned down a human's proposal: say why, for the response window
+		if (response.type == RESPONSE_REJECT &&
+			m_playerId == receiver &&
+			response.explainStrId < 0 &&
+			g_player[sender] && !g_player[sender]->IsRobot())
+		{
+			response.explainStrId = ExplainRejection(sender);
+			m_foreigners[sender].SetMyLastResponseExplain(response.explainStrId);
+		}
+
 		g_network.NotifyDiplomacyResponse(response, m_playerId, other_player);
 	}
 
@@ -3234,9 +3253,56 @@ void Diplomat::ExecuteNewProposal( const PLAYER_INDEX & receiver )
 	                       GEA_End);
 }
 
+namespace
+{
+	// (receiver, sender) -> reason noted by a proposal response handler
+	std::map<std::pair<PLAYER_INDEX, PLAYER_INDEX>, StringId> s_rejectReasons;
+}
+
+void Diplomat::NoteRejectReason(const PLAYER_INDEX sender, const MBCHAR * reasonName)
+{
+	if (sender < 0 || sender >= k_MAX_PLAYERS || g_player[sender] == NULL || g_player[sender]->IsRobot())
+		return;
+
+	std::pair<PLAYER_INDEX, PLAYER_INDEX> key(m_playerId, sender);
+	if (s_rejectReasons.find(key) != s_rejectReasons.end())
+		return;
+
+	StringId id = -1;
+	if (g_theStringDB->GetStringID(reasonName, id) && id >= 0)
+		s_rejectReasons[key] = id;
+}
+
+StringId Diplomat::ExplainRejection(const PLAYER_INDEX sender, const bool useNoted) const
+{
+	if (useNoted)
+	{
+		std::map<std::pair<PLAYER_INDEX, PLAYER_INDEX>, StringId>::const_iterator it =
+			s_rejectReasons.find(std::make_pair(m_playerId, sender));
+		if (it != s_rejectReasons.end())
+			return it->second;
+	}
+
+	StringId id = -1;
+	if (GetEffectiveRegard(sender) < NEUTRAL_REGARD)
+	{
+		id = m_foreigners[sender].GetWorstRegardExplain();
+		if (id < 0)
+			g_theStringDB->GetStringID("DIP_REJECT_REASON_REGARD", id);
+	}
+	else
+	{
+		g_theStringDB->GetStringID("DIP_REJECT_REASON_GENERIC", id);
+	}
+
+	return id;
+}
+
 // Only called by the event
 void Diplomat::ExecuteEventNewProposal( const PLAYER_INDEX & receiver )
 {
+	s_rejectReasons.erase(std::make_pair(receiver, m_playerId));
+
 	SetMyLastResponse( receiver, Diplomat::s_badResponse );
 	GetDiplomat(receiver).SetMyLastResponse(m_playerId, Diplomat::s_badResponse );
 
