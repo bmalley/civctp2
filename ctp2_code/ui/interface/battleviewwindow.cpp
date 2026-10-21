@@ -25,6 +25,8 @@
 #include "network.h"
 #include "TerrainRecord.h"
 #include "soundmanager.h"
+#include "StrDB.h"
+#include "TurnCnt.h"
 
 #include "ldl_data.hpp"
 #include "ldl_file.hpp"
@@ -61,6 +63,35 @@ void battleview_RetreatButtonActionCallback(aui_Control *control, uint32 action,
 
 	if(g_theCurrentBattle)
 		g_theCurrentBattle->Retreat();
+}
+
+// Fight the rest of the battle without playing it: only the deaths are shown, at the end
+static void battleview_SkipButtonActionCallback(aui_Control *control, uint32 action,
+                                                uint32 data, Cookie cookie)
+{
+	if(action != (uint32)AUI_BUTTON_ACTION_EXECUTE)
+		return;
+
+	control->Enable(false);
+
+	if(g_theCurrentBattle)
+		g_theCurrentBattle->SkipToResult();
+}
+
+namespace
+{
+	MBCHAR const * Str(MBCHAR const *id, MBCHAR const *english)
+	{
+		MBCHAR const *text = g_theStringDB ? g_theStringDB->GetNameStr(id) : NULL;
+		return text ? text : english;
+	}
+
+	uint32 ReadoutSeed(void)
+	{
+		return (g_theCurrentBattle->GetAttackerArmy().m_id * 2654435761u)
+		       ^ (g_theCurrentBattle->GetRound() * 7919u)
+		       ^ (g_turn ? g_turn->GetRound() : 0);
+	}
 }
 
 
@@ -151,8 +182,15 @@ BattleViewWindow::BattleViewWindow
     m_fortBonusValue        (NULL),
     m_fortBonusImage        (NULL),
     m_fortifiedBonusText    (NULL),
-    m_fortifiedBonusValue   (NULL)
+    m_fortifiedBonusValue   (NULL),
+    m_oddsText              (NULL),
+    m_lossesText            (NULL),
+    m_skipButton            (NULL),
+    m_startChance           (-1.0),
+    m_hasPending            (false)
 {
+	m_pendingOdds[0] = '\0';
+	m_pendingLosses[0] = '\0';
 	InitCommonLdl(ldlBlock);
 }
 
@@ -188,6 +226,9 @@ BattleViewWindow::~BattleViewWindow()
 	delete m_fortBonusImage;
 	delete m_fortifiedBonusText;
 	delete m_fortifiedBonusValue;
+	delete m_oddsText;
+	delete m_lossesText;
+	delete m_skipButton;
 
 	Assert(this == g_battleViewWindow);
 	if (this == g_battleViewWindow)
@@ -306,6 +347,19 @@ AUI_ERRCODE BattleViewWindow::InitCommonLdl(const MBCHAR *ldlBlock)
 		battleview_RetreatButtonActionCallback);
 	Assert(m_retreatButton != NULL);
 
+	sprintf(buttonBlock, "%s.%s", ldlBlock, "OddsText");
+	m_oddsText = new ctp2_Static(&errcode, aui_UniqueId(), buttonBlock);
+	Assert(m_oddsText);
+
+	sprintf(buttonBlock, "%s.%s", ldlBlock, "LossesText");
+	m_lossesText = new ctp2_Static(&errcode, aui_UniqueId(), buttonBlock);
+	Assert(m_lossesText);
+
+	sprintf(buttonBlock, "%s.%s", ldlBlock, "SkipButton");
+	m_skipButton = new ctp2_Button(&errcode, aui_UniqueId(), buttonBlock,
+		battleview_SkipButtonActionCallback);
+	Assert(m_skipButton != NULL);
+
 	sprintf(buttonBlock, "%s.%s", ldlBlock, "TopBorder");
 	m_topBorder = new ctp2_Static(&errcode, aui_UniqueId(), buttonBlock);
 	Assert(m_topBorder);
@@ -370,6 +424,13 @@ void BattleViewWindow::SetupBattle(Battle *battle)
 	{
 		m_retreatButton->Hide();
 	}
+
+	m_skipButton->Show();
+	m_skipButton->Enable(true);
+	m_startChance = -1.0;
+	m_hasPending = false;
+	ReckonReadout();
+	ShowPendingReadout();
 
 	RECT battleRect = m_battleViewRect;
 	OffsetRect(&battleRect, -battleRect.left, -battleRect.top);
@@ -476,12 +537,92 @@ void BattleViewWindow::UpdateBattle(Battle *battle)
 		return;
 
 	m_battleView->UpdateBattle(battle);
+
+	// Reckoned now, from the state after the rounds just queued; shown once they are played
+	ReckonReadout();
 }
 
 void BattleViewWindow::EndBattle()
 {
 
 	m_retreatButton->Enable(false);
+	m_skipButton->Enable(false);
+}
+
+// The odds from here on, and the losses so far, in m_pending*
+void BattleViewWindow::ReckonReadout(void)
+{
+	if (!g_theCurrentBattle)
+		return;
+
+	sint32 const attLeft  = g_theCurrentBattle->GetNumLivingAttackers();
+	sint32 const defLeft  = g_theCurrentBattle->GetNumLivingDefenders();
+	sint32 const attStart = g_theCurrentBattle->GetAttackersAtStart();
+	sint32 const defStart = g_theCurrentBattle->GetDefendersAtStart();
+
+	if (g_theCurrentBattle->IsDone())
+	{
+		if (defLeft <= 0 && attLeft > 0)
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds),
+			         Str("str_ldl_BV_RESULT_WON", "The attackers won, with %d of %d units left."), attLeft, attStart);
+		else if (attLeft <= 0 && defLeft > 0)
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds),
+			         Str("str_ldl_BV_RESULT_HELD", "The defenders held, with %d of %d units left."), defLeft, defStart);
+		else if (g_theCurrentBattle->IsRetreated())
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds), "%s",
+			         Str("str_ldl_BV_RESULT_RETREATED", "The attackers retreated."));
+		else
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds), "%s",
+			         Str("str_ldl_BV_RESULT_NONE", "Neither side could fight on."));
+	}
+	else if (g_theCurrentBattle->IsRetreating())
+	{
+		snprintf(m_pendingOdds, sizeof(m_pendingOdds), "%s",
+		         g_theCurrentBattle->RetreatedByOrders()
+		         ? Str("str_ldl_BV_RETREATING_ORDERS", "The attackers retreat, as ordered.")
+		         : Str("str_ldl_BV_RETREATING", "The attackers retreat."));
+	}
+	else
+	{
+		CombatOdds const odds = g_theCurrentBattle->SimulateFromNow(300, ReadoutSeed());
+		double const chance = odds.AttackerWinChance();
+		if (m_startChance < 0.0)
+		{
+			m_startChance = chance;
+		}
+		if (static_cast<sint32>(chance * 100.0 + 0.5) == static_cast<sint32>(m_startChance * 100.0 + 0.5))
+		{
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds),
+			         Str("str_ldl_BV_ODDS_START", "Attackers' chance to win: %.0f%%"), chance * 100.0);
+		}
+		else
+		{
+			snprintf(m_pendingOdds, sizeof(m_pendingOdds),
+			         Str("str_ldl_BV_ODDS_NOW", "Attackers' chance to win: %.0f%% (at the start %.0f%%)"),
+			         chance * 100.0, m_startChance * 100.0);
+		}
+	}
+
+	snprintf(m_pendingLosses, sizeof(m_pendingLosses),
+	         Str("str_ldl_BV_LOSSES", "Lost so far: attackers %d of %d, defenders %d of %d"),
+	         attStart - attLeft, attStart, defStart - defLeft, defStart);
+	m_hasPending = true;
+}
+
+void BattleViewWindow::ShowPendingReadout(void)
+{
+	if (!m_hasPending)
+		return;
+
+	m_oddsText->SetText(m_pendingOdds);
+	m_lossesText->SetText(m_pendingLosses);
+	m_hasPending = false;
+
+	if (g_theCurrentBattle && g_theCurrentBattle->IsDone())
+	{
+		m_skipButton->Enable(false);
+		m_retreatButton->Enable(false);
+	}
 }
 
 void BattleViewWindow::RemoveActor(BattleViewActor *actor)
@@ -549,6 +690,10 @@ void BattleViewWindow::Refresh(void)
 
 	if (GetTickCount() > (lastUpdate + k_BATTLE_VIEW_FRAME_TIME)) {
 		m_battleView->Process();
+
+		// The rounds behind the pending readout have been played
+		if (m_hasPending && !m_battleView->IsProcessing())
+			ShowPendingReadout();
 
 		lastUpdate = GetTickCount();
 

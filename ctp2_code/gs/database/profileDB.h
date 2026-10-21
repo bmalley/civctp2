@@ -319,6 +319,8 @@ private:
     sint32 m_observerTurnDelay;
     sint32 m_observerFollow;
     sint32 m_recordReplay;
+    sint32 m_battleOddsOnMap;
+    sint32 m_askBeforeAttack;
 
     sint32 m_autoRenameCities;
     sint32 m_autoOpenCityWindow;
@@ -819,6 +821,8 @@ public:
     sint32 GetObserverTurnDelay() const         { return m_observerTurnDelay; }
     BOOL   IsObserverFollow() const             { return m_observerFollow; }
     BOOL   IsRecordReplay() const               { return m_recordReplay; }
+    BOOL   IsBattleOddsOnMap() const            { return m_battleOddsOnMap; }
+    BOOL   IsAskBeforeAttack() const            { return m_askBeforeAttack; }
     BOOL GetShowEnemyHealth()                   { return m_showEnemyHealth; } //emod3
     BOOL GetDebugAI()                           { return m_debugai; }   //emod3
 

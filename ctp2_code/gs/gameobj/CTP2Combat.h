@@ -71,6 +71,30 @@ class Battle;
 class BattleEvent;
 class RandomGenerator;
 
+// Orders a human attacker gives before a fight (the attack dialog, BattleOrdersWindow).
+// The defaults are the old rules; the AI and every defender always fight with them.
+struct BattleOrders
+{
+	enum Line
+	{
+		LINE_AUTO,              // the old layout
+		LINE_WOUNDED_BACK       // units under half their hit points wait in the second rank
+	};
+	enum Retreat
+	{
+		RETREAT_NEVER,
+		RETREAT_OUTNUMBERED,    // when the defenders have more units left than we do
+		RETREAT_HALF_LOST       // when half the units we started with are dead
+	};
+	sint32 line;
+	sint32 retreat;
+
+	BattleOrders() : line(LINE_AUTO), retreat(RETREAT_NEVER) {}
+	bool IsDefault() const { return line == LINE_AUTO && retreat == RETREAT_NEVER; }
+};
+
+#define k_COMBAT_ODDS_UNITS 28  // k_COMBAT_WIDTH * k_COMBAT_HEIGHT: no stack is bigger
+
 // What CTP2Combat::Simulate found: how a fight between two stacks ends, over a number of
 // trials of the real combat rules
 struct CombatOdds
@@ -78,12 +102,35 @@ struct CombatOdds
 	sint32 trials;
 	sint32 attackerWins;    // every defender dead
 	sint32 defenderWins;    // every attacker dead
+	sint32 retreats;        // the attacker retreated (its orders)
 	double attackerLeft;    // attacker units alive at the end, summed over the trials
 	double defenderLeft;    // defender units alive at the end, summed over the trials
+	sint32 attackers;       // the stack sizes
+	sint32 defenders;
+	// How often each unit, by its index in the lists given to Simulate, was alive at the end
+	sint32 attackerSurvived[k_COMBAT_ODDS_UNITS];
+	sint32 defenderSurvived[k_COMBAT_ODDS_UNITS];
 
-	CombatOdds() : trials(0), attackerWins(0), defenderWins(0), attackerLeft(0.0), defenderLeft(0.0) {}
+	CombatOdds()
+	:   trials(0), attackerWins(0), defenderWins(0), retreats(0),
+	    attackerLeft(0.0), defenderLeft(0.0), attackers(0), defenders(0)
+	{
+		for (sint32 i = 0; i < k_COMBAT_ODDS_UNITS; ++i)
+		{
+			attackerSurvived[i] = 0;
+			defenderSurvived[i] = 0;
+		}
+	}
 	double AttackerWinChance() const { return trials ? double(attackerWins) / trials : 0.0; }
 	double DefenderWinChance() const { return trials ? double(defenderWins) / trials : 0.0; }
+	double RetreatChance() const { return trials ? double(retreats) / trials : 0.0; }
+	// Expected units lost
+	double AttackerLosses() const { return trials ? attackers - attackerLeft / trials : 0.0; }
+	double DefenderLosses() const { return trials ? defenders - defenderLeft / trials : 0.0; }
+	double AttackerSurvival(sint32 i) const
+	{ return (trials && i >= 0 && i < k_COMBAT_ODDS_UNITS) ? double(attackerSurvived[i]) / trials : 0.0; }
+	double DefenderSurvival(sint32 i) const
+	{ return (trials && i >= 0 && i < k_COMBAT_ODDS_UNITS) ? double(defenderSurvived[i]) / trials : 0.0; }
 };
 
 class CombatUnit {
@@ -97,6 +144,13 @@ private:
 	sint32 m_priority;
 
 	bool m_valid;
+	double m_maxHP;
+	bool m_reserve;         // BattleOrders::LINE_WOUNDED_BACK: kept out of the front line
+
+public:
+	double GetMaxHP() const { return m_maxHP; }
+	bool IsReserve() const { return m_reserve; }
+	void SetReserve(bool reserve) { m_reserve = reserve; }
 
 public:
 	bool m_alreadyExploded;
@@ -107,7 +161,7 @@ public:
 	Unit m_unit;
 #endif
 
-	CombatUnit() { m_valid = false; }
+	CombatUnit() { m_valid = false; m_maxHP = 0.0; m_reserve = false; }
 
 #ifdef TEST_APP
 	CombatUnit(double offense, double defense,
@@ -182,7 +236,14 @@ public:
 #ifndef TEST_APP
 	void FillFrom(CellUnitList &units);
 	void ReportUnits(Battle *battle, BattleEvent *event, bool initial);
+	bool IsActiveUnit(uint32 unitId);
+	void AddActiveTo(CellUnitList &units);
 #endif
+
+	// BattleOrders::LINE_WOUNDED_BACK
+	void MarkWoundedReserve();
+	bool HasReserve();
+	void ClearReserve();
 
 	void StartRound();
 
@@ -214,17 +275,33 @@ public:
 #ifdef TEST_APP
 	CTP2Combat(sint32 width, sint32 height, FILE *input);
 #else
-	CTP2Combat(sint32 width, sint32 height, CellUnitList &attackers, CellUnitList &defenders);
+	CTP2Combat(sint32 width, sint32 height, CellUnitList &attackers, CellUnitList &defenders,
+	           const BattleOrders *orders = NULL, sint32 attackersAtStart = 0);
 	~CTP2Combat();
 
 	// Fights ATTACKERS against DEFENDERS TRIALS times by the real rules and counts the
 	// outcomes. It changes nothing: no hit points, no deaths, no battle view, and its dice
 	// come from a generator of its own seeded with SEED, not from the synced g_rand, so a
-	// game plays the same whether or not anything simulates fights.
+	// game plays the same whether or not anything simulates fights. ORDERS are the
+	// attacker's; ATTACKERS_AT_START, if not 0, is what RETREAT_HALF_LOST counts from.
 	static CombatOdds Simulate(CellUnitList &attackers, CellUnitList &defenders,
-	                           sint32 trials, uint32 seed);
+	                           sint32 trials, uint32 seed,
+	                           const BattleOrders *orders = NULL, sint32 attackersAtStart = 0);
+	// The same from this fight's state now: its living units, their hit points, its orders
+	CombatOdds SimulateFromNow(sint32 trials, uint32 seed);
 	const CombatOdds & GetPrediction() const { return m_prediction; }
 	void SetPrediction(const CombatOdds & odds) { m_prediction = odds; }
+	const BattleOrders & GetOrders() const { return m_orders; }
+	sint32 GetAttackersAtStart() const { return m_attackersAtStart; }
+	sint32 GetDefendersAtStart() const { return m_defendersAtStart; }
+	sint32 GetRound() const { return m_round; }
+	bool IsRetreating() const { return m_retreating; }
+	bool RetreatedByOrders() const { return m_retreatByOrders; }
+
+	// The attack dialog's orders for ARMY's next attack on POS, this round; StartCombat
+	// takes them
+	static void SetPendingOrders(uint32 army, const MapPoint &pos, const BattleOrders &orders);
+	static bool TakePendingOrders(uint32 army, const MapPoint &pos, BattleOrders &orders);
 #endif
 
 	bool ResolveOneRound();
@@ -235,6 +312,8 @@ public:
 
 	void Retreat();
 	bool IsRetreated() { return m_retreated; }
+	// The battle view's Skip: the remaining rounds are fought without being played
+	void SkipToResult() { m_skipping = true; }
 
 #ifndef TEST_APP
 	sint32 GetAttacker() { return m_attacker; }
@@ -260,6 +339,7 @@ private:
 	sint32 m_width, m_height;
 	sint32 m_round;
 	bool m_retreated, m_retreating, m_noAttacksPossible;
+	bool m_skipping;
 	sint32 m_attacker, m_defender;
 #ifndef TEST_APP
 	uint32 m_army_id;
@@ -269,6 +349,12 @@ private:
 	DynamicArray<Unit> m_deadUnits;
 	RandomGenerator *m_simRand;     // set while simulating: the dice for this fight
 	CombatOdds m_prediction;        // what Simulate expected of this fight (test runs)
+	BattleOrders m_orders;          // the attacker's
+	sint32 m_attackersAtStart;
+	sint32 m_defendersAtStart;
+	bool m_retreatByOrders;
+
+	bool ShouldRetreat();
 #endif
 
 #ifdef TEST_APP

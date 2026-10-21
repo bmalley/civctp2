@@ -182,10 +182,34 @@ BattleViewWindow {
 # Retreat Button
 ################################################################################
 	RetreatButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
-		int	xpix		97
-		int	ypix		97
-		int	widthpix	190
+		int	xpix		30
+		int	ypix		108
+		int	widthpix	160
 		string	text	"str_ldl_BV_RETREAT"
+	}
+
+################################################################################
+# Odds, losses, and skipping to the result (BattleViewWindow)
+################################################################################
+	OddsText:CTP2_STATIC_BACKGROUND {
+		int	xpix		30
+		int	ypix		64
+		int	widthpix	340
+		int	heightpix	14
+		string	just	"left"
+	}
+	LossesText:CTP2_STATIC_BACKGROUND {
+		int	xpix		30
+		int	ypix		84
+		int	widthpix	340
+		int	heightpix	14
+		string	just	"left"
+	}
+	SkipButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int	xpix		200
+		int	ypix		108
+		int	widthpix	160
+		string	text	"str_ldl_BV_SKIP"
 	}
 
 ################################################################################
@@ -331,6 +355,77 @@ BattleViewWindow {
 		int	ypix		85
 		int	widthpix	50
 		string	text	"str_ldl_0"
+	}
+}
+
+##-----------------------------------##
+##   Attack window (BattleOrdersWindow): odds, units and orders before a battle
+##-----------------------------------##
+BattleOrdersDialog:CTP2_DIALOG_WINDOW {
+	string	title	"str_ldl_BO_TITLE"
+	int		widthpix	680
+	int		heightpix	490
+
+	Header:CTP2_STATIC_BACKGROUND {
+		int		xpix		36
+		int		ypix		42
+		int		widthpix	608
+		int		heightpix	18
+		string	just	"left"
+	}
+
+	Odds:CTP2_STATIC_BACKGROUND {
+		int		xpix		36
+		int		ypix		64
+		int		widthpix	608
+		int		heightpix	18
+		string	just	"left"
+	}
+
+	# Each unit: hit points, attack or defense and why, survival chance
+	Units:CTP2_HYPER_TEXT_BOX {
+		int		xpix		36
+		int		ypix		88
+		int		widthpix	608
+		int		heightpix	302
+	}
+
+	LineButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		36
+		int		ypix		400
+		int		widthpix	300
+		string	text	"str_ldl_BO_LINE_AUTO"
+	}
+
+	RetreatButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		344
+		int		ypix		400
+		int		widthpix	300
+		string	text	"str_ldl_BO_RETREAT_NEVER"
+	}
+
+	AttackButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		36
+		int		ypix		440
+		int		widthpix	160
+		string	text	"str_ldl_BO_ATTACK_BUTTON"
+	}
+
+	CancelButton:CTP2_GENERIC_SIZABLE_TEXT_BUTTON {
+		int		xpix		484
+		int		ypix		440
+		int		widthpix	160
+		string	text	"str_ldl_BO_CANCEL_BUTTON"
+		string	shortcut	"ESC"
+	}
+
+	Background:CTP2_DIALOG_BG {
+		int		widthpix	680
+		int		heightpix	490
+		string	image00	"uptg23a.tga"
+		string	image02	"uptg23c.tga"
+		string	image03	"dw_lb.tga"
+		string	image05	"dw_rb.tga"
 	}
 }
 
