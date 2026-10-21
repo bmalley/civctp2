@@ -3389,6 +3389,13 @@ namespace
 
 	Pixel16 const k_YIELD_LABEL_KEY = 0x0001;
 
+	// Opacity of a city's tile numbers: a harvested ring, the ring being filled
+	// (from nearly empty to nearly full), and tiles the city doesn't work yet
+	uint8 const k_YIELD_ALPHA_FULL           = pixelutils_OPAQUE;
+	uint8 const k_YIELD_ALPHA_FILLING_LOW    = 100;
+	uint8 const k_YIELD_ALPHA_FILLING_HIGH   = 190;
+	uint8 const k_YIELD_ALPHA_UNWORKED       = 72;
+
 	/// Draw \a text with a black outline into \a label, through a scratch surface.
 	void MakeYieldLabel(YieldLabel & label, aui_BitmapFont * font, const MBCHAR * text, sint32 textWidth,
 			COLORREF color)
@@ -3435,9 +3442,11 @@ namespace
 		}
 	}
 
-	/// Copy \a label's non-key pixels to \a surface at x, y, clipped (the surface is locked).
-	void BlitYieldLabel(aui_Surface & surface, YieldLabel const & label, sint32 x, sint32 y)
+	/// Copy \a label's non-key pixels to \a surface at x, y, clipped (the surface is locked),
+	/// blended over what is there by \a alpha.
+	void BlitYieldLabel(aui_Surface & surface, YieldLabel const & label, sint32 x, sint32 y, uint8 alpha)
 	{
+		uint32 const blendMask = pixelutils_GetBlend16RGBMask();
 		Pixel16 * base  = (Pixel16 *)surface.Buffer();
 		if (!base)
 			return;
@@ -3453,7 +3462,7 @@ namespace
 			for (sint32 col = left; col < right; col++)
 			{
 				if (src[col] != k_YIELD_LABEL_KEY)
-					dest[col] = src[col];
+					dest[col] = pixelutils_Blend16(dest[col], src[col], alpha, blendMask);
 			}
 		}
 	}
@@ -3472,6 +3481,10 @@ namespace
 //              full. Hidden deep sea shows shallow water's numbers. Each
 //              number is drawn once and cached: outlining it costs nine font
 //              draws.
+//              In the visible player's own cities the numbers show what the
+//              city takes: full where it harvests the whole ring, faded on
+//              the ring it is filling (by how full it is), and dim where it
+//              takes nothing yet. Other tiles show plain numbers.
 //
 //----------------------------------------------------------------------------
 void TiledMap::DrawTileYields(aui_Surface * surf)
@@ -3538,6 +3551,31 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 				amount[2] += cell->GetGoldFromTerrain(shown)    - cell->GetGoldFromTerrain(static_cast<sint8>(terrain));
 			}
 
+			// How much of this tile its city takes (CityData::CollectResources):
+			// all of a filled ring, a share of the ring being filled, none beyond
+			uint8 alpha = k_YIELD_ALPHA_FULL;
+			Unit const cityOwner = cell->GetCityOwner();
+			if (cityOwner.IsValid() && cityOwner.GetOwner() == g_selected_item->GetVisiblePlayer())
+			{
+				CityData const * cityData = cityOwner.GetData()->GetCityData();
+				double ratio = 1.0;
+				if (cityData)
+				{
+					// The full radius first: a city that has filled its last ring has no
+					// partial ring, and GetUtilisationRatio then says 0 everywhere
+					sint32 fullSquaredRadius, partSquaredRadius;
+					cityData->GetFullAndPartialRadii(fullSquaredRadius, partSquaredRadius);
+					sint32 const squaredDistance = MapPoint::GetSquaredDistance(cityOwner.RetPos(), pos);
+					if (squaredDistance > fullSquaredRadius)
+						ratio = cityData->GetUtilisationRatio(squaredDistance);
+				}
+				if (ratio <= 0.0)
+					alpha = k_YIELD_ALPHA_UNWORKED;
+				else if (ratio < 1.0)
+					alpha = static_cast<uint8>(k_YIELD_ALPHA_FILLING_LOW
+							+ ratio * (k_YIELD_ALPHA_FILLING_HIGH - k_YIELD_ALPHA_FILLING_LOW));
+			}
+
 			MBCHAR text[3][16];
 			sint32 width[3];
 			sint32 total = 2 * gap;
@@ -3563,7 +3601,7 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 				{
 					MakeYieldLabel(label, font, text[k], width[k], colors[k]);
 				}
-				BlitYieldLabel(*surf, label, textX - 1, textY - 1);
+				BlitYieldLabel(*surf, label, textX - 1, textY - 1, alpha);
 				textX += width[k] + gap;
 			}
 
