@@ -143,7 +143,8 @@ sint32            DipWizard::m_viewTone = -1,
                   DipWizard::m_viewProposal = - 1,
                   DipWizard::m_viewExchange = -1,
                   DipWizard::m_viewThreat = -1,
-                  DipWizard::m_viewResponseType = -1;
+                  DipWizard::m_viewResponseType = -1,
+                  DipWizard::m_viewExplain = -1;
 DiplomacyArg      DipWizard::m_viewProposalArg,
                   DipWizard::m_viewExchangeArg;
 DiplomacyArg      DipWizard::m_viewThreatArg;
@@ -810,6 +811,7 @@ void DipWizard::SetViewResponse(sint32 sender, sint32 recipient, bool negotiatio
 	m_viewRecipient = recipient;
 
 	m_viewResponseType = resp.type;
+	m_viewExplain = (resp.type == RESPONSE_REJECT) ? resp.explainStrId : -1;
 
 	m_viewTone = -1;
 	m_viewProposal = -1;
@@ -928,6 +930,7 @@ void DipWizard::SetViewProposal(sint32 sender, sint32 receiver)
 	m_viewType = DIP_WIZ_VIEW_TYPE_PROPOSAL;
 
 	m_viewResponseType = -1;
+	m_viewExplain = -1;
 
 	Display();
 	SetStage(DIP_WIZ_STAGE_VIEW_PROPOSAL);
@@ -1431,6 +1434,11 @@ void DipWizard::UpdateDetails()
 							strcpy(text, "");
 						}
 					}
+				} else if(m_viewResponseType == RESPONSE_REJECT && m_viewExplain >= 0) {
+					// Why they rejected it
+					SlicObject so;
+					so.AddPlayer(m_viewRecipient == g_selected_item->GetVisiblePlayer() ? m_viewSender : m_viewRecipient);
+					stringutils_Interpret(g_theStringDB->GetNameStr(m_viewExplain), so, text);
 				} else {
 					text[0] = 0;
 				}

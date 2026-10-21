@@ -112,6 +112,9 @@ public:
 
 	const StringId & GetBestRegardExplain(const REGARD_EVENT_TYPE &type = REGARD_EVENT_ALL) const;
 
+	// The explanation of the most negative regard event (-1 if none): read only
+	StringId GetWorstRegardExplain() const;
+
 
 
 
@@ -122,6 +125,9 @@ public:
 	const Response & GetMyLastResponse() const;
 
 	void SetMyLastResponse(const Response & response);
+
+	// Only the explanation, for the response window: not used by the AI
+	void SetMyLastResponseExplain(const StringId & explainStrId);
 
 
 
