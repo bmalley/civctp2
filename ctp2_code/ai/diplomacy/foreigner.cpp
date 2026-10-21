@@ -383,6 +383,31 @@ const StringId & Foreigner::GetBestRegardExplain(const REGARD_EVENT_TYPE &type) 
 		return m_regardEventList[type].begin()->explainStrId;
 }
 
+StringId Foreigner::GetWorstRegardExplain() const
+{
+	StringId    worst       = -1;
+	ai::Regard  worstRegard = 0;
+
+	for (sint32 type = 0; type < (sint32) REGARD_EVENT_ALL; type++)
+	{
+		for
+		(
+		    RegardEventList::const_iterator event_iter = m_regardEventList[type].begin();
+		    event_iter != m_regardEventList[type].end();
+		    ++event_iter
+		)
+		{
+			if (event_iter->explainStrId >= 0 && event_iter->regard < worstRegard)
+			{
+				worst       = event_iter->explainStrId;
+				worstRegard = event_iter->regard;
+			}
+		}
+	}
+
+	return worst;
+}
+
 void Foreigner::ConsiderResponse( const Response & response )
 {
 	if (m_myLastResponse.priority < response.priority)
@@ -399,6 +424,11 @@ const Response & Foreigner::GetMyLastResponse() const
 void Foreigner::SetMyLastResponse(const Response & response)
 {
 	m_myLastResponse = response;
+}
+
+void Foreigner::SetMyLastResponseExplain(const StringId & explainStrId)
+{
+	m_myLastResponse.explainStrId = explainStrId;
 }
 
 

@@ -702,6 +702,31 @@ str_ldl_MakeThreat					"Make Threat"
 POPUP_GENERIC_ACCEPT					"The {player[1].civ_name_plural} have accepted all of the terms of your proposal."
 POPUP_GENERIC_REJECT					"The {player[1].civ_name_plural} have rejected the proposal."
 POPUP_GENERIC_THREAT_REJECT				"The {player[1].civ_name_plural} has rejected the threat."
+
+##
+## Why the AI rejected a proposal (shown under the proposal in the response window)
+##
+DIP_REJECT_REASON_GENERIC				"They see nothing in it for themselves."
+DIP_REJECT_REASON_REGARD				"They do not think well enough of us."
+DIP_REJECT_REASON_TRUST					"They do not trust us to keep our word."
+DIP_REJECT_REASON_RECENT_WAR				"Our recent attacks on them are not forgotten."
+DIP_REJECT_REASON_WANT_WAR				"They want war with us, not peace."
+DIP_REJECT_REASON_INCURSION				"Our troops are inside their borders."
+DIP_REJECT_REASON_ALLIES				"Our alliances clash with theirs."
+DIP_REJECT_REASON_CITY					"They do not fear us enough to give up a city."
+DIP_REJECT_REASON_CANT_AFFORD				"They cannot afford to pay that much."
+DIP_REJECT_REASON_NOTHING_WANTED			"We have nothing they want in return."
+DIP_REJECT_REASON_VALUE					"The terms would cost them too much."
+DIP_REJECT_REASON_WANT_MORE				"They want more from us in return."
+DIP_REJECT_REASON_RECENT_MAP				"They saw our map not long ago, and our offer is too small."
+DIP_REJECT_REASON_NO_PIRACY				"They are not pirating our trade routes."
+DIP_REJECT_REASON_NO_EMBARGO				"They have no embargo against us."
+DIP_REJECT_REASON_RESEARCH				"They will not stop that research."
+DIP_REJECT_REASON_WEAPONS				"They will not give up those weapons."
+DIP_REJECT_REASON_POLLUTION				"We pollute far more than they do."
+DIP_REJECT_REASON_POLLUTION_TERMS			"That is more than they agreed to."
+DIP_REJECT_REASON_NO_PEACE				"They want a peace treaty with us first."
+DIP_REJECT_REASON_ENEMY_STRONG				"They will not fight an enemy that strong."
 POPUP_DECLARE_WAR_ANNC					"Your highness, the {player[1].civ_name_plural} have declared war on us!"
 
 ##

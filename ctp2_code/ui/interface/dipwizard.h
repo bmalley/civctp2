@@ -113,7 +113,8 @@ class DipWizard
 	static sint32 m_viewTone,
 		m_viewRecipient, m_viewSender,
 		m_viewProposal, m_viewExchange,
-		m_viewThreat, m_viewResponseType;
+		m_viewThreat, m_viewResponseType,
+		m_viewExplain;  // StringId: why a proposal was rejected, or -1
 	static DiplomacyArg m_viewProposalArg, m_viewExchangeArg, m_viewThreatArg;
 	static DIP_WIZ_VIEW_TYPE m_viewType;
 
