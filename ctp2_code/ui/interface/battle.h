@@ -71,6 +71,10 @@ public:
 
 	PointerList<BattleEvent> *GrabEventQueue();
 
+	// Skip to the result: drop the queued attacks, explosions and all but the last placement,
+	// so only the deaths play
+	void DropAnimations();
+
 private:
 	sint32						m_numAttackers;
 	BattleViewActor				*m_attackers[k_MAX_UNITS_PER_SIDE];

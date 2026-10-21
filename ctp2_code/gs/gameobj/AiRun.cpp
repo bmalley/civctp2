@@ -281,6 +281,17 @@ sint32 airun_OddsTrials()
 	return trials;
 }
 
+bool airun_Orders(BattleOrders &orders)
+{
+	static const char *s = File() ? getenv("CTP2_AIRUN_ORDERS") : NULL;
+	sint32 line = 0, retreat = 0;
+	if (!s || sscanf(s, "%d,%d", &line, &retreat) != 2)
+		return false;
+	orders.line    = line;
+	orders.retreat = retreat;
+	return true;
+}
+
 void airun_RecordBattle(sint32 attacker, sint32 defender, sint32 attackers, sint32 defenders,
                         const CombatOdds &odds, sint32 attackersLeft, sint32 defendersLeft)
 {
@@ -295,6 +306,13 @@ void airun_RecordBattle(sint32 attacker, sint32 defender, sint32 attackers, sint
 	        odds.trials, odds.AttackerWinChance(), odds.DefenderWinChance(),
 	        odds.attackerLeft / odds.trials, odds.defenderLeft / odds.trials,
 	        result, attackersLeft, defendersLeft);
+	if (odds.retreats > 0 || g_theCurrentBattle->IsRetreated())
+	{
+		// With retreat orders (CTP2_AIRUN_ORDERS): the predicted and the real retreat
+		fprintf(f, "{\"t\":\"retreat\",\"r\":%d,\"p_ret\":%.3f,\"retreated\":%d}\n",
+		        g_turn ? g_turn->GetRound() : -1, odds.RetreatChance(),
+		        g_theCurrentBattle->IsRetreated() ? 1 : 0);
+	}
 }
 
 bool airun_GetSeed(uint32 &seed)

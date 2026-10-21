@@ -186,6 +186,7 @@
 #include "infowin.h"
 #include "infowindow.h"                 // Info Window cleanup
 #include "ReplayWindow.h"                // Replay Window cleanup
+#include "BattleOrdersWindow.h"          // Attack window cleanup
 #include "GraphWindow.h"                 // Graph Window cleanup
 #include "initialplaywindow.h"
 #include "intelligencewindow.h"
@@ -2212,6 +2213,7 @@ void CivApp::CleanupGameUI(void)
 	InfoBar::Cleanup();
 	InfoWindow::Cleanup();
 	ReplayWindow::Cleanup();
+	BattleOrdersWindow::Cleanup();
 	GraphWindow::Cleanup();
 	ScienceVictoryDialog::Cleanup();
 

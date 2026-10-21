@@ -479,6 +479,7 @@ ctp_ctp2_SOURCES = \
 	ui/interface/infowindow.cpp \
 	ui/interface/rankingtab.cpp \
 	ui/interface/ReplayWindow.cpp \
+	ui/interface/BattleOrdersWindow.cpp \
 	ui/interface/GraphWindow.cpp \
 	ui/interface/scoretab.cpp \
 	ui/interface/timelinetab.cpp \

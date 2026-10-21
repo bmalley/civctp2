@@ -97,6 +97,33 @@ PointerList<BattleEvent> *Battle::GrabEventQueue()
 	return(eventQueue);
 }
 
+void Battle::DropAnimations()
+{
+	if (!m_eventQueue)
+		return;
+
+	BattleEvent *lastPlacement = NULL;
+	PointerList<BattleEvent>::PointerListNode *node = m_eventQueue->GetHeadNode();
+	while (node)
+	{
+		if (node->GetObj()->GetType() == BATTLE_EVENT_TYPE_PLACEMENT)
+			lastPlacement = node->GetObj();
+		node = node->GetNext();
+	}
+
+	PointerList<BattleEvent> *kept = new PointerList<BattleEvent>;
+	while (!m_eventQueue->IsEmpty())
+	{
+		BattleEvent *event = m_eventQueue->RemoveHead();
+		if (event->GetType() == BATTLE_EVENT_TYPE_DEATH || event == lastPlacement)
+			kept->AddTail(event);
+		else
+			delete event;
+	}
+	delete m_eventQueue;
+	m_eventQueue = kept;
+}
+
 void Battle::Initialize(Army const & attackers, CellUnitList const & defenders)
 {
 	m_numAttackers = attackers.Num();
