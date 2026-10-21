@@ -2172,8 +2172,8 @@ Utility Goal::Compute_Agent_Matching_Value(const Agent_ptr agent_ptr) const
 	{
 		PLAYER_INDEX pos_owner = g_theWorld->GetCell(curr_pos)->GetOwner();
 
-		bool incursion_permissin = Diplomat::GetDiplomat(m_playerId).IncursionPermission(pos_owner);
-		if (pos_owner >= 0 && !(incursion_permissin))
+		// Unowned tiles (owner -1) have no permission to ask about: 1 << -1 is undefined
+		if (pos_owner >= 0 && !Diplomat::GetDiplomat(m_playerId).IncursionPermission(pos_owner))
 		{
 			bonus += g_theGoalDB->Get(m_goal_type)->GetTreaspassingArmyBonus();
 		}
