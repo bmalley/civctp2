@@ -57,6 +57,7 @@
 // - Repaired crashes when zooming out
 // - Added IsCapitol Bool to DrawCityIcons 1-5-2006 EMOD
 // - Implemented HasAirport; for some reason it was forgotten 1-5-2006 EMOD
+// - Added DrawTileYields (profile option ShowTileYields).
 // - Moved citypop box to the left name in the center and turns until next pop
 //   to the right for cleaner interface 1-13-2007 EMOD
 // - Allowed to select between smooth and square borders. (Feb 4th 2007 Martin Gühmann)
@@ -72,7 +73,11 @@
 
 #include "aui.h"
 #include "aui_sdlsurface.h"
+#include <map>
+#include <vector>
+#include <algorithm>
 #include "aui_bitmapfont.h"
+#include "aui_Factory.h"
 #include "ConstRecord.h"			// g_theConstDB
 #include "pixelutils.h"
 #include "primitives.h"
@@ -3370,6 +3375,201 @@ sint32			tinc[2]={0,1};
 
 void TiledMap::DrawWater(void)
 {
+}
+
+namespace
+{
+	/// A tile yield number, drawn once with its outline; key-coloured pixels are transparent.
+	struct YieldLabel
+	{
+		sint32                width;
+		sint32                height;
+		std::vector<Pixel16>  pixels;
+	};
+
+	Pixel16 const k_YIELD_LABEL_KEY = 0x0001;
+
+	/// Draw \a text with a black outline into \a label, through a scratch surface.
+	void MakeYieldLabel(YieldLabel & label, aui_BitmapFont * font, const MBCHAR * text, sint32 textWidth,
+			COLORREF color)
+	{
+		static aui_Surface * scratch = NULL;
+		sint32 const scratchWidth  = 128;
+		sint32 const scratchHeight = 64;
+		if (!scratch)
+		{
+			AUI_ERRCODE errcode = AUI_ERRCODE_OK;
+			scratch = aui_Factory::new_Surface(errcode, scratchWidth, scratchHeight);
+		}
+
+		label.width  = std::min<sint32>(textWidth + 2, scratchWidth);      // 1 pixel of outline each side
+		label.height = std::min<sint32>(font->GetMaxHeight() + 2, scratchHeight);
+		label.pixels.assign(label.width * label.height, k_YIELD_LABEL_KEY);
+		if (!scratch)
+			return;
+
+		SurfaceLock lock(scratch);
+		if (!lock.IsValid())
+			return;
+
+		RECT all = { 0, 0, label.width, label.height };
+		primitives_PaintRect16(scratch, &all, k_YIELD_LABEL_KEY);
+
+		static const POINT outline[] = { {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1} };
+
+		COLORREF const black = g_colorSet->GetColorRef(COLOR_BLACK);
+		RECT textRect = { 1, 1, 1 + textWidth, 1 + font->GetMaxHeight() };
+		for (size_t o = 0; o < sizeof(outline) / sizeof(outline[0]); o++)
+		{
+			RECT outlineRect = textRect;
+			OffsetRect(&outlineRect, outline[o].x, outline[o].y);
+			font->DrawString(scratch, &outlineRect, &all, text, 0, black, 0);
+		}
+		font->DrawString(scratch, &textRect, &all, text, 0, color, 0);
+
+		sint32 const pitch = scratch->Pitch() >> 1;
+		for (sint32 row = 0; row < label.height; row++)
+		{
+			Pixel16 const * src = (Pixel16 const *)lock.Base() + row * pitch;
+			std::copy(src, src + label.width, label.pixels.begin() + row * label.width);
+		}
+	}
+
+	/// Copy \a label's non-key pixels to \a surface at x, y, clipped (the surface is locked).
+	void BlitYieldLabel(aui_Surface & surface, YieldLabel const & label, sint32 x, sint32 y)
+	{
+		Pixel16 * base  = (Pixel16 *)surface.Buffer();
+		if (!base)
+			return;
+		sint32 const pitch   = surface.Pitch() >> 1;
+		sint32 const left    = std::max<sint32>(0, -x);
+		sint32 const right   = std::min<sint32>(label.width, surface.Width() - x);
+		sint32 const top     = std::max<sint32>(0, -y);
+		sint32 const bottom  = std::min<sint32>(label.height, surface.Height() - y);
+		for (sint32 row = top; row < bottom; row++)
+		{
+			Pixel16 const * src  = &label.pixels[row * label.width];
+			Pixel16 *       dest = base + (y + row) * pitch + x;
+			for (sint32 col = left; col < right; col++)
+			{
+				if (src[col] != k_YIELD_LABEL_KEY)
+					dest[col] = src[col];
+			}
+		}
+	}
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : TiledMap::DrawTileYields
+//
+// Description: Draw each explored tile's food, shields and gold as three
+//              coloured numbers in the middle of the tile (profile option
+//              ShowTileYields).
+//
+// Remark(s)  : Fogged tiles show what the player last saw there. The amounts
+//              are the whole tile's, as a city harvests it once its ring is
+//              full. Hidden deep sea shows shallow water's numbers. Each
+//              number is drawn once and cached: outlining it costs nine font
+//              draws.
+//
+//----------------------------------------------------------------------------
+void TiledMap::DrawTileYields(aui_Surface * surf)
+{
+	// Arial Bold 10 (the city names are 9), outlined so it reads on dark and light terrain
+	static aui_BitmapFont * font = NULL;
+	if (!font)
+	{
+		MBCHAR descriptor[k_AUI_BITMAPFONT_MAXDESCLEN + 1];
+		aui_BitmapFont::AttributesToDescriptor(descriptor, "arialbd.ttf", 10, 0, 0);
+		font = g_c3ui->LoadBitmapFont(descriptor);
+	}
+	if (!font || !m_localVision)
+		return;
+
+	// Further out than 0.83 (80 pixel wide tiles) the rows of numbers run together
+	if (GetZoomTilePixelWidth() < 80)
+		return;
+
+	static const COLORREF colors[3] = { RGB(120, 230, 90), RGB(205, 205, 205), RGB(255, 215, 60) }; // food, shields, gold
+	sint32   const fontHeight = font->GetMaxHeight();
+	sint32   const gap        = 4;
+	static std::map<sint32, YieldLabel> labels; // by colour * 1000 + amount
+
+	SurfaceLock surfaceLock(surf);
+
+	for (sint32 i = m_mapViewRect.top; i < m_mapViewRect.bottom; i++)
+	{
+		for (sint32 j = m_mapViewRect.left; j < m_mapViewRect.right; j++)
+		{
+			sint32 tileX, tileY;
+			maputils_WrapPoint(j, i, &tileX, &tileY);
+			MapPoint pos(maputils_TileX2MapX(tileX, tileY), tileY);
+
+			if (!m_localVision->IsExplored(pos) && !g_fog_toggle && !g_god)
+				continue;
+
+			sint32 amount[3];
+			sint32 terrain;
+			Cell * cell = g_theWorld->GetCell(pos);
+			UnseenCellCarton ucell;
+			if (m_localVision->GetLastSeen(pos, ucell) && !g_fog_toggle)
+			{
+				amount[0] = ucell.m_unseenCell->GetFoodProduced();
+				amount[1] = ucell.m_unseenCell->GetShieldsProduced();
+				amount[2] = ucell.m_unseenCell->GetGoldProduced();
+				terrain   = ucell.m_unseenCell->GetTerrainType();
+			}
+			else
+			{
+				amount[0] = cell->GetFoodProduced();
+				amount[1] = cell->GetShieldsProduced();
+				amount[2] = cell->GetGoldProduced();
+				terrain   = cell->GetTerrainType();
+			}
+
+			// Deep sea drawn as shallow water (before Oil Refining) shows shallow water's
+			// terrain yield, so the numbers don't give it away
+			if (TileInfo::IsHiddenDeepOcean(terrain))
+			{
+				sint8 const shown = static_cast<sint8>(TERRAIN_WATER_SHALLOW);
+				amount[0] += cell->GetFoodFromTerrain(shown)    - cell->GetFoodFromTerrain(static_cast<sint8>(terrain));
+				amount[1] += cell->GetShieldsFromTerrain(shown) - cell->GetShieldsFromTerrain(static_cast<sint8>(terrain));
+				amount[2] += cell->GetGoldFromTerrain(shown)    - cell->GetGoldFromTerrain(static_cast<sint8>(terrain));
+			}
+
+			MBCHAR text[3][16];
+			sint32 width[3];
+			sint32 total = 2 * gap;
+			for (sint32 k = 0; k < 3; k++)
+			{
+				sprintf(text[k], "%d", amount[k]);
+				width[k] = font->GetStringWidth(text[k]);
+				total   += width[k];
+			}
+
+			sint32 x, y;
+			maputils_MapXY2PixelXY(pos.x, pos.y, &x, &y);
+			sint32       textX = x + GetZoomTilePixelWidth() / 2 - total / 2;
+			sint32 const textY = y + GetZoomTileHeadroom() + GetZoomTilePixelHeight() / 2 - fontHeight / 2;
+			RECT dirty = { textX - 2, textY - 2, textX + total + 3, textY + fontHeight + 3 };
+			if (dirty.right < 0 || dirty.bottom < 0 || dirty.left >= surf->Width() || dirty.top >= surf->Height())
+				continue;
+
+			for (sint32 k = 0; k < 3; k++)
+			{
+				YieldLabel & label = labels[k * 1000 + std::max<sint32>(0, std::min<sint32>(999, amount[k]))];
+				if (label.pixels.empty())
+				{
+					MakeYieldLabel(label, font, text[k], width[k], colors[k]);
+				}
+				BlitYieldLabel(*surf, label, textX - 1, textY - 1);
+				textX += width[k] + gap;
+			}
+
+			AddDirtyRectToMix(dirty);
+		}
+	}
 }
 
 void TiledMap::DrawCityNames(aui_Surface * surf, sint32 layer)

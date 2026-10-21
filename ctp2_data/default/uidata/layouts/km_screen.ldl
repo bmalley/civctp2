@@ -251,7 +251,7 @@ KeyListItem {
 
 KeylistStrings {
 
-	int	numStrings	93    # Number of strings
+	int	numStrings	94    # Number of strings
 
 	string	string0		"str_tbl_ldl_What_the_"
 
@@ -361,7 +361,8 @@ KeylistStrings {
 	string	string90	"str_tbl_ldl_Rand_Test"			#02 new (Only _PLAYTEST)
 	string	string91	"str_tbl_ldl_Command_Enter"		#02 new (Only _PLAYTEST)
 	string	string92	"str_tbl_ldl_Command_Enter_Alternate"	#02 new (Only _PLAYTEST)
-	string	string93	"str_tbl_ldl_Toggle_Space"		#02 new
+	string	string93	"str_tbl_ldl_Toggle_Tile_Yields"		#new (tile yields patch)
+	string	string94	"str_tbl_ldl_Toggle_Space"		#02 new
 #### END MAP CONTROLS ####	
 
 }
