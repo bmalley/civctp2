@@ -98,7 +98,18 @@ union Cookie;
 #define k_PEOPLE_PER_POPULATION 10000
 //#define NEW_RESOURCE_PROCESS 1
 
+#include <vector>
+
 //struct TerrainValue;
+
+/// A tile in a city's radius and what it yields (profile option CitiesWorkBestTiles)
+struct CityRingTile
+{
+	MapPoint pos;
+	sint32   food;
+	sint32   prod;
+	sint32   gold;
+};
 
 class CityData : public CityRadiusCallback
 {
@@ -178,6 +189,9 @@ private:
 	sint32           *m_ringSizes;
 	SlicObject       *m_tempGoodAdder;
 	UnitDynamicArray *m_killList;
+
+	/// Each ring's tiles, best first; filled with m_ringFood etc. by CollectResources
+	std::vector<std::vector<CityRingTile> > m_ringTiles;
 #if defined(NEW_RESOURCE_PROCESS)
 	double           *m_farmersEff;
 	double           *m_laborersEff;
@@ -901,6 +915,8 @@ public:
 	sint32 GetCityStyle() const;
 	void   SetCityStyle(sint32 style);
 	sint32 GetRing(MapPoint pos) const;
+	sint32 GetWorkedTilesInRing(sint32 ring) const;
+	bool   IsWorkedTile(MapPoint const & pos) const;
 	sint32 GetFoodFromRing(sint32 ring) const;
 	sint32 GetProdFromRing(sint32 ring) const;
 	sint32 GetGoldFromRing(sint32 ring) const;
