@@ -919,11 +919,15 @@ bool terrainutil_CanPlayerBuildAt(const TerrainImprovementRecord *rec, sint32 pl
 
 		// EMOD for contiguous irrigation
 		// @todo check the cityinfluenceiterator works for other of E's mods above.
-		if(eff->GetNeedsIrrigation()) {
+		sint32 irrigationUntil;
+		if(eff->GetNeedsIrrigation()
+		&& !(eff->GetNeedsIrrigationUntilIndex(irrigationUntil) && g_player[pl]->HasAdvance(irrigationUntil))
+		){
 			SquareIterator it(pos, 1);
 			bool canbuild = false;
 			for(it.Start(); !it.End(); it.Next()) {
-				if( g_theWorld->IsRiver(it.Pos()) || terrainutil_HasIrrigation(it.Pos()) ){
+				// A city is a water source too (Civ2-style)
+				if( g_theWorld->IsRiver(it.Pos()) || terrainutil_HasIrrigation(it.Pos()) || g_theWorld->HasCity(it.Pos()) ){
 					canbuild = true;
 						break;
 				}

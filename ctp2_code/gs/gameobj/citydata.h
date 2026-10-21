@@ -192,6 +192,10 @@ private:
 
 	/// Each ring's tiles, best first; filled with m_ringFood etc. by CollectResources
 	std::vector<std::vector<CityRingTile> > m_ringTiles;
+	/// Every tile in the radius, the centre included, best first (CollectResources)
+	std::vector<CityRingTile> m_cityTiles;
+	/// Indexes into m_cityTiles of the tiles worked, one a worker (CollectResourcesFinally)
+	std::vector<sint32>       m_workedTiles;
 #if defined(NEW_RESOURCE_PROCESS)
 	double           *m_farmersEff;
 	double           *m_laborersEff;
@@ -446,6 +450,8 @@ public:
 	double GetFoodRequired() const;
 	double GetFoodRequired(sint32 popCount) const;
 	double GetFoodRequiredPerCitizen() const;
+	double GetRationsSaving() const;
+	double GetRationsGrowthFactor() const;
 	bool   NeedMoreFood(sint32 foodBonus, sint32 &foodMissing, bool considerOnlyFromTerrain = false);
 	sint32 HowMuchMoreFoodNeeded(sint32 bonusFood = 0, bool onlyGrwoth = true, bool considerOnlyFromTerrain = false);
 
@@ -917,6 +923,9 @@ public:
 	sint32 GetRing(MapPoint pos) const;
 	sint32 GetWorkedTilesInRing(sint32 ring) const;
 	bool   IsWorkedTile(MapPoint const & pos) const;
+	void   PickWorkedTiles(sint32 workers, std::vector<sint32> & picked) const;
+	sint32 GetWorstWorkedTileScore() const;
+	static sint32 TileScore(CityRingTile const & tile);
 	sint32 GetFoodFromRing(sint32 ring) const;
 	sint32 GetProdFromRing(sint32 ring) const;
 	sint32 GetGoldFromRing(sint32 ring) const;

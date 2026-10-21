@@ -1558,6 +1558,27 @@ void UnitData::DeductHP(double fp)
 //              where cities can be built.
 //
 //----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//
+// Name       : UDCityTooClose
+//
+// Description: The city, if any, too close to pos to settle a new one there:
+//              cities stand at least three tiles apart, so the nearest may
+//              be two tiles away in between, not closer.
+//
+//----------------------------------------------------------------------------
+Unit UDCityTooClose(const MapPoint &pos)
+{
+	SquareIterator it(pos, 2);
+	for (it.Start(); !it.End(); it.Next())
+	{
+		Unit const city = g_theWorld->GetCity(it.Pos());
+		if (city.IsValid())
+			return city;
+	}
+	return Unit();
+}
+
 bool UDUnitTypeCanSettle(sint32 unit_type, sint32 government, const MapPoint &pos, const bool settleOnCity)
 {
 	const UnitRecord *rec = g_theUnitDB->Get(unit_type, government);
@@ -1573,6 +1594,9 @@ bool UDUnitTypeCanSettle(sint32 unit_type, sint32 government, const MapPoint &po
 	}
 
 	if(!settleOnCity && g_theWorld->HasCity(pos))
+		return false;
+
+	if(!settleOnCity && UDCityTooClose(pos).IsValid())
 		return false;
 
 	if(rec->GetNumCanSettleOn() > 0)
@@ -1778,12 +1802,14 @@ bool UnitData::Settle()
 {
 	DPRINTF(k_DBG_GAMESTATE, ("Unit %lx settling\n", m_id));
 
-	if(!CanSettle(m_pos)) {
+	Unit    nearbyCity  = g_theWorld->GetCell(m_pos)->GetCityOwner();
+	if (!nearbyCity.IsValid())
+		nearbyCity = UDCityTooClose(m_pos);
+
+	if(!nearbyCity.IsValid() && !CanSettle(m_pos)) {
 		DPRINTF(k_DBG_GAMESTATE, ("CanSettle false!\n"));
 		return false;
 	}
-
-	Unit    nearbyCity  = g_theWorld->GetCell(m_pos)->GetCityOwner();
 
 	if (nearbyCity.IsValid())
 	{
