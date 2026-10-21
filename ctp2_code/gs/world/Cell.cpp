@@ -386,6 +386,8 @@ sint32 Cell::GetFoodFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 Cell::GetFoodProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(this, good);
 	sint32 food = GetFoodFromTerrain();
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
 	for (size_t i = 0; i < count; ++i)
@@ -398,6 +400,7 @@ sint32 Cell::GetFoodProduced() const
 			if(effect) {
 				food += effect->GetBonusFood();
 			}
+			food += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_FOOD, HasRiver(), hasGood, good);
 		}
 	}
 
@@ -483,6 +486,8 @@ sint32 Cell::GetShieldsFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 Cell::GetShieldsProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(this, good);
 	sint32 shield = GetShieldsFromTerrain();
 
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
@@ -496,6 +501,7 @@ sint32 Cell::GetShieldsProduced() const
 			if(effect) {
 				shield += effect->GetBonusProduction();
 			}
+			shield += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_PRODUCTION, HasRiver(), hasGood, good);
 		}
 	}
 
@@ -581,6 +587,8 @@ sint32 Cell::GetGoldFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 Cell::GetGoldProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(this, good);
 	sint32 gold = GetGoldFromTerrain(); // Like in GetShieldProduced and in GetFoodProduced functions
 
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
@@ -594,6 +602,7 @@ sint32 Cell::GetGoldProduced() const
 			if(effect) {
 				gold += effect->GetBonusGold();
 			}
+			gold += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_GOLD, HasRiver(), hasGood, good);
 		}
 	}
 

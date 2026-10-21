@@ -1690,7 +1690,9 @@ sint32 Governor::ScoreGrowthImprovement(TiGoal & goal, const MapPoint & pos, sin
 		goal.utility += bonus;
 	}
 
-	return effect->GetBonusFood();
+	sint32 yieldBonus = 0;
+	terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, yieldBonus);
+	return yieldBonus;
 }
 
 //----------------------------------------------------------------------------
@@ -1772,7 +1774,9 @@ sint32 Governor::ScoreProductionImprovement(TiGoal & goal, const MapPoint & pos,
 		goal.utility += bonus;
 	}
 
-	return effect->GetBonusProduction();
+	sint32 yieldBonus = 0;
+	terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, yieldBonus);
+	return yieldBonus;
 }
 
 //----------------------------------------------------------------------------
@@ -1848,7 +1852,9 @@ sint32 Governor::ScoreGoldImprovement(TiGoal & goal, const MapPoint & pos, sint3
 		goal.utility += bonus;
 	}
 
-	return effect->GetBonusGold();
+	sint32 yieldBonus = 0;
+	terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, yieldBonus);
+	return yieldBonus;
 }
 
 //----------------------------------------------------------------------------
@@ -2622,19 +2628,22 @@ void Governor::GetBestFoodProdGoldImprovement(const MapPoint & pos, sint32 & foo
 			current_class |= rec->GetClass();
 		}
 
-		tmp_bonus = effect->GetBonusFood();
+		tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus);
 		if(tmp_bonus > max_bonus_food)
 		{
 			max_bonus_food = tmp_bonus;
 		}
 
-		tmp_bonus = effect->GetBonusProduction();
+		tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus);
 		if(tmp_bonus > max_bonus_prod)
 		{
 			max_bonus_prod = tmp_bonus;
 		}
 
-		tmp_bonus = effect->GetBonusGold();
+		tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus);
 		if(tmp_bonus > max_bonus_gold)
 		{
 			max_bonus_gold = tmp_bonus;
@@ -2659,21 +2668,24 @@ void Governor::GetBestFoodProdGoldImprovement(const MapPoint & pos, sint32 & foo
 		effect = terrainutil_GetTerrainEffect(rec, terrain_type);
 		if(effect)
 		{
-			tmp_bonus = effect->GetBonusFood();
+			tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus);
 			if(tmp_bonus > max_bonus_food)
 			{
 				food_imp = type;
 				max_bonus_food = tmp_bonus;
 			}
 
-			tmp_bonus = effect->GetBonusProduction();
+			tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus);
 			if(tmp_bonus > max_bonus_prod)
 			{
 				prod_imp = type;
 				max_bonus_prod = tmp_bonus;
 			}
 
-			tmp_bonus = effect->GetBonusGold();
+			tmp_bonus = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus);
 			if(tmp_bonus > max_bonus_gold)
 			{
 				gold_imp = type;

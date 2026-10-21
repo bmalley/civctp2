@@ -590,6 +590,8 @@ sint32 UnseenCell::GetFoodFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 UnseenCell::GetFoodProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(m_point, good);
 	sint32 food = GetFoodFromTerrain();
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
@@ -612,6 +614,7 @@ sint32 UnseenCell::GetFoodProduced() const
 		{
 			food += effect->GetBonusFood();
 		}
+		food += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_FOOD, HasRiver(), hasGood, good);
 	}
 
 	return food;
@@ -676,6 +679,8 @@ sint32 UnseenCell::GetShieldsFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 UnseenCell::GetShieldsProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(m_point, good);
 	sint32 shield = GetShieldsFromTerrain();
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
@@ -697,6 +702,7 @@ sint32 UnseenCell::GetShieldsProduced() const
 		{
 			shield += effect->GetBonusProduction();
 		}
+		shield += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_PRODUCTION, HasRiver(), hasGood, good);
 	}
 
 	return shield;
@@ -761,6 +767,8 @@ sint32 UnseenCell::GetGoldFromTerrain() const
 //----------------------------------------------------------------------------
 sint32 UnseenCell::GetGoldProduced() const
 {
+	sint32 good = 0;
+	bool const hasGood = g_theWorld->GetGood(m_point, good);
 	sint32 gold = GetGoldFromTerrain();
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
@@ -781,6 +789,7 @@ sint32 UnseenCell::GetGoldProduced() const
 		if(effect) {
 			gold += effect->GetBonusGold();
 		}
+		gold += terrainutil_GetPlacementBonus(effect, TERRAINUTIL_GOLD, HasRiver(), hasGood, good);
 	}
 
 	return gold;
