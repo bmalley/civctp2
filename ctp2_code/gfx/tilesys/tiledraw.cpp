@@ -1076,7 +1076,7 @@ sint32 TiledMap::DrawBlendedTile(aui_Surface *surface, const MapPoint &pos,sint3
 	Assert(tileInfo);
 	if (tileInfo == NULL) return 0;
 
-	uint16 index = tileInfo->GetTileNum();
+	uint16 index = tileInfo->GetDisplayTileNum();
 
 	BaseTile * baseTile = m_tileSet->GetBaseTile(index);
 
@@ -1085,7 +1085,7 @@ sint32 TiledMap::DrawBlendedTile(aui_Surface *surface, const MapPoint &pos,sint3
 
 	Pixel16 *data = baseTile->GetTileData();
 
-	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetTerrainType())->GetTilesetIndex();
+	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetDisplayTerrainType())->GetTilesetIndex();
 
 	uint16 tilesetIndex_short = (uint16) tilesetIndex;
 	Assert(tilesetIndex == ((sint32) tilesetIndex_short));
@@ -1195,7 +1195,7 @@ void TiledMap::DrawBlendedTileScaled(aui_Surface *surface, const MapPoint &pos, 
 		return;
 	}
 
-	uint16      index       = tileInfo->GetTileNum();
+	uint16      index       = tileInfo->GetDisplayTileNum();
     BaseTile *	baseTile    = m_tileSet->GetBaseTile(index);
 	if (baseTile == NULL)
     {
@@ -1205,7 +1205,7 @@ void TiledMap::DrawBlendedTileScaled(aui_Surface *surface, const MapPoint &pos, 
 	Pixel16 *   data = baseTile->GetTileData();
 
 	sint32      tilesetIndex =
-        g_theTerrainDB->Get(tileInfo->GetTerrainType())->GetTilesetIndex();
+        g_theTerrainDB->Get(tileInfo->GetDisplayTerrainType())->GetTilesetIndex();
 
 	uint16 tilesetIndex_short = (uint16) tilesetIndex;
 
@@ -2113,7 +2113,7 @@ void TiledMap::DrawBlackScaledLow(aui_Surface *surface, const MapPoint &pos, sin
 	Assert(tileInfo != NULL);
 	if (tileInfo == NULL) return;
 
-	uint16      index   = tileInfo->GetTileNum();
+	uint16      index   = tileInfo->GetDisplayTileNum();
 	BaseTile *  baseTile = m_tileSet->GetBaseTile(index);
 	if (baseTile == NULL) return;
 
@@ -2122,7 +2122,7 @@ void TiledMap::DrawBlackScaledLow(aui_Surface *surface, const MapPoint &pos, sin
     for (uint16 i = 0; i < k_NUM_TRANSITIONS; ++i)
     {
         t[i]    = m_tileSet->GetTransitionData
-                    (tileInfo->GetTerrainType(), tileInfo->GetTransition(i), i);
+                    (tileInfo->GetDisplayTerrainType(), tileInfo->GetTransition(i), i);
     }
 
     Pixel16 *   dataPtr     = data;
@@ -3062,14 +3062,14 @@ void TiledMap::DrawTransitionTile(aui_Surface *surface, const MapPoint &pos, sin
 	if (tileInfo == NULL)
 		return;
 
-	uint16      index       = tileInfo->GetTileNum();
+	uint16      index       = tileInfo->GetDisplayTileNum();
 	BaseTile*   baseTile    = m_tileSet->GetBaseTile(index);
 	if (baseTile == NULL)
 		return;
 
     Pixel16 *   data        = baseTile->GetTileData();
 
-	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetTerrainType())->GetTilesetIndex();
+	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetDisplayTerrainType())->GetTilesetIndex();
 
 	uint16 tilesetIndex_short = (uint16) tilesetIndex;
 
@@ -3242,7 +3242,7 @@ void TiledMap::DrawTransitionTileScaled(aui_Surface *surface, const MapPoint &po
 		return;
 	}
 
-	uint16      index = tileInfo->GetTileNum();
+	uint16      index = tileInfo->GetDisplayTileNum();
 	BaseTile *  baseTile = m_tileSet->GetBaseTile(index);
 	if (baseTile == NULL)
     {
@@ -3251,7 +3251,7 @@ void TiledMap::DrawTransitionTileScaled(aui_Surface *surface, const MapPoint &po
 
 	Pixel16 *data = baseTile->GetTileData();
 
-	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetTerrainType())->GetTilesetIndex();
+	sint32 tilesetIndex = g_theTerrainDB->Get(tileInfo->GetDisplayTerrainType())->GetTilesetIndex();
 	uint16 tilesetIndex_short = (uint16) tilesetIndex;
 
     Pixel16 * t[k_NUM_TRANSITIONS];
@@ -4490,11 +4490,11 @@ uint32 TiledMap::GetVisibleTerrainType(const MapPoint &pos) const
 		UnseenCellCarton ucell;
 		if(m_localVision->GetLastSeen(pos, ucell))
 		{
-			return ucell.m_unseenCell->GetTerrainType();
+			return TileInfo::DisplayTerrainType(ucell.m_unseenCell->GetTerrainType());
 		}
 	}
 
-	return g_theWorld->GetCell(pos)->GetTerrainType();
+	return TileInfo::DisplayTerrainType(g_theWorld->GetCell(pos)->GetTerrainType());
 }
 
 bool TiledMap::HasVisibleCity(const MapPoint &pos) const
