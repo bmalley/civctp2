@@ -638,7 +638,7 @@ UNIT_CATAMARAN {
    Firepower 1
    Armor 1
    MaxHP 10
-   ShieldCost 225
+   ShieldCost 120
    PowerPoints 100
    ShieldHunger 2
    GoldHunger 5
@@ -1848,7 +1848,7 @@ UNIT_HOPLITE {
    Firepower 1
    Armor 1
    MaxHP 10
-   ShieldCost 175
+   ShieldCost 90
    PowerPoints 100
    ShieldHunger 1
    GoldHunger 1
@@ -4273,7 +4273,7 @@ UNIT_WARRIOR {
    Firepower 1
    Armor 1
    MaxHP 10
-   ShieldCost 150
+   ShieldCost 75
    PowerPoints 100
    ShieldHunger 1
    GoldHunger 0 #you gotta afford something

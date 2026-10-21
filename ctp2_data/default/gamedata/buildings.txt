@@ -231,6 +231,8 @@ IMPROVE_BROKERAGE {
 ## 15 ##########################################################
 
 IMPROVE_CAPITOL {
+   PublicWorksPerTurn 15
+   GoldPerTurn 15
    DefaultIcon ICON_IMPROVE_CAPITOL
    Description DESCRIPTION_IMPROVE_CAPITOL
    EnableAdvance ADVANCE_FEUDALISM
@@ -246,7 +248,7 @@ IMPROVE_CITY_WALLS {
    DefaultIcon ICON_IMPROVE_CITY_WALLS
    Description DESCRIPTION_IMPROVE_CITY_WALLS
    EnableAdvance ADVANCE_STONE_WORKING
-   ProductionCost 450
+   ProductionCost 250
    Upkeep 2
    DefendersPercent 15
    PreventConversion 0.5
@@ -434,7 +436,7 @@ IMPROVE_GRANARY {
    DefaultIcon ICON_IMPROVE_GRANARY
    Description DESCRIPTION_IMPROVE_GRANARY
    EnableAdvance ADVANCE_AGRICULTURE
-   ProductionCost 300
+   ProductionCost 150
    Upkeep 1
    FoodPercent 0.1
    StarvationProtection 2
@@ -662,7 +664,7 @@ IMPROVE_SHRINE {
    DefaultIcon ICON_IMPROVE_SHRINE
    Description DESCRIPTION_IMPROVE_SHRINE
    EnableAdvance ADVANCE_RELIGION
-   ProductionCost 270
+   ProductionCost 150
    Upkeep 1
    HappyInc 1
    IsReligious

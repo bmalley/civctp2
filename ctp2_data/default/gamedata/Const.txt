@@ -141,12 +141,12 @@ PRODUCTION_PRODUCES_POLLUTION_THRESHOLD		200
 MAX_EMPIRE_DIST_COST  10.0  # max distance unhappyness
 HAPPINESS_LAUNCH_COST  0.0  # cost of going into space or landing for calculation happiness
 
-UNIT_WORKDAY  0.15 # slider to work
+UNIT_WORKDAY  0.10 # slider to work
 BASE_WORKDAY  1.0  # work per person when slider is zero
 UNIT_WAGES    1.0  # what does 1 notch mean
 BASE_WAGES    4.0  # gold per person when slider is zero
-UNIT_RATIONS  3.0  # what does 1 notch mean
-BASE_RATIONS 12.0  # food per person time POP_HUNGER when slider is zero
+UNIT_RATIONS  2.0  # what does 1 notch mean
+BASE_RATIONS  6.0  # food per person time POP_HUNGER when slider is zero
 
 CHANGE_CURRENTLY_BUILDING_ITEM_PENALTY 25  # what percent of the sheild store is lost it the current item is changed
 

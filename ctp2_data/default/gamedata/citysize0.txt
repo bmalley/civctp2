@@ -4,7 +4,7 @@ CITYSIZE_ZERO {
 		SquaredRadius	 0
 		IntRadius	 0
 		MaxWorkers	 0
-		GrowthRate 	 75
+		GrowthRate 	 150
 		MinGrowthRate 	 2500
 		MaxSurplusFood 	 250
 		BaseOvercrowding 4
@@ -17,7 +17,7 @@ CITYSIZE_ONE {
 		SquaredRadius	 2
 		IntRadius	 1
 		MaxWorkers	 6
-		GrowthRate 	 75
+		GrowthRate 	 150
 		MinGrowthRate 	 2500
 		MaxSurplusFood 	 250
 		BaseOvercrowding 4
@@ -30,7 +30,7 @@ CITYSIZE_TWO {
 		SquaredRadius	 5
 		IntRadius	 2
 		MaxWorkers	 18
-		GrowthRate	 75
+		GrowthRate	 150
 		MinGrowthRate	 5000
 		MaxSurplusFood	 500
 		BaseOvercrowding 4
@@ -43,7 +43,7 @@ CITYSIZE_THREE {
 		SquaredRadius	 13
 		IntRadius	 3
 		MaxWorkers	 32
-		GrowthRate	 75
+		GrowthRate	 150
 		MinGrowthRate	 7500
 		MaxSurplusFood	 750
 		BaseOvercrowding 4
@@ -56,7 +56,7 @@ CITYSIZE_FOUR {
 		SquaredRadius	 17
 		IntRadius	 4
 		MaxWorkers	 46
-		GrowthRate	 75
+		GrowthRate	 150
 		MinGrowthRate	 10000
 		MaxSurplusFood	 1000
 		BaseOvercrowding 4
@@ -69,7 +69,7 @@ CITYSIZE_FIVE {
 		SquaredRadius	 20
 		IntRadius	 4
 		MaxWorkers	 60
-		GrowthRate	 75
+		GrowthRate	 150
 		MinGrowthRate	 15000
 		MaxSurplusFood	 1500
 		BaseOvercrowding 4
@@ -82,7 +82,7 @@ CITYSIZE_SIX {
 		SquaredRadius	 20
 		IntRadius	 4
 		MaxWorkers	 60
-		GrowthRate	 75
+		GrowthRate	 150
 		MinGrowthRate	 20000
 		MaxSurplusFood	 2000
 		BaseOvercrowding 4
