@@ -212,6 +212,7 @@
 // - Reorderd the member variables and converted m_name to a pointer to reduce
 //   the needed memory. Updated for that the copy and serialize methods. (13-Jan-2019 Martin Gühmann)
 // - Implemented specialist increase of wonders for entertainers. (20-Jan-2019 Martin Gühmann)
+// - Added the profile option CitiesWorkBestTiles: the ring being filled yields its best tiles.
 //
 //----------------------------------------------------------------------------
 
@@ -1521,6 +1522,7 @@ void CityData::Copy(CityData *copy)
 	memcpy(m_ringProd,  copy->m_ringProd,  sizeof(sint32) * g_theCitySizeDB->NumRecords());
 	memcpy(m_ringGold,  copy->m_ringGold,  sizeof(sint32) * g_theCitySizeDB->NumRecords());
 	memcpy(m_ringSizes, copy->m_ringSizes, sizeof(sint32) * g_theCitySizeDB->NumRecords());
+	m_ringTiles = copy->m_ringTiles;
 #if defined(NEW_RESOURCE_PROCESS)
 	memcpy(m_farmersEff,    copy->m_farmersEff,    sizeof(double) * g_theCitySizeDB->NumRecords());
 	memcpy(m_laborersEff,   copy->m_laborersEff,   sizeof(double) * g_theCitySizeDB->NumRecords());
@@ -2501,6 +2503,15 @@ double CityData::GetUtilisationRatio(uint32 const squaredDistance) const
 // Remark(s)  : Added EnablesGood check for tile improvemnts.
 //
 //----------------------------------------------------------------------------
+namespace
+{
+	/// Best first for CitiesWorkBestTiles: food, shields and gold together
+	bool RingTileIsBetter(CityRingTile const & a, CityRingTile const & b)
+	{
+		return a.food + a.prod + a.gold > b.food + b.prod + b.gold;
+	}
+}
+
 void CityData::CollectResources()
 {
 	sint32 fullFoodTerrainTotal = 0;
@@ -2528,6 +2539,7 @@ void CityData::CollectResources()
 	std::fill(m_ringProd,       m_ringProd      + maxRing,  0);
 	std::fill(m_ringGold,       m_ringGold      + maxRing,  0);
 	std::fill(m_ringSizes,      m_ringSizes     + maxRing,  0);
+	m_ringTiles.assign(maxRing, std::vector<CityRingTile>());
 
 #if defined(NEW_RESOURCE_PROCESS)
 	std::fill(m_farmersEff,     m_farmersEff    + maxRing,  0);
@@ -2582,6 +2594,8 @@ void CityData::CollectResources()
 		m_ringProd[ring] += cell->GetShieldsProduced();
 		m_ringGold[ring] += cell->GetGoldProduced();
 		m_ringSizes[ring]++;
+		CityRingTile const tile = { it.Pos(), cell->GetFoodProduced(), cell->GetShieldsProduced(), cell->GetGoldProduced() };
+		m_ringTiles[ring].push_back(tile);
 		sint32 good;
 		if(g_theWorld->GetGood(it.Pos(), good))
 		{
@@ -2618,6 +2632,13 @@ void CityData::CollectResources()
 				}
 			}
 		}
+	}
+
+	// Best first: the most food, shields and gold together; ties keep the
+	// iterator's order, so every machine picks the same tiles
+	for (size_t ring = 0; ring < maxRing; ++ring)
+	{
+		std::stable_sort(m_ringTiles[ring].begin(), m_ringTiles[ring].end(), RingTileIsBetter);
 	}
 
 	CollectResourcesFinally();
@@ -2683,9 +2704,32 @@ void CityData::CollectResourcesFinally()
 	m_max_prod_from_terrain = fullProdTerrainTotal + partProdTerrainTotal;
 	m_max_gold_from_terrain = fullGoldTerrainTotal + partGoldTerrainTotal;
 
-	m_gross_food = fullFoodTerrainTotal + ceil(utilizationRatio * double(partFoodTerrainTotal));
-	m_gross_production = (sint32)(fullProdTerrainTotal + ceil(utilizationRatio * double(partProdTerrainTotal)));
-	m_gross_gold = (sint32)(fullGoldTerrainTotal + ceil(utilizationRatio * double(partGoldTerrainTotal)));
+	if (hasPartialRing && g_theProfileDB->IsCitiesWorkBestTiles()
+	    && m_ringTiles.size() == maxRing
+	    && static_cast<sint32>(m_ringTiles[m_workerPartialUtilizationIndex].size()) == m_ringSizes[m_workerPartialUtilizationIndex])
+	{
+		// The ring being filled: its best tiles in full, as many as the ring's
+		// share of workers is of its tiles, instead of that share of every tile
+		std::vector<CityRingTile> const & tiles  = m_ringTiles[m_workerPartialUtilizationIndex];
+		sint32 const                  worked = GetWorkedTilesInRing(m_workerPartialUtilizationIndex);
+		sint32 food = 0, prod = 0, gold = 0;
+		for (sint32 i = 0; i < worked; ++i)
+		{
+			food += tiles[i].food;
+			prod += tiles[i].prod;
+			gold += tiles[i].gold;
+		}
+
+		m_gross_food       = fullFoodTerrainTotal + food;
+		m_gross_production = fullProdTerrainTotal + prod;
+		m_gross_gold       = fullGoldTerrainTotal + (m_is_rioting ? 0 : gold);
+	}
+	else
+	{
+		m_gross_food = fullFoodTerrainTotal + ceil(utilizationRatio * double(partFoodTerrainTotal));
+		m_gross_production = (sint32)(fullProdTerrainTotal + ceil(utilizationRatio * double(partProdTerrainTotal)));
+		m_gross_gold = (sint32)(fullGoldTerrainTotal + ceil(utilizationRatio * double(partGoldTerrainTotal)));
+	}
 
 	m_gross_food += FoodFromTrade();
 	m_gross_production += ProdFromTrade();
@@ -10775,6 +10819,78 @@ sint32 CityData::GetRing(MapPoint pos) const
 
 	Assert(false);
 	return -1;
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::GetWorkedTilesInRing
+//
+// Description: How many of a ring's tiles the city works when it works its
+//              best tiles (profile option CitiesWorkBestTiles).
+//
+// Parameters : ring: index in the city size database
+//
+// Returns    : All tiles of a filled ring, none of a ring beyond the one being
+//              filled, and for the ring being filled its share of workers
+//              times its tiles, rounded, at least one.
+//
+// Remark(s)  : So a filled ring yields what it does with the ring harvest,
+//              and each worker in the ring being filled works as many tiles
+//              as the ring has per worker (8 for 6 in the first ring).
+//
+//----------------------------------------------------------------------------
+sint32 CityData::GetWorkedTilesInRing(sint32 ring) const
+{
+	if (ring < 0 || ring >= g_theCitySizeDB->NumRecords())
+		return 0;
+
+	sint32 const tiles = m_ringSizes[ring];
+	if (tiles <= 0)
+		return 0;    // all its tiles belong to other cities
+	if (ring <= m_workerFullUtilizationIndex)
+		return tiles;
+	if (ring != m_workerPartialUtilizationIndex)
+		return 0;
+
+	sint32 fullSquaredRadius;
+	sint32 partSquaredRadius;
+	GetFullAndPartialRadii(fullSquaredRadius, partSquaredRadius);
+	double const ratio = GetUtilisationRatio(partSquaredRadius);
+	if (ratio <= 0.0)
+		return 0;
+
+	sint32 const worked = static_cast<sint32>(floor(ratio * tiles + 0.5));
+	return std::max<sint32>(1, std::min<sint32>(tiles, worked));
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : CityData::IsWorkedTile
+//
+// Description: Whether the city works the tile at pos when it works its best
+//              tiles (profile option CitiesWorkBestTiles).
+//
+// Remark(s)  : As of the last CollectResources; the centre is always worked.
+//
+//----------------------------------------------------------------------------
+bool CityData::IsWorkedTile(MapPoint const & pos) const
+{
+	sint32 const ring = GetRing(pos);
+	if (ring < 0)
+		return false;
+	if (ring <= m_workerFullUtilizationIndex || ring == 0)
+		return true;
+	if (ring != m_workerPartialUtilizationIndex || static_cast<size_t>(ring) >= m_ringTiles.size())
+		return false;
+
+	std::vector<CityRingTile> const & tiles  = m_ringTiles[ring];
+	sint32 const                  worked = std::min<sint32>(GetWorkedTilesInRing(ring), static_cast<sint32>(tiles.size()));
+	for (sint32 i = 0; i < worked; ++i)
+	{
+		if (tiles[i].pos == pos)
+			return true;
+	}
+	return false;
 }
 
 //----------------------------------------------------------------------------
