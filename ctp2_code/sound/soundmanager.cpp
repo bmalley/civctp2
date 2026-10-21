@@ -924,14 +924,16 @@ void SoundManager::StartMusic(const sint32 &InTrackNum)
 	
 		m_curTrack = trackNum;
 
+		// Track numbers are the CD's: track 1 was data, the music is TrackNN.ogg
+		// for CD track NN (Track02 to Track11), so no offset
 		if(m_useOggTracks == C3DIR_MUSIC)
 		{
-			sprintf(buf, "Track%02d.ogg", m_curTrack+1);
+			sprintf(buf, "Track%02d.ogg", m_curTrack);
 			g_civPaths->FindFile(C3DIR_MUSIC, buf, s, true);
 		}
 		else if(m_useOggTracks == C3DIR_APPBASE)
 		{
-			sprintf(buf, "music/Track%02d.ogg", m_curTrack+1);
+			sprintf(buf, "music/Track%02d.ogg", m_curTrack);
 			g_civPaths->FindFile(C3DIR_APPBASE, buf, s, true);
 		}
 
