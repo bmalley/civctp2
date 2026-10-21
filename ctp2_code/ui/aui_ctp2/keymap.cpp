@@ -26,6 +26,7 @@
 //
 // - Added music options key (Ahenobarb)
 // - Function table order and range corrections.
+// - Functions missing from userkeymap.txt get their keymap.txt key if free.
 //
 //----------------------------------------------------------------------------
 
@@ -148,6 +149,9 @@ static FUNC_TABLE func2key[] = {
 	{ 0, KEY_FUNCTION_ENTER_COMMAND, "ENTER_COMMAND"},
 	{ 0, KEY_FUNCTION_ENTER_COMMAND_ALTERNATE, "ENTER_COMMAND_ALTERNATE"},
 
+	// Map controls added later
+	{ 0, KEY_FUNCTION_TOGGLE_TILE_YIELDS, "TILE_YIELDS"},
+
 	// Miscellaneous (CTP1, not shown at option|keyboard)
 	// For these there are no strings available in km_screen.ldl.
 	// Everything without strings in km_screen.ldl comes below.
@@ -180,14 +184,27 @@ KEYMAP::KEYMAP(BOOL useDefault)
 	FILE *fin = NULL;
 	if(!useDefault)
 		fin = c3files_fopen(C3DIR_APPBASE, "userkeymap.txt", "r");
-	if(!fin)
+	if (fin)
+	{
+		load(fin, false);
+		// Functions added since userkeymap.txt was saved get their default key, if it is free
 		fin = c3files_fopen(C3DIR_UIDATA, "keymap.txt", "r");
+		if (fin)
+			load(fin, true);
+		return;
+	}
 
+	fin = c3files_fopen(C3DIR_UIDATA, "keymap.txt", "r");
 	if (fin == NULL)
 	{
 		c3errors_FatalDialog ("keymap.txt", "Could not open keymap.txt or userkeymap.txt");
 	}
+	load(fin, false);
+}
 
+void KEYMAP::load(FILE *fin, bool onlyUnbound)
+{
+	sint32 i;
 	sint32 k, old;
 	char funcstr[80];
 	char keystr[80];
@@ -277,6 +294,12 @@ KEYMAP::KEYMAP(BOOL useDefault)
 		{
 			if (strcmp(funcstr, func2key[i].str) == 0)
 			{
+				if (onlyUnbound && (func2key[i].keycode != 0 || get_function(val) != KEY_FUNCTION_NOOP))
+				{
+					searching = FALSE;
+					break;
+				}
+
 				do
 				{
 					if (key2func[k].function == KEY_FUNCTION_NOOP)

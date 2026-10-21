@@ -207,6 +207,7 @@ ProfileDB::ProfileDB()
     m_dragScroll                        (TRUE),
     m_wheelZoom                         (FALSE),
     m_rightClickMove                    (FALSE),
+    m_showTileYields                    (FALSE),
     m_mapFullResolution                 (FALSE),
     m_observerMode                      (FALSE),
     m_observerReveal                    (TRUE),
@@ -431,6 +432,7 @@ ProfileDB::ProfileDB()
 	Var("DragScroll"                 , PV_BOOL  , &m_dragScroll                 , NULL);
 	Var("WheelZoom"                  , PV_BOOL  , &m_wheelZoom                  , NULL);
 	Var("RightClickMove"             , PV_BOOL  , &m_rightClickMove             , NULL);
+	Var("ShowTileYields"             , PV_BOOL  , &m_showTileYields             , NULL);
 	Var("MapFullResolution"          , PV_BOOL  , &m_mapFullResolution          , NULL);
 	Var("ObserverMode"               , PV_BOOL  , &m_observerMode               , NULL);
 	Var("ObserverReveal"             , PV_BOOL  , &m_observerReveal             , NULL);
