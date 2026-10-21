@@ -23,6 +23,8 @@
 // Modifications from the original Activision code:
 //
 // - Repaired memory leak.
+// - Deep ocean is drawn as shallow water until Oil Refining (DeepOcean), as
+//   in CtP1: GetDisplayTileNum.
 //
 //----------------------------------------------------------------------------
 //
@@ -37,21 +39,15 @@
 #include "GoodActor.h"
 #include "profileDB.h"      // g_theProfileDB
 
-#if 0   // referenced from unreachable code only
-
-#include "pixelutils.h"
 #include "player.h"         // g_player
+#include "aui_control.h"
+#include "scenarioeditor.h" // ScenarioEditor::IsShown
 #include "SelItem.h"        // g_selected_item
 #include "TerrainRecord.h"
 #include "terrainutil.h"
-#include "tileutils.h"
 
 extern sint32			g_fog_toggle;
 extern sint32			g_god;
-
-#define k_OCEAN_BEFORE_OCEANOGRAPHY_BASE_TILE			10
-
-#endif   // referenced from unreachable code only
 
 TileInfo::TileInfo()
 :
@@ -94,32 +90,68 @@ TileInfo::~TileInfo()
 	delete m_goodActor;
 }
 
-TILEINDEX TileInfo::GetTileNum(void)
+TILEINDEX TileInfo::GetTileNum(void) const
 {
 	return m_tileNum;
-#if 0   // Unreachable code
-	if (g_fog_toggle)
-		return m_tileNum;
-	if ( g_god ) {
-		return m_tileNum;
-	}
+}
 
-	if (!g_player[g_selected_item->GetVisiblePlayer()]) return m_tileNum;
+//----------------------------------------------------------------------------
+//
+// Name       : TileInfo::IsHiddenDeepOcean
+//
+// Description: Whether terrain of this type is drawn as shallow water for
+//              the player at the screen.
+//
+// Parameters : terrainType : index into g_theTerrainDB
+//
+// Globals    : g_fog_toggle, g_god, g_selected_item, g_player
+//              (and never in the scenario editor)
+//
+// Returns    : bool : true while hidden
+//
+// Remark(s)  : Until the visible player has an advance with DeepOcean (Oil
+//              Refining) or the global radar, sea that shallow-water ships
+//              can't enter (deep, shelf, trench, rift, volcano) is drawn as
+//              shallow water, as CtP1 did. Activision's CtP2 had the same
+//              check in GetTileNum behind an early return. It's kept out of
+//              GetTileNum because PostProcessMap stores that value back.
+//
+//----------------------------------------------------------------------------
+bool TileInfo::IsHiddenDeepOcean(sint32 terrainType)
+{
+	if (g_fog_toggle || g_god || !g_selected_item || ScenarioEditor::IsShown())
+		return false;
 
-	if(g_player[g_selected_item->GetVisiblePlayer()]->m_hasGlobalRadar) {
-		return m_tileNum;
-	} else if (g_player[g_selected_item->GetVisiblePlayer()] &&
-		g_player[g_selected_item->GetVisiblePlayer()]->GetDeepOceanVisible()) {
-		return m_tileNum;
-	} else {
-		if(g_theTerrainDB->Get(m_terrainType)->GetMovementTypeSea() &&
-			m_terrainType != TERRAIN_WATER_BEACH) {
-			return k_OCEAN_BEFORE_OCEANOGRAPHY_BASE_TILE;
-		} else {
-			return m_tileNum;
-		}
-	}
-#endif  // unreachable code
+	sint32 const    visible = g_selected_item->GetVisiblePlayer();
+	if (visible < 0 || visible >= k_MAX_PLAYERS)
+		return false;
+
+	Player const *  player  = g_player[visible];
+	if (!player || player->m_hasGlobalRadar || player->GetDeepOceanVisible())
+		return false;
+
+	TerrainRecord const * rec = g_theTerrainDB->Get(terrainType);
+	return rec && rec->GetMovementTypeSea() && !rec->GetMovementTypeShallowWater();
+}
+
+// The terrain to draw for terrainType: shallow water while hidden, else itself.
+// Use it wherever drawing picks a tileset (transitions) or a minimap colour.
+sint32 TileInfo::DisplayTerrainType(sint32 terrainType)
+{
+	return IsHiddenDeepOcean(terrainType) ? static_cast<sint32>(TERRAIN_WATER_SHALLOW) : terrainType;
+}
+
+uint8 TileInfo::GetDisplayTerrainType(void) const
+{
+	return static_cast<uint8>(DisplayTerrainType(m_terrainType));
+}
+
+// The base tile to draw: shallow water's while hidden, else the tile's.
+TILEINDEX TileInfo::GetDisplayTileNum(void) const
+{
+	return IsHiddenDeepOcean(m_terrainType)
+	    ? static_cast<TILEINDEX>(g_theTerrainDB->Get(TERRAIN_WATER_SHALLOW)->GetTilesetIndex())
+	    : m_tileNum;
 }
 
 void TileInfo::SetGoodActor(sint32 index, MapPoint const & pos)

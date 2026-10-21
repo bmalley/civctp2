@@ -87,7 +87,11 @@ public:
 	uint8 GetTransform() const { return m_transform; }
 	void SetTransform(uint8 trans) { m_transform = trans; }
 
-	TILEINDEX GetTileNum(void);
+	TILEINDEX GetTileNum(void) const;
+	TILEINDEX GetDisplayTileNum(void) const;
+	uint8 GetDisplayTerrainType(void) const;
+	static bool IsHiddenDeepOcean(sint32 terrainType);
+	static sint32 DisplayTerrainType(sint32 terrainType);
 
 	void SetTileNum(TILEINDEX index) { m_tileNum = index; }
 
