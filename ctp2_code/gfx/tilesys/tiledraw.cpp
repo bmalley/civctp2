@@ -3484,7 +3484,8 @@ namespace
 //              In the visible player's own cities the numbers show what the
 //              city takes: full where it harvests the whole ring, faded on
 //              the ring it is filling (by how full it is), and dim where it
-//              takes nothing yet. Other tiles show plain numbers.
+//              takes nothing yet. With CitiesWorkBestTiles, worked tiles are
+//              full and the rest dim. Other tiles show plain numbers.
 //
 //----------------------------------------------------------------------------
 void TiledMap::DrawTileYields(aui_Surface * surf)
@@ -3559,7 +3560,11 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 			{
 				CityData const * cityData = cityOwner.GetData()->GetCityData();
 				double ratio = 1.0;
-				if (cityData)
+				if (cityData && g_theProfileDB->IsCitiesWorkBestTiles())
+				{
+					ratio = cityData->IsWorkedTile(pos) ? 1.0 : 0.0;
+				}
+				else if (cityData)
 				{
 					// The full radius first: a city that has filled its last ring has no
 					// partial ring, and GetUtilisationRatio then says 0 everywhere

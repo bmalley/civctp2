@@ -314,6 +314,7 @@ private:
     sint32 m_wheelZoom;
     sint32 m_rightClickMove;
     sint32 m_showTileYields;
+    sint32 m_citiesWorkBestTiles;
     sint32 m_mapFullResolution;
     sint32 m_observerMode;
     sint32 m_observerReveal;
@@ -818,6 +819,7 @@ public:
     BOOL   IsRightClickMove() const             { return m_rightClickMove; }
     BOOL   IsShowTileYields() const             { return m_showTileYields; }
     void   SetShowTileYields(BOOL on)           { m_showTileYields = on; }
+    BOOL   IsCitiesWorkBestTiles() const        { return m_citiesWorkBestTiles; }
     BOOL   IsMapFullResolution() const          { return m_mapFullResolution; }
     BOOL   IsObserverMode() const               { return m_observerMode; }
     BOOL   IsObserverReveal() const             { return m_observerReveal; }
