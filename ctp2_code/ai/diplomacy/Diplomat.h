@@ -244,6 +244,14 @@ public:
 	void ExecuteResponse( const PLAYER_INDEX sender,
 						  const PLAYER_INDEX receiver );
 
+	// Why this player turns down a human sender's proposal, for the response
+	// window only. Not saved, and never read by the AI. Notes from a robot
+	// sender are ignored; the first note for a proposal wins.
+	void NoteRejectReason(const PLAYER_INDEX sender, const MBCHAR * reasonName);
+
+	// The noted reason (if useNoted), else one from regard, else a generic one.
+	StringId ExplainRejection(const PLAYER_INDEX sender, const bool useNoted = true) const;
+
 	const Response & GetResponsePending(const PLAYER_INDEX foreignerId) const;
 
 	const Response & GetResponse(const PLAYER_INDEX foreignerId) const;
