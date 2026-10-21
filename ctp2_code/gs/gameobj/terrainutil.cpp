@@ -269,6 +269,92 @@ sint32 terrainutil_GetTimeToBuild(const MapPoint &pos, sint32 fromType, sint32 t
 	return 10;
 }
 
+//----------------------------------------------------------------------------
+//
+// Name       : terrainutil_GetPlacementBonus
+//
+// Description: The extra yield an improvement's effect gives for where it is:
+//              RiverBonus* on a river, GoodBonus* on one of its BonusGood.
+//
+// Parameters : effect : the improvement's effect for the tile's terrain
+//              yield  : food, production or gold
+//              river  : the tile has a river
+//              hasGood, good: the tile's good, if any
+//
+// Returns    : sint32 : added to the effect's BonusFood/Production/Gold
+//
+//----------------------------------------------------------------------------
+sint32 terrainutil_GetPlacementBonus(const TerrainImprovementRecord::Effect *effect, TERRAINUTIL_YIELD yield,
+                                     bool river, bool hasGood, sint32 good)
+{
+	if (!effect)
+		return 0;
+
+	sint32 total = 0;
+	sint32 bonus = 0;
+	if (river)
+	{
+		if (    (yield == TERRAINUTIL_FOOD       && effect->GetRiverBonusFood(bonus))
+		     || (yield == TERRAINUTIL_PRODUCTION && effect->GetRiverBonusProduction(bonus))
+		     || (yield == TERRAINUTIL_GOLD       && effect->GetRiverBonusGold(bonus))
+		   )
+		{
+			total += bonus;
+		}
+	}
+
+	if (hasGood)
+	{
+		for (sint32 i = 0; i < effect->GetNumBonusGood(); ++i)
+		{
+			if (effect->GetBonusGoodIndex(i) != good)
+				continue;
+
+			if (    (yield == TERRAINUTIL_FOOD       && effect->GetGoodBonusFood(bonus))
+			     || (yield == TERRAINUTIL_PRODUCTION && effect->GetGoodBonusProduction(bonus))
+			     || (yield == TERRAINUTIL_GOLD       && effect->GetGoodBonusGold(bonus))
+			   )
+			{
+				total += bonus;
+			}
+			break;
+		}
+	}
+
+	return total;
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : terrainutil_GetEffectBonus
+//
+// Description: An improvement effect's food, production or gold bonus at pos,
+//              with its river and good bonuses.
+//
+// Returns    : bool : whether the effect gives any such bonus there; bonus is
+//                     left as it was when not
+//
+//----------------------------------------------------------------------------
+bool terrainutil_GetEffectBonus(const TerrainImprovementRecord::Effect *effect, TERRAINUTIL_YIELD yield,
+                                const MapPoint &pos, sint32 &bonus)
+{
+	if (!effect)
+		return false;
+
+	sint32 base = 0;
+	bool const hasBase = (yield == TERRAINUTIL_FOOD       && effect->GetBonusFood(base))
+	                  || (yield == TERRAINUTIL_PRODUCTION && effect->GetBonusProduction(base))
+	                  || (yield == TERRAINUTIL_GOLD       && effect->GetBonusGold(base));
+	sint32 good = 0;
+	bool const   hasGood   = g_theWorld->GetGood(pos, good);
+	sint32 const placement = terrainutil_GetPlacementBonus(effect, yield, g_theWorld->GetCell(pos)->HasRiver(), hasGood, good);
+	if (!hasBase && placement == 0)
+		return false;
+
+	bonus = base + placement;
+	return true;
+}
+
 const TerrainImprovementRecord::Effect *terrainutil_GetTerrainEffect(const TerrainImprovementRecord *rec,
 																	 const MapPoint &pos)
 {

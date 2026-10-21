@@ -1337,15 +1337,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusFood(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus);
 		bonusFood += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusProduction(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus);
 		bonusProduction += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusGold(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
 		goal.type = best_growth_improvement;
@@ -1403,15 +1403,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusFood(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus);
 		bonusFood += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusProduction(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus);
 		bonusProduction += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusGold(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
 		goal.type = best_production_improvement;
@@ -1439,15 +1439,15 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		effect = terrainutil_GetTerrainEffect(rec, pos);
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusFood(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus);
 		bonusFood += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusProduction(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus);
 		bonusProduction += tmp_bonus;
 
 		tmp_bonus = 0; // left as it was when the effect has no such bonus
-		effect->GetBonusGold(tmp_bonus);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus);
 		bonusCommerce += tmp_bonus;
 
 		goal.type = best_gold_improvement;
@@ -1680,19 +1680,19 @@ void Governor::GetBestFoodProdGoldImprovement(const MapPoint & pos, sint32 & foo
 			current_class |= rec->GetClass();
 		}
 
-		if(effect->GetBonusFood(tmp_bonus)
+		if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus)
 		&& tmp_bonus > max_bonus_food
 		){
 			max_bonus_food = tmp_bonus;
 		}
 
-		if(effect->GetBonusProduction(tmp_bonus)
+		if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus)
 		&& tmp_bonus > max_bonus_prod
 		){
 			max_bonus_prod = tmp_bonus;
 		}
 
-		if(effect->GetBonusGold(tmp_bonus)
+		if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus)
 		&& tmp_bonus > max_bonus_gold
 		){
 			max_bonus_gold = tmp_bonus;
@@ -1717,21 +1717,21 @@ void Governor::GetBestFoodProdGoldImprovement(const MapPoint & pos, sint32 & foo
 		effect = terrainutil_GetTerrainEffect(rec, terrain_type);
 		if(effect)
 		{
-			if(effect->GetBonusFood(tmp_bonus)
+			if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, tmp_bonus)
 			&& tmp_bonus > max_bonus_food
 			){
 				food_imp = type;
 				max_bonus_food = tmp_bonus;
 			}
 
-			if(effect->GetBonusProduction(tmp_bonus)
+			if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, tmp_bonus)
 			&& tmp_bonus > max_bonus_prod
 			){
 				prod_imp = type;
 				max_bonus_prod = tmp_bonus;
 			}
 
-			if(effect->GetBonusGold(tmp_bonus)
+			if(terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, tmp_bonus)
 			&& tmp_bonus > max_bonus_gold
 			){
 				gold_imp = type;

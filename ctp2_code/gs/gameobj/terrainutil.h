@@ -54,6 +54,11 @@ sint32 terrainutil_GetTimeToBuild(const MapPoint &pos, sint32 fromType, sint32 t
 sint32 terrainutil_GetProductionTime(sint32 impType, const MapPoint &pos, sint32 extraData);
 sint32 terrainutil_GetProductionCost(sint32 impType, const MapPoint &pos, sint32 extraData);
 sint32 terrainutil_GetBonusProductionExport(sint32 impType, const MapPoint &pos, sint32 extraData); //EMOD 4-5-2006
+enum TERRAINUTIL_YIELD { TERRAINUTIL_FOOD, TERRAINUTIL_PRODUCTION, TERRAINUTIL_GOLD };
+sint32 terrainutil_GetPlacementBonus(const TerrainImprovementRecord::Effect *effect, TERRAINUTIL_YIELD yield,
+                                     bool river, bool hasGood, sint32 good);
+bool terrainutil_GetEffectBonus(const TerrainImprovementRecord::Effect *effect, TERRAINUTIL_YIELD yield,
+                                const MapPoint &pos, sint32 &bonus);
 const TerrainImprovementRecord::Effect *terrainutil_GetTerrainEffect(const TerrainImprovementRecord *rec,
 																	 const MapPoint &pos);
 const TerrainImprovementRecord::Effect *terrainutil_GetTerrainEffect(const TerrainImprovementRecord *rec,
