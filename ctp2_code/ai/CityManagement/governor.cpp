@@ -752,7 +752,9 @@ void Governor::SliderTests::CalcTests(PLAYER_INDEX playerId)
 			m_happinessTest = false;
 		}
 
-		m_food += city->GetNetCityFood();
+		// Food saved by lean rations no longer makes cities grow, so it counts
+		// for nothing here (CityData::CalculateGrossGrowthRate)
+		m_food += city->GetNetCityFood() - city->GetRationsSaving();
 		m_production += city->GetNetCityProduction();
 
 		total_gold_cost += city->GetWagesNeeded();
@@ -1290,6 +1292,11 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 
 	goal.type = -1;
 
+	// What this tile's improvement adds, for ranking on the real gain below
+	sint32 const foodBefore = bonusFood;
+	sint32 const prodBefore = bonusProduction;
+	sint32 const goldBefore = bonusCommerce;
+
 	sint32 food_ter = -1;
 	sint32 prod_ter = -1;
 	sint32 gold_ter = -1;
@@ -1539,31 +1546,38 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 		}
 	}
 
-#if defined(CTP1_HAS_RISEN_FROM_THE_GRAVE)
-	// CTP1: utilisation depends on worker placement, and is either 0 or 1.
-#else
-	// CTP2: utilisation depends on the number of available workers and the
-	// (ring) distance from the city, and may be any fraction from 0.0 to 1.0.
+	// One worker a tile (CityData::PickWorkedTiles): a tile counts in full
+	// if a worker works it or would once it is improved, and little otherwise
 	if ((goal.type >= 0) && city)
 	{
-		city->GetPop(citySize);
-
-		// Only decrease utility if the city has grown beyond the first ring.
-		if(citySize > unitutil_GetSmallCityMaxSize())
+		if (terrain_type != terrainutil_GetDead() && goal.utility < 9999.0)
 		{
-			// Also cleanup if the city does not use the tile
-			if(terrain_type != terrainutil_GetDead())
+			Cell const * cell = g_theWorld->GetCell(pos);
+			CityRingTile improved;
+			improved.pos  = pos;
+			improved.food = cell->GetFoodProduced()    + bonusFood       - foodBefore;
+			improved.prod = cell->GetShieldsProduced() + bonusProduction - prodBefore;
+			improved.gold = cell->GetGoldProduced()    + bonusCommerce   - goldBefore;
+
+			if (!city->IsWorkedTile(pos)
+			&&  CityData::TileScore(improved) <= city->GetWorstWorkedTileScore()
+			){
+				goal.utility *= 0.25;
+			}
+
+			// Rank on what the improvement adds here: a farm on a river or a
+			// good adds more than one on plain land
+			sint32 const gain = 3 * (bonusFood - foodBefore)
+			                  + 2 * (bonusProduction - prodBefore)
+			                  +     (bonusCommerce - goldBefore);
+			if (gain > 0)
 			{
-#if defined(NEW_RESOURCE_PROCESS)
-				sint32 ring = city->GetRing(pos);
-				goal.utility *= static_cast<double>(city->GetWorkingPeopleInRing(ring)) / static_cast<double>(city->GetRingSize(ring));
-#else
-				sint32 const sqDist = MapPoint::GetSquaredDistance(city_owner.RetPos(), pos);
-				goal.utility *= city->GetUtilisationRatio(sqDist);
-#endif
+				goal.utility *= std::max(0.5, std::min(2.0, gain / 30.0));
 			}
 		}
-		else
+
+		city->GetPop(citySize);
+		if(citySize <= unitutil_GetSmallCityMaxSize())
 		{
 			strategy.GetImproveSmallCityGrowthBonus(bonus);
 			bonus        *= strategy.GetSmallCityImproveCoeff();
@@ -1574,7 +1588,6 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal, sint32
 	{
 		goal.utility = 0.0;
 	}
-#endif
 
 	return (goal.type >= 0);
 }
