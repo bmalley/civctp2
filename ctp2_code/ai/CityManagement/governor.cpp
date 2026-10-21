@@ -760,7 +760,7 @@ void Governor::SliderTests::CalcTests(PLAYER_INDEX playerId)
 			m_happinessTest = false;
 		}
 
-		m_food += city->GetNetCityFood();
+		m_food += city->GetNetCityFood() - city->GetRationsSaving();
 		m_production += city->GetNetCityProduction();
 
 		total_gold_cost += city->GetWagesNeeded();
@@ -2354,86 +2354,49 @@ bool Governor::FindBestTileImprovement(const MapPoint &pos, TiGoal &goal) const
 	return (goal.type >= 0);
 }
 
-//----------------------------------------------------------------------------
-//
-// Name       : Governor::ScaleUtilityForCitySize
-//
-// Description: Final adjustment step for a gathered tile-improvement
-//              candidate's utility, based on the owning city's size - not
-//              its actual resource needs (see [[tileimp_need_vs_terrain]]
-//              in the session's own notes). Two ring-related adjustments:
-//              the original ring-distance preference (inner rings over
-//              outer ones), and - moved in from PlaceTileImprovements, see
-//              [[tileimp_placement_priority]] - a per-ring-per-city
-//              saturation discount on top, of up to one ring-step's worth
-//              of utility, proportional to how much of its own ring this
-//              city has already improved, so one city's fully-saturated
-//              ring can't keep winning a shared turn's budget over a
-//              sibling city's still-empty same-numbered ring. The
-//              saturation discount needs the whole city's ring tallies
-//              finalized first, so - unlike before - this whole function
-//              can no longer be called from inside FindBestTileImprovement
-//              while that city's gathering loop is still running (the
-//              tallies for the current/later rings aren't final yet);
-//              PlaceTileImprovements now calls it once per gathered
-//              candidate, after its own gathering loop (and so the
-//              tallies) is complete.
-//
-// Parameters : goal:              The candidate goal, utility adjusted in place
-//              city:              The tile's owning city (NULL clears utility)
-//              pos:               Position of the candidate tile
-//              terrain_type:      The tile's current terrain type
-//              strategy:          The city owner's current strategy
-//              ringImprovedCount: How many of this candidate's ring's eligible tiles this city already counts as improved
-//              ringTotalCount:    How many of this candidate's ring's tiles are eligible at all
-//
-// Globals    : -
-//
-// Returns    : -
-//
-//----------------------------------------------------------------------------
+// Adjust improvement priority for one worker per tile, after gathering candidates.
 void Governor::ScaleUtilityForCitySize(TiGoal & goal, CityData * city, const MapPoint & pos, sint32 terrain_type, const StrategyRecord & strategy, sint32 ringImprovedCount, sint32 ringTotalCount) const
 {
-#if defined(CTP1_HAS_RISEN_FROM_THE_GRAVE)
-	// CTP1: utilisation depends on worker placement, and is either 0 or 1.
-#else
-	if ((goal.type >= 0) && city)
-	{
-		// Also cleanup if the city does not use the tile
-		if(terrain_type != terrainutil_GetDead())
-		{
-#if defined(NEW_RESOURCE_PROCESS)
-			sint32 ring = city->GetRing(pos);
-			goal.utility *= static_cast<double>(city->GetWorkingPeopleInRing(ring)) / static_cast<double>(city->GetRingSize(ring));
-#else
-			double ringFactor = city->GetRingImprovementPriority(pos);
-
-			// Soft, proportional discount on top, not a hard gate: a
-			// ring that is e.g. half-improved only loses half of one
-			// ring-step's worth of utility (GetRingImprovementPriorityFraction()
-			// is the gap GetRingImprovementPriority() leaves between
-			// two adjacent rings), so a fully-improved inner ring can
-			// at most bring its own candidates down to parity with the
-			// next ring out - it can never outweigh a utility
-			// difference bigger than one ring-step, such as one of the
-			// strategy's own Improve*Bonus additions applied earlier.
-			if(ringTotalCount > 0)
-			{
-				double ringStillUnimproved =
-				          static_cast<double>(ringImprovedCount) /
-				          static_cast<double>(ringTotalCount);
-				ringFactor -= ringStillUnimproved * city->GetRingImprovementPriorityFraction();
-			}
-
-			goal.utility *= ringFactor;
-#endif
-		}
-	}
-	else
+	if (goal.type < 0 || !city)
 	{
 		goal.utility = 0.0;
+		return;
 	}
-#endif
+	if (terrain_type != terrainutil_GetDead() && goal.utility < 9999.0)
+	{
+		Cell const * cell = g_theWorld->GetCell(pos);
+		TerrainImprovementRecord const * rec = g_theTerrainImprovementDB->Get(goal.type);
+		TerrainImprovementRecord::Effect const * effect = terrainutil_GetTerrainEffect(rec, pos);
+		sint32 food = 0, prod = 0, gold = 0;
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_FOOD, pos, food);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_PRODUCTION, pos, prod);
+		terrainutil_GetEffectBonus(effect, TERRAINUTIL_GOLD, pos, gold);
+		sint32 terrain;
+		if (rec->GetTerraformTerrainIndex(terrain))
+		{
+			food += cell->GetFoodFromTerrain((sint8)terrain) - cell->GetFoodFromTerrain();
+			prod += cell->GetShieldsFromTerrain((sint8)terrain) - cell->GetShieldsFromTerrain();
+			gold += cell->GetGoldFromTerrain((sint8)terrain) - cell->GetGoldFromTerrain();
+		}
+		CityRingTile improved;
+		improved.pos = pos;
+		improved.food = cell->GetFoodProduced() + food;
+		improved.prod = cell->GetShieldsProduced() + prod;
+		improved.gold = cell->GetGoldProduced() + gold;
+		if (!city->IsWorkedTile(pos) && CityData::TileScore(improved) <= city->GetWorstWorkedTileScore())
+			goal.utility *= 0.25;
+		sint32 const gain = 3 * food + 2 * prod + gold;
+		if (gain > 0)
+			goal.utility *= std::max(0.5, std::min(2.0, gain / 30.0));
+	}
+	sint32 citySize;
+	city->GetPop(citySize);
+	if (citySize <= unitutil_GetSmallCityMaxSize())
+	{
+		double bonus = 0.0;
+		strategy.GetImproveSmallCityGrowthBonus(bonus);
+		goal.utility += bonus * strategy.GetSmallCityImproveCoeff();
+	}
 }
 
 //----------------------------------------------------------------------------
