@@ -209,6 +209,7 @@ ProfileDB::ProfileDB()
     m_rightClickMove                    (FALSE),
     m_showTileYields                    (FALSE),
     m_citiesWorkBestTiles               (FALSE),
+    m_spreadStarts                      (FALSE),
     m_mapFullResolution                 (FALSE),
     m_observerMode                      (FALSE),
     m_observerReveal                    (TRUE),
@@ -435,6 +436,7 @@ ProfileDB::ProfileDB()
 	Var("RightClickMove"             , PV_BOOL  , &m_rightClickMove             , NULL);
 	Var("ShowTileYields"             , PV_BOOL  , &m_showTileYields             , NULL);
 	Var("CitiesWorkBestTiles"        , PV_BOOL  , &m_citiesWorkBestTiles        , NULL);
+	Var("SpreadStarts"               , PV_BOOL  , &m_spreadStarts               , NULL);
 	Var("MapFullResolution"          , PV_BOOL  , &m_mapFullResolution          , NULL);
 	Var("ObserverMode"               , PV_BOOL  , &m_observerMode               , NULL);
 	Var("ObserverReveal"             , PV_BOOL  , &m_observerReveal             , NULL);
