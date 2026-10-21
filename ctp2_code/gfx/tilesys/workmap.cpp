@@ -916,7 +916,7 @@ sint32 WorkMap::CalculateWrap(
 
 	river = tileInfo->GetRiverPiece();
 
-	BaseTile *baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile *baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetDisplayTileNum());
 	if (baseTile == NULL) return -1;
 
 	if ( !m_scale ) {

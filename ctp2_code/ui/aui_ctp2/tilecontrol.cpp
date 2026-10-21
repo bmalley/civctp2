@@ -136,7 +136,7 @@ bool TileControl::DrawTile(aui_Surface * surface, sint32 x, sint32 y)
 		return false;
 	}
 
-	BaseTile * baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile * baseTile = g_tiledMap->GetTileSet()->GetBaseTile(tileInfo->GetDisplayTileNum());
 	if (!baseTile) {
 		return false;
 	}

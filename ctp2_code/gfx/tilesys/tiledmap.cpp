@@ -1877,7 +1877,7 @@ sint32 TiledMap::CalculateWrap
 	TileInfo * tileInfo = GetTileInfo(pos);
 	if (tileInfo == NULL) return -1;
 
-	BaseTile * baseTile = m_tileSet->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile * baseTile = m_tileSet->GetBaseTile(tileInfo->GetDisplayTileNum());
 	if (baseTile == NULL) return -1;
 
 	bool      fog = !m_localVision->IsVisible(tempPos);
@@ -2029,7 +2029,7 @@ sint32 TiledMap::CalculateWrapClipped(
 	if (tileInfo == NULL)
 		return -1;
 
-	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetDisplayTileNum());
 
 	if (baseTile == NULL)
 		return -1;
@@ -2305,7 +2305,7 @@ sint32 TiledMap::CalculateHatWrap(
 
 	if (tileInfo == NULL) return -1;
 
-	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetDisplayTileNum());
 	if (baseTile == NULL) return -1;
 
 	if (m_zoomLevel == k_ZOOM_LARGEST) {
@@ -4083,7 +4083,7 @@ sint32 TiledMap::RedrawHat(
 	if (tileInfo == NULL)
 		return -1;
 
-	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetTileNum());
+	BaseTile *baseTile = m_tileSet->GetBaseTile(tileInfo->GetDisplayTileNum());
 
 	if (baseTile == NULL)
 		return -1;
@@ -5452,7 +5452,7 @@ TiledMap::DrawTransitionTileClipped(aui_Surface *surface, MapPoint &pos, sint32 
 	if (tileInfo == NULL)
 		return;
 
-	uint16 index = tileInfo->GetTileNum();
+	uint16 index = tileInfo->GetDisplayTileNum();
 
 	BaseTile * baseTile = m_tileSet->GetBaseTile(index);
 	if (baseTile == NULL)
@@ -5463,10 +5463,10 @@ TiledMap::DrawTransitionTileClipped(aui_Surface *surface, MapPoint &pos, sint32 
 	Pixel16	*t[4];
 	Pixel16  defaults[4];
 
-	t[0] = m_tileSet->GetTransitionData(tileInfo->GetTerrainType(), tileInfo->GetTransition(0), 0);
-	t[1] = m_tileSet->GetTransitionData(tileInfo->GetTerrainType(), tileInfo->GetTransition(1), 1);
-	t[2] = m_tileSet->GetTransitionData(tileInfo->GetTerrainType(), tileInfo->GetTransition(2), 2);
-	t[3] = m_tileSet->GetTransitionData(tileInfo->GetTerrainType(), tileInfo->GetTransition(3), 3);
+	t[0] = m_tileSet->GetTransitionData(tileInfo->GetDisplayTerrainType(), tileInfo->GetTransition(0), 0);
+	t[1] = m_tileSet->GetTransitionData(tileInfo->GetDisplayTerrainType(), tileInfo->GetTransition(1), 1);
+	t[2] = m_tileSet->GetTransitionData(tileInfo->GetDisplayTerrainType(), tileInfo->GetTransition(2), 2);
+	t[3] = m_tileSet->GetTransitionData(tileInfo->GetDisplayTerrainType(), tileInfo->GetTransition(3), 3);
 
 	defaults[0] = 0xF800;
 	defaults[1] = 0x07E0;
