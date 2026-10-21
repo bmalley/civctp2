@@ -2659,8 +2659,12 @@ void CityData::CollectResourcesFinally()
 		fullProdTerrainTotal += m_ringProd[i];
 		fullGoldTerrainTotal += m_ringGold[i];
 	}
-	partFoodTerrainTotal = m_ringFood[m_workerPartialUtilizationIndex];
-	partProdTerrainTotal = m_ringProd[m_workerPartialUtilizationIndex];
+	// A city that has filled its last ring has no ring being filled: its
+	// partial index is then one past the ring arrays
+	bool const hasPartialRing = m_workerPartialUtilizationIndex >= 0
+	                         && static_cast<size_t>(m_workerPartialUtilizationIndex) < maxRing;
+	partFoodTerrainTotal = hasPartialRing ? m_ringFood[m_workerPartialUtilizationIndex] : 0;
+	partProdTerrainTotal = hasPartialRing ? m_ringProd[m_workerPartialUtilizationIndex] : 0;
 
 	if (m_is_rioting)
 	{
@@ -2670,7 +2674,7 @@ void CityData::CollectResourcesFinally()
 	}
 	else
 	{
-		partGoldTerrainTotal = m_ringGold[m_workerPartialUtilizationIndex];
+		partGoldTerrainTotal = hasPartialRing ? m_ringGold[m_workerPartialUtilizationIndex] : 0;
 	}
 
 	double const	utilizationRatio	= GetUtilisationRatio(partSquaredRadius);
