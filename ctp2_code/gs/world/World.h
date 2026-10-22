@@ -286,6 +286,12 @@ public:
 						 sint32 &numStartsFound,
 						 BOOL ignoreTutorialRules,
 						 sint32 player_start_score[k_MAX_PLAYERS]);
+    bool FindFairStarts(MapPoint player_start[k_MAX_PLAYERS],
+                        sint32 &numStartsFound,
+                        sint32 player_start_score[k_MAX_PLAYERS],
+                        float **raw_score,
+                        sint32 minDistance);
+    sint32 FairStartValue(MapPoint const & start);
 
     sint32 IsNextToLand4(const sint32 x, const sint32 y) const;
     sint32 IsNextTo4(const sint32 t, const sint32 x, const sint32 y) const;

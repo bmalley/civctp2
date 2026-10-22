@@ -16,6 +16,7 @@
 #include <string>
 #include <string.h>
 #include "Advances.h"
+#include "Cell.h"               // start record: tile yields
 #include "AgreementMatrix.h"
 #include "citydata.h"
 #include "Civilisation.h"
@@ -385,11 +386,24 @@ void airun_RecordRound(sint32 round)
 			{
 				if (g_player_start_list[j] == pos[p]) start = j;
 			}
-			fprintf(f, "%s{\"p\":%d,\"x\":%d,\"y\":%d,\"start\":%d,\"score\":%d,\"units\":%d,\"cont\":%d,\"contsize\":%d,\"dist\":{",
+			// Food, shields and gold of the tiles in radius 2, and the fair-starts value
+			// (2 food + shields + gold, distance 1 twice), whichever placement ran
+			sint32 food = 0, shields = 0, gold = 0;
+			RadiusIterator it(pos[p], 2);
+			for (it.Start(); !it.End(); it.Next())
+			{
+				Cell const * cell = g_theWorld->GetCell(it.Pos());
+				food    += cell->GetFoodFromTerrain();
+				shields += cell->GetShieldsFromTerrain();
+				gold    += cell->GetGoldFromTerrain();
+			}
+			fprintf(f, "%s{\"p\":%d,\"x\":%d,\"y\":%d,\"start\":%d,\"score\":%d,\"units\":%d,\"cont\":%d,\"contsize\":%d,"
+			           "\"food\":%d,\"shields\":%d,\"gold\":%d,\"value\":%d,\"dist\":{",
 			        firstStart ? "" : ",", p, pos[p].x, pos[p].y, start,
 			        start >= 0 ? g_player_start_score[start] : -1,
 			        g_player[p]->m_all_units->Num(), isLand ? cont : -1,
-			        isLand ? g_theWorld->GetLandContinentSize(cont) : 0);
+			        isLand ? g_theWorld->GetLandContinentSize(cont) : 0,
+			        food, shields, gold, g_theWorld->FairStartValue(pos[p]));
 			firstStart = false;
 			bool firstDist = true;
 			for (sint32 q = 1; q < k_MAX_PLAYERS; ++q)
