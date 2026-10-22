@@ -2479,7 +2479,6 @@ UNIT_LONGSHIP {
    CanCarry: SmallLand
    CanCarry: MedLand
    CanSee: Standard
-   MovementType: Sea
    MovementType: ShallowWater
    Size: Large
    VisionClass: Standard

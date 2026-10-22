@@ -1162,7 +1162,7 @@ Gives:
 [END]
 
 [ADVANCE_HULL_MAKING_GAMEPLAY]
-Hull Making enables seafaring people to build ships capable of withstanding the more turbulent waters of the deep oceans.  The <L:DATABASE_UNITS,UNIT_LONGSHIP>Longship<e> is one of the first transport units, capable of traveling across any kind of ocean.
+Hull Making enables seafaring people to build ships capable of withstanding the more turbulent waters of the deep oceans.  The <L:DATABASE_UNITS,UNIT_LONGSHIP>Longship<e> is one of the first transport units, able to carry troops along coasts and across shallow seas, though not yet over the deep ocean.
 [END]
 
 [ADVANCE_HULL_MAKING_HISTORICAL]
@@ -8579,7 +8579,7 @@ Can <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> up to 2 land units
 [END]
 
 [UNIT_LONGSHIP_GAMEPLAY]
-Built to survive the punishment of the high seas, the Longship is a step above the <L:DATABASE_UNITS,UNIT_CATAMARAN>Coracle<e> in ocean transport.  Able to <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> two land units over even the deepest waters, the Longship also takes intercontinental exploration to a new level.
+Built to survive rough coastal seas, the Longship is a step above the <L:DATABASE_UNITS,UNIT_CATAMARAN>Coracle<e> in sea transport.  It can <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> two land units along coasts and across shallow seas, but not over the deep ocean; crossing to other continents waits for the <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e> of <L:DATABASE_ADVANCES,ADVANCE_OCEAN_FARING>Ocean Faring<e>.
 [END]
 
 [UNIT_LONGSHIP_HISTORICAL]
