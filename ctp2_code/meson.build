@@ -289,6 +289,7 @@ main_sources = [
 	'gs/utility/UnitDynArr.cpp',
 	'gs/world/Cell.cpp',
 	'gs/world/cellunitlist.cpp',
+	'gs/world/ContinentsGen.cpp',
 	'gs/world/MapPoint.cpp',
 	'gs/world/UnseenCell.cpp',
 	'gs/world/wldgen.cpp',
