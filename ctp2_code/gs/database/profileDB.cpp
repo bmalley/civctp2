@@ -211,6 +211,7 @@ ProfileDB::ProfileDB()
     m_citiesWorkBestTiles               (FALSE),
     m_spreadStarts                      (FALSE),
     m_fairStarts                        (FALSE),
+    m_continentsMap                     (FALSE),
     m_mapFullResolution                 (FALSE),
     m_observerMode                      (FALSE),
     m_observerReveal                    (TRUE),
@@ -439,6 +440,7 @@ ProfileDB::ProfileDB()
 	Var("CitiesWorkBestTiles"        , PV_BOOL  , &m_citiesWorkBestTiles        , NULL);
 	Var("SpreadStarts"               , PV_BOOL  , &m_spreadStarts               , NULL);
 	Var("FairStarts"                 , PV_BOOL  , &m_fairStarts                 , NULL);
+	Var("ContinentsMap"              , PV_BOOL  , &m_continentsMap              , NULL);
 	Var("MapFullResolution"          , PV_BOOL  , &m_mapFullResolution          , NULL);
 	Var("ObserverMode"               , PV_BOOL  , &m_observerMode               , NULL);
 	Var("ObserverReveal"             , PV_BOOL  , &m_observerReveal             , NULL);
