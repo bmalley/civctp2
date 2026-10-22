@@ -3162,8 +3162,8 @@ void UnitData::EndTurn()
 		if (rec->GetNumSettleImprovement())
 		{ //Added to allow units settle improvements
 			for(sint32 j = 0; j < rec->GetNumSettleImprovement(); j++) {
-				const TerrainImprovementRecord *trec = g_theTerrainImprovementDB->Get(j);
 				sint32 newimp = rec->GetSettleImprovementIndex(j);
+				const TerrainImprovementRecord *trec = g_theTerrainImprovementDB->Get(newimp);
 				if(terrainutil_CanPlayerSpecialBuildAt(trec, m_owner, m_pos)) {
 					g_player[m_owner]->CreateSpecialImprovement(newimp, m_pos, 0);
 					Unit me(m_id);
@@ -3174,6 +3174,7 @@ void UnitData::EndTurn()
 					//so->AddUnit(m_id);
 					//so->TileImp????????????
 					//g_slicEngine->Execute(so);  //this needed for handling?
+					return; // the unit is gone: one improvement, and no more use of its data
 				}
 			}
 		}
