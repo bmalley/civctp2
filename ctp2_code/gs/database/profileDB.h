@@ -316,6 +316,7 @@ private:
     sint32 m_showTileYields;
     sint32 m_citiesWorkBestTiles;
     sint32 m_spreadStarts;
+    sint32 m_fairStarts;
     sint32 m_mapFullResolution;
     sint32 m_observerMode;
     sint32 m_observerReveal;
@@ -822,6 +823,7 @@ public:
     void   SetShowTileYields(BOOL on)           { m_showTileYields = on; }
     BOOL   IsCitiesWorkBestTiles() const        { return m_citiesWorkBestTiles; }
     BOOL   IsSpreadStarts() const               { return m_spreadStarts; }
+    BOOL   IsFairStarts() const                 { return m_fairStarts; }
     BOOL   IsMapFullResolution() const          { return m_mapFullResolution; }
     BOOL   IsObserverMode() const               { return m_observerMode; }
     BOOL   IsObserverReveal() const             { return m_observerReveal; }

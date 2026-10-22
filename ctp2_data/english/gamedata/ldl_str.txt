@@ -3092,6 +3092,7 @@ str_profile_RightClickMove                      "Right-Click Moves Selected Army
 str_profile_ShowTileYields                      "Show Tile Yields On The Map"
 str_profile_CitiesWorkBestTiles                 "Cities Work The Best Tiles Of Their Outer Ring"  # Instead of a share of every tile
 str_profile_SpreadStarts                        "Don't Start A Civ Right Next To Yours"            # New maps: the second start is placed like the rest
+str_profile_FairStarts                          "Fair Starts"                                      # New maps: starts spread over the land by its value, weak ones topped up with goods
 str_profile_MapFullResolution                   "Draw Map At Full Screen Resolution"           # Under an interface enlarged by a smaller game resolution
 str_profile_ObserverMode                        "Observer Mode: AI Plays Your Civ"             # Space pauses
 str_profile_ObserverReveal                      "Observer: Show The Whole Map"                 # Your civ then sees all, like owning the GlobeSat
