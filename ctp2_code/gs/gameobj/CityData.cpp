@@ -7704,6 +7704,13 @@ bool CityData::CanBuildBuilding(sint32 type) const
 			return false;
 	}
 
+	// Nor under a government that would destroy it (CityGovernmentModifiers)
+	for(sint32 i = 0; i < rec->GetNumExcludedByGovernmentType(); i++)
+	{
+		if(rec->GetExcludedByGovernmentTypeIndex(i) == g_player[m_owner]->GetGovernmentType())
+			return false;
+	}
+
 	// Added by E - Compares Building CityStyle to the CityStyle of the City
 	if(rec->GetNumCityStyleOnly() > 0)
 	{
@@ -11786,17 +11793,20 @@ void CityData::CityGovernmentModifiers()
 		}
 	}
 
-	//EMOD if Player PrereqBuilding is different than the government than destroy it
+	// EMOD: a building is destroyed under a government in its ExcludedByGovernmentType list
+	// (AE_Mod: the shrines under Communism and Ecotopia). A building limited to some
+	// governments (GovernmentType) only stops working under others (IsBuildingOperational).
 	for(sint32 b = 0; b < g_theBuildingDB->NumRecords(); b++)
 	{
 		if(HasBuilding(b))
 		{
 			const BuildingRecord *rec = buildingutil_Get(b, m_owner);
-			for(sint32 i = 0; i < rec->GetNumGovernmentType(); i++)
+			for(sint32 i = 0; i < rec->GetNumExcludedByGovernmentType(); i++)
 			{
-				if(rec->GetExcludedByGovernmentTypeIndex(i) != g_player[m_owner]->GetGovernmentType())
+				if(rec->GetExcludedByGovernmentTypeIndex(i) == g_player[m_owner]->GetGovernmentType())
 				{
 					DestroyImprovement(b);
+					break;
 				}
 			}
 		}
