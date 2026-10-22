@@ -22,6 +22,7 @@ libgsworld_la_LIBADD = \
 libgsworld_la_SOURCES = \
 	Cell.cpp \
 	cellunitlist.cpp \
+	ContinentsGen.cpp \
 	MapPoint.cpp \
 	UnseenCell.cpp \
 	wldgen.cpp \
