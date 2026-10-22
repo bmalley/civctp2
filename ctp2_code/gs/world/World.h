@@ -69,6 +69,7 @@ enum MAP_GENERATOR
 #include "Cell.h"
 #include "MoveFlags.h"
 #include "GlobalWarmingRecord.h"
+#include <vector>
 
 class MapPoint;
 class CivArchive ;
@@ -100,6 +101,7 @@ interface IMapGenerator;
 #endif
 
 struct MapPointNode;
+namespace ContinentsGen { struct Map; }
 
 template <class T> class DynamicArray;
 typedef DynamicArray<sint32> DAsint32;
@@ -269,6 +271,9 @@ public:
     sint32 IsMinama(const sint32 i, const sint32 j);
     void GenerateGoods();
 	void ComputeGoodsValues();
+    void GenerateContinentsMap();
+    std::vector<sint32> PlaceSignatureGoods(ContinentsGen::Map const & m);
+    void ContinentsMapDump(ContinentsGen::Map const & m, std::vector<sint32> const & signature);
     void GenerateGoodyHuts();
 
     void CalcRawScore(const sint32 x, const sint32 y, float &score);

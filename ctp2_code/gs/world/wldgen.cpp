@@ -87,6 +87,7 @@
 #include <initguid.h>
 #endif
 #include "C3Rand.h"
+#include "ContinentsGen.h"
 #include "IMapGen.h"
 
 extern MapPoint g_mp_size;
@@ -375,6 +376,12 @@ void World::AllocateMap()
 void World::GenerateRandMap(MapPoint player_start_list[k_MAX_PLAYERS])
 
 {
+	if (g_theProfileDB->IsContinentsMap())
+	{
+		GenerateContinentsMap();
+		return;
+	}
+
 	IMapGenerator *firstPass = LoadMapPlugin(0);
 	Assert(firstPass);
 	if(!firstPass) {
@@ -734,6 +741,352 @@ void World::GenerateRandMap(MapPoint player_start_list[k_MAX_PLAYERS])
 
 	GenerateGoodyHuts();
 	GenerateGoods();
+}
+
+//----------------------------------------------------------------------------
+// Continents map generator (profile option ContinentsMap): continents parted by
+// deep ocean, linear mountain ranges, rain shadows and rivers that follow the
+// drainage (ContinentsGen.cpp). Then the stock deep-sea features, huts and goods,
+// and some goods found on one continent only.
+//----------------------------------------------------------------------------
+
+namespace
+{
+	sint32 continentsgen_Terrain(int t)
+	{
+		switch (t)
+		{
+		case ContinentsGen::T_DEEP:           return TERRAIN_WATER_DEEP;
+		case ContinentsGen::T_SHELF:          return TERRAIN_WATER_SHELF;
+		case ContinentsGen::T_SHALLOW:        return TERRAIN_WATER_SHALLOW;
+		case ContinentsGen::T_KELP:           return TERRAIN_WATER_KELP;
+		case ContinentsGen::T_REEF:           return TERRAIN_WATER_REEF;
+		case ContinentsGen::T_BEACH:          return TERRAIN_WATER_BEACH;
+		case ContinentsGen::T_GLACIER:        return TERRAIN_GLACIER;
+		case ContinentsGen::T_TUNDRA:         return TERRAIN_TUNDRA;
+		case ContinentsGen::T_DESERT:         return TERRAIN_DESERT;
+		case ContinentsGen::T_PLAINS:         return TERRAIN_PLAINS;
+		case ContinentsGen::T_GRASSLAND:      return TERRAIN_GRASSLAND;
+		case ContinentsGen::T_FOREST:         return TERRAIN_FOREST;
+		case ContinentsGen::T_JUNGLE:         return TERRAIN_JUNGLE;
+		case ContinentsGen::T_SWAMP:          return TERRAIN_SWAMP;
+		case ContinentsGen::T_HILL:           return TERRAIN_HILL;
+		case ContinentsGen::T_BROWN_HILL:     return TERRAIN_BROWN_HILL;
+		case ContinentsGen::T_WHITE_HILL:     return TERRAIN_WHITE_HILL;
+		case ContinentsGen::T_MOUNTAIN:       return TERRAIN_MOUNTAIN;
+		case ContinentsGen::T_BROWN_MOUNTAIN: return TERRAIN_BROWN_MOUNTAIN;
+		default:                              return TERRAIN_WHITE_MOUNTAIN;
+		}
+	}
+
+	// Goods the data repeats on several terrains (AE's Camels, Caribou, ...) count as one
+	bool continentsgen_SameGood(sint32 a, sint32 b)
+	{
+		return a == b
+		    || strcmp(g_theResourceDB->Get(a)->GetNameText(), g_theResourceDB->Get(b)->GetNameText()) == 0;
+	}
+}
+
+void World::GenerateContinentsMap()
+{
+	ContinentsGen::Params p;
+	p.width  = m_size.x;
+	p.height = m_size.y;
+	p.wrapX  = m_isXwrap != FALSE;
+	p.seed   = (static_cast<uint64_t>(s_randomGenerator->Next(0x7fffffff)) << 31)
+	         ^ static_cast<uint64_t>(s_randomGenerator->Next(0x7fffffff));
+	p.land   = g_theProfileDB->PercentLand();
+
+	// the islands/continents slider: from six continents (islands) to two, more on bigger maps
+	double const area      = (double(m_size.x) * m_size.y) / (48.0 * 96.0);
+	double const continent = g_theProfileDB->PercentContinent();
+	p.continents = std::max(2, static_cast<int>(floor((2 + 4 * (1 - continent)) * sqrt(area) + 0.5)));
+	p.oceans     = std::max(1, static_cast<int>(floor(0.6 * p.continents + 0.5)));
+	p.gap        = std::max(4.0, 6.0 * pow(area, 0.25));
+
+	p.mountains = g_theConstDB->Get(0)->GetPercentMountain() / 100.0;
+	p.hills     = g_theConstDB->Get(0)->GetPercentHills() / 100.0;
+	p.desert    = g_theProfileDB->PercentDesert();
+	p.plains    = g_theProfileDB->PercentPlains();
+	p.grass     = g_theProfileDB->PercentGrass();
+	p.forest    = g_theProfileDB->PercentForest();
+	p.swamp     = std::max(0, 100 - p.desert - p.plains - p.grass - p.forest);
+	p.white     = g_theProfileDB->PercentWhite();
+	p.brown     = g_theProfileDB->PercentBrown();
+
+	ContinentsGen::Map m;
+	ContinentsGen::Generate(p, m);
+
+	for (sint32 y = 0; y < m_size.y; y++)
+	{
+		for (sint32 x = 0; x < m_size.x; x++)
+		{
+			MapPoint from(x, y);
+			MapPoint to;
+			FlatToIso(from, to);
+			sint32 const t = m.terrain[y * m_size.x + x];
+			Cell * cell = m_map[to.x][to.y];
+			cell->m_env = 0;
+			cell->m_terrain_type = static_cast<sint16>(continentsgen_Terrain(t));
+			if (t == ContinentsGen::T_DEEP)
+				SetMovementType(to.x, to.y, k_MOVEMENT_TYPE_WATER);
+			else if (ContinentsGen::IsWater(t))
+				SetMovementType(to.x, to.y, k_MOVEMENT_TYPE_WATER | k_MOVEMENT_TYPE_SHALLOW_WATER);
+			else if (t >= ContinentsGen::T_MOUNTAIN)
+				SetMovementType(to.x, to.y, k_MOVEMENT_TYPE_MOUNTAIN);
+			else
+				SetMovementType(to.x, to.y, k_MOVEMENT_TYPE_LAND);
+			if (m.river[y * m_size.x + x])
+				SetRiver(to);
+		}
+	}
+
+	// the stock features of the deep sea only change deep water
+	GenerateDeepWater();
+	GenerateVolcano();
+	GenerateTrenches();
+
+	GenerateGoodyHuts();
+	GenerateGoods();
+	ContinentsMapDump(m, PlaceSignatureGoods(m));
+}
+
+// Continent group of an iso map position
+static sint32 continentsgen_Group(ContinentsGen::Map const & m, sint32 x, sint32 y)
+{
+	sint32 const fx = (x + y / 2) % m.width;
+	return m.group[y * m.width + fx];
+}
+
+std::vector<sint32> World::PlaceSignatureGoods(ContinentsGen::Map const & m)
+{
+	std::vector<sint32> signature;
+	sint32 const numGoods = g_theResourceDB->NumRecords();
+	sint32 const numTerrains = g_theTerrainDB->NumRecords();
+	if (numGoods <= 0 || m.groups <= 0)
+		return signature;
+
+	sint32 totalLand = 0;
+	for (sint32 g = 0; g < m.groups; g++)
+		totalLand += m.groupLand[g];
+
+	// land tiles of each terrain on each continent
+	std::vector<std::vector<sint32> > count(m.groups, std::vector<sint32>(numTerrains, 0));
+	MapPoint pos;
+	for (pos.x = 0; pos.x < m_size.x; pos.x++)
+	{
+		for (pos.y = 0; pos.y < m_size.y; pos.y++)
+		{
+			sint32 const g = continentsgen_Group(m, pos.x, pos.y);
+			if (g >= 0 && IsLand(pos))
+				count[g][GetCell(pos)->GetTerrain()]++;
+		}
+	}
+
+	// Most big continents get one good of their own, the biggest sometimes two:
+	// a land good of a terrain they have plenty of, taken by no other continent.
+	std::vector<sint32> owner(numGoods, -1);
+	for (sint32 g = 0; g < m.groups; g++)
+	{
+		if (m.groupLand[g] < std::max<sint32>(40, totalLand * 6 / 100) || g_rand->Next(100) >= 70)
+			continue;
+
+		sint32 const wanted = (m.groupLand[g] * 5 >= totalLand && g_rand->Next(2)) ? 2 : 1;
+		for (sint32 k = 0; k < wanted; k++)
+		{
+			std::vector<sint32> goods, weights;
+			sint32 total = 0;
+			for (sint32 t = 0; t < numTerrains; t++)
+			{
+				TerrainRecord const * rec = g_theTerrainDB->Get(t);
+				if (count[g][t] < 10 || rec->GetMovementTypeSea() || rec->GetMovementTypeShallowWater())
+					continue;
+				for (sint32 i = 0; i < rec->GetNumResources(); i++)
+				{
+					sint32 const good = rec->GetResourcesIndex(i);
+					bool taken = false;
+					for (sint32 o = 0; o < numGoods && !taken; o++)
+						taken = owner[o] >= 0 && continentsgen_SameGood(o, good);
+					if (taken || rec->GetResources(i)->GetProbability() <= 0)
+						continue;
+					goods.push_back(good);
+					weights.push_back(count[g][t]);
+					total += count[g][t];
+				}
+			}
+			if (total <= 0)
+				break;
+			sint32 pick = g_rand->Next(total);
+			size_t c = 0;
+			while (pick >= weights[c])
+				pick -= weights[c++];
+			for (sint32 o = 0; o < numGoods; o++)
+			{
+				if (continentsgen_SameGood(o, goods[c]))
+					owner[o] = g;
+			}
+			signature.push_back(goods[c]);
+			DPRINTF(k_DBG_GAMESTATE, ("Continents map: %s only on continent %d (%d land tiles)\n",
+			                          g_theResourceDB->Get(goods[c])->GetNameText(), g, m.groupLand[g]));
+		}
+	}
+
+	// elsewhere these goods become another good of the tile, or none
+	for (pos.x = 0; pos.x < m_size.x; pos.x++)
+	{
+		for (pos.y = 0; pos.y < m_size.y; pos.y++)
+		{
+			sint32 good;
+			if (!GetGood(pos, good) || owner[good] < 0 || owner[good] == continentsgen_Group(m, pos.x, pos.y))
+				continue;
+			for (sint32 tries = 0; tries < 6; tries++)
+			{
+				ClearGoods(pos.x, pos.y);
+				SetRandomGood(pos.x, pos.y);
+				if (!GetGood(pos, good) || owner[good] < 0)
+					break;
+			}
+			if (GetGood(pos, good) && owner[good] >= 0)
+				ClearGoods(pos.x, pos.y);
+		}
+	}
+
+	// and on their own continent there are enough of them to trade: a few, spaced out
+	for (size_t s = 0; s < signature.size(); s++)
+	{
+		sint32 const good = signature[s];
+		sint32 const g    = owner[good];
+		std::vector<MapPoint> free;
+		sint32 have = 0;
+		for (pos.x = 0; pos.x < m_size.x; pos.x++)
+		{
+			for (pos.y = 0; pos.y < m_size.y; pos.y++)
+			{
+				if (continentsgen_Group(m, pos.x, pos.y) != g || !IsLand(pos))
+					continue;
+				sint32 other;
+				if (GetGood(pos, other))
+				{
+					have += continentsgen_SameGood(other, good);
+					continue;
+				}
+				TerrainRecord const * rec = g_theTerrainDB->Get(GetCell(pos)->GetTerrain());
+				for (sint32 i = 0; i < rec->GetNumResources(); i++)
+				{
+					if (continentsgen_SameGood(rec->GetResourcesIndex(i), good))
+					{
+						free.push_back(pos);
+						break;
+					}
+				}
+			}
+		}
+
+		sint32 const target = std::max<sint32>(2, m.groupLand[g] / 150);
+		while (have < target && !free.empty())
+		{
+			size_t const k = g_rand->Next(static_cast<sint32>(free.size()));
+			MapPoint const at = free[k];
+			free[k] = free.back();
+			free.pop_back();
+
+			bool crowded = false;
+			RadiusIterator it(at, 2);
+			for (it.Start(); !it.End() && !crowded; it.Next())
+			{
+				sint32 other;
+				crowded = GetGood(it.Pos(), other) && continentsgen_SameGood(other, good);
+			}
+			if (crowded)
+				continue;
+
+			TerrainRecord const * rec = g_theTerrainDB->Get(GetCell(at)->GetTerrain());
+			for (sint32 i = 0; i < rec->GetNumResources(); i++)
+			{
+				if (continentsgen_SameGood(rec->GetResourcesIndex(i), good))
+				{
+					SetGood(at.x, at.y, i + 1);
+					have++;
+					break;
+				}
+			}
+		}
+	}
+
+	ComputeGoodsValues();
+	return signature;
+}
+
+// With CTP2_MAPDUMP=FILE, the finished map for ctp/tools/contgen_render.py (gamedev repo)
+void World::ContinentsMapDump(ContinentsGen::Map const & m, std::vector<sint32> const & signature)
+{
+	char const * path = getenv("CTP2_MAPDUMP");
+	if (!path || !*path)
+		return;
+	FILE * f = fopen(path, "wb");
+	if (!f)
+		return;
+
+	sint32 const n = m_size.x * m_size.y;
+	std::vector<uint8> terrain(n), river(n), good(n, 0);
+	for (sint32 y = 0; y < m_size.y; y++)
+	{
+		for (sint32 x = 0; x < m_size.x; x++)
+		{
+			MapPoint from(x, y);
+			MapPoint to;
+			FlatToIso(from, to);
+			sint32 const i = y * m_size.x + x;
+			sint32 const tt = GetCell(to)->GetTerrain();
+			terrain[i] = ContinentsGen::T_DEEP;   // and rifts, trenches, volcanoes
+			for (int t = 0; t < ContinentsGen::T_COUNT; t++)
+			{
+				if (continentsgen_Terrain(t) == tt)
+					terrain[i] = static_cast<uint8>(t);
+			}
+			river[i] = IsRiver(to) ? 1 : 0;
+			sint32 g;
+			if (GetGood(to, g))
+			{
+				good[i] = 1;
+				for (size_t s = 0; s < signature.size(); s++)
+				{
+					if (continentsgen_SameGood(g, signature[s]))
+						good[i] = 2;
+				}
+			}
+		}
+	}
+
+	fwrite("CGMAP1", 1, 6, f);
+	uint16 const header[4] = { uint16(m_size.x), uint16(m_size.y), uint16(m_isXwrap ? 1 : 0), uint16(m.groups) };
+	fwrite(header, 2, 4, f);
+	fwrite(&terrain[0], 1, n, f);
+	fwrite(&river[0], 1, n, f);
+	fwrite(&m.group[0], 2, n, f);
+	std::vector<float> const * fields[3] = { &m.elevation, &m.rain, &m.temperature };
+	std::vector<uint8> b(n);
+	for (int k = 0; k < 3; k++)
+	{
+		for (sint32 i = 0; i < n; i++)
+			b[i] = uint8(255 * (*fields[k])[i] + 0.5);
+		fwrite(&b[0], 1, n, f);
+	}
+	fwrite(&good[0], 1, n, f);
+	uint16 const ranges = uint16(m.ranges.size());
+	fwrite(&ranges, 2, 1, f);
+	for (size_t r = 0; r < m.ranges.size(); r++)
+	{
+		ContinentsGen::Range const & rg = m.ranges[r];
+		uint16 const h[4] = { uint16(rg.group), uint16(rg.fold), uint16(rg.old), uint16(rg.x.size()) };
+		fwrite(h, 2, 4, f);
+		for (size_t k = 0; k < rg.x.size(); k++)
+		{
+			float const xy[2] = { float(rg.x[k]), float(rg.y[k]) };
+			fwrite(xy, 4, 2, f);
+		}
+	}
+	fclose(f);
 }
 
 void World::GenerateGoods()
