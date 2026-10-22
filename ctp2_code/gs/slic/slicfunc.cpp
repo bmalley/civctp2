@@ -3464,7 +3464,15 @@ SFN_ERROR Slic_AddPops::Call(SlicArgList *args)
 								   GEA_End);
 		}
 	} else {
-		for(i = count; i < 0; i++) {
+		// Remove pops, as the KillPop event does, down to size 1: emptying a city
+		// would destroy it (that's KillCity's job).
+		sint32 remove = -count;
+		if(remove > city.PopCount() - 1)
+			remove = city.PopCount() - 1;
+		for(i = 0; i < remove; i++) {
+			g_gevManager->AddEvent(GEV_INSERT_Tail, GEV_KillPop,
+								   GEA_City, city.m_id,
+								   GEA_End);
 		}
 	}
 
