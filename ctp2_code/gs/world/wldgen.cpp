@@ -166,7 +166,11 @@ void World::CreateTheWorld(MapPoint player_start_list[k_MAX_PLAYERS],
 
 		worldIsGood = true;
 
-		if(numFound < 3 ||
+		// Fair starts places only the starts the game needs, which can be fewer than 3
+		sint32 const enough = g_theProfileDB->IsFairStarts()
+		                    ? std::min<sint32>(3, std::max<sint32>(1, g_theProfileDB->GetNPlayers() - 1))
+		                    : 3;
+		if(numFound < enough ||
 		   (g_network.IsNetworkLaunch() && g_network.IsLaunchHost() &&
 			numFound < g_network.GetNumHumanPlayers())) {
 			if(g_theProfileDB->IsTutorialAdvice() && !ignoreTutorialRules) {
@@ -1852,7 +1856,11 @@ void World::FindPlayerStart(MapPoint player_start[k_MAX_PLAYERS],
 
     d = g_theProfileDB->SetupRadius() * 2 - 1;
 	numStartsFound = 0;
-    for (i=0; i<k_MAX_PLAYERS; i++) {
+	bool const fair = g_theProfileDB->IsFairStarts()
+	               && !(g_theProfileDB->IsTutorialAdvice() && !ignoreTutorialRules)
+	               && FindFairStarts(player_start, numStartsFound, player_start_score,
+	                                 raw_score, minDistance);
+    for (i=0; !fair && i<k_MAX_PLAYERS; i++) {
         if(!FindMaxCumScore(d, cum_score, maxx, maxy,
 							player_start, i,
 							minDistance, maxDistance,
@@ -1881,6 +1889,285 @@ void World::FindPlayerStart(MapPoint player_start[k_MAX_PLAYERS],
     }
     delete[] cum_score;
     delete[] raw_score;
+}
+
+//----------------------------------------------------------------------------
+//
+// Fair starts (profile option FairStarts), after Civ V's AssignStartingPlots.
+//
+// A tile is worth 2 food + shields + gold, as the terrain database gives them
+// with any river and good; a start is worth the sum over radius 2, the tiles a
+// city works first (distance 1) counted twice. Civs are shared out between
+// continents by the continents' total worth, each going to the one with the
+// most per civ already there (worth / (1 + civs)). On its continent a start
+// goes on a tile worth at least k_FAIR_CANDIDATE of the continent's best, as
+// far from the other starts as it can up to the spacing the land allows, and
+// past that on the best tile. Then starts below the median are topped up with
+// goods in rings 1-2 (Sirian: balance with resources, not terrain), and the
+// starts are shuffled so the human doesn't always take the best.
+//
+// Returns false, leaving the stock placement to run, if it can't place a start
+// for every civ.
+//
+//----------------------------------------------------------------------------
+namespace
+{
+	double const k_FAIR_CANDIDATE   = 0.85; // of the continent's best start
+	sint32 const k_FAIR_MAX_GOODS   = 4;    // goods added to one start
+	sint32 const k_FAIR_PASSES      = 20;   // spreading passes
+
+	// How good a tile is for a start: its distance to the nearest other start, up to the
+	// spacing the land allows, then its value
+	struct FairKey
+	{
+		sint32 dist;
+		sint32 value;
+		bool operator < (FairKey const & o) const
+		{
+			return dist < o.dist || (dist == o.dist && value < o.value);
+		}
+	};
+
+	sint32 fairstarts_TileValue(Cell const * cell)
+	{
+		return 2 * cell->GetFoodFromTerrain() + cell->GetShieldsFromTerrain()
+		         + cell->GetGoldFromTerrain();
+	}
+}
+
+sint32 World::FairStartValue(MapPoint const & start)
+{
+	sint32 value = 0;
+	RadiusIterator it(start, 2);
+	for (it.Start(); !it.End(); it.Next())
+	{
+		sint32 const v = fairstarts_TileValue(GetCell(it.Pos()));
+		value += (start.NormalizedDistance(it.Pos()) <= 1) ? 2 * v : v;
+	}
+	return value;
+}
+
+bool World::FindFairStarts(MapPoint player_start[k_MAX_PLAYERS],
+                           sint32 &numStartsFound,
+                           sint32 player_start_score[k_MAX_PLAYERS],
+                           float **raw_score,
+                           sint32 minDistance)
+{
+	sint32 const wanted = std::min<sint32>(k_MAX_PLAYERS,
+	                          std::max<sint32>(1, g_theProfileDB->GetNPlayers() - 1));
+	sint32 const topY   = m_isYwrap ? 0 : 4;
+	sint32 const botY   = m_isYwrap ? m_size.y : m_size.y - 4;
+	sint32 const numConts = m_land_size->Num();
+
+	// Each continent's worth and best start, and the candidate tiles
+	std::vector<double> contWorth(numConts, 0.0);
+	std::vector<sint32> contBest(numConts, 0);
+	std::vector<sint32> contCivs(numConts, 0);
+	std::vector<bool>   contFull(numConts, false);
+	std::vector<sint32> value(m_size.x * m_size.y, -1);
+	std::vector<sint16> contOf(m_size.x * m_size.y, -1);
+	sint32 landTiles = 0;
+	MapPoint pos;
+	for (pos.x = 0; pos.x < m_size.x; pos.x++)
+	{
+		for (pos.y = 0; pos.y < m_size.y; pos.y++)
+		{
+			sint16 cont;
+			bool   isLand;
+			GetContinent(pos, cont, isLand);
+			if (!isLand || cont < 0 || cont >= numConts)
+				continue;
+
+			Cell const * cell = GetCell(pos);
+			contWorth[cont] += fairstarts_TileValue(cell);
+			landTiles++;
+			if (pos.y < topY || pos.y >= botY
+			||  m_land_size->Access(cont) < s_actualMinContinentStartSize
+			||  cell->GetFoodFromTerrain() <= 0)    // no city on mountains, glaciers, dry desert
+				continue;
+
+			sint32 const v = FairStartValue(pos);
+			value[pos.x * m_size.y + pos.y]  = v;
+			contOf[pos.x * m_size.y + pos.y] = cont;
+			contBest[cont] = std::max(contBest[cont], v);
+		}
+	}
+
+	std::vector<MapPoint> cands;
+	std::vector<sint32>   candValue;
+	std::vector<sint16>   candCont;
+	for (pos.x = 0; pos.x < m_size.x; pos.x++)
+	{
+		for (pos.y = 0; pos.y < m_size.y; pos.y++)
+		{
+			sint32 const i = pos.x * m_size.y + pos.y;
+			if (value[i] > 0 && value[i] >= k_FAIR_CANDIDATE * contBest[contOf[i]])
+			{
+				cands.push_back(pos);
+				candValue.push_back(value[i]);
+				candCont.push_back(contOf[i]);
+			}
+		}
+	}
+
+	// Spacing the land allows: one square of land per civ, never below the stock minimum
+	sint32 const spacing = std::max<sint32>(minDistance,
+	                           sint32(sqrt(double(landTiles) / wanted)));
+
+	std::vector<sint32> start;      // candidate index of each start
+	std::vector<sint16> startCont;
+
+	FairKey key;
+
+	for (sint32 n = 0; n < wanted; )
+	{
+		sint32 cont = -1;
+		double bestShare = 0.0;
+		for (sint32 c = 0; c < numConts; c++)
+		{
+			double const share = contWorth[c] / (1 + contCivs[c]);
+			if (!contFull[c] && contBest[c] > 0 && share > bestShare)
+			{
+				bestShare = share;
+				cont = c;
+			}
+		}
+		if (cont < 0)
+			return false;
+
+		sint32 best = -1;
+		FairKey bestKey = { -1, -1 };
+		for (size_t c = 0; c < cands.size(); c++)
+		{
+			if (candCont[c] != cont)
+				continue;
+			key.dist  = spacing;
+			key.value = candValue[c];
+			for (size_t s = 0; s < start.size(); s++)
+				key.dist = std::min<sint32>(key.dist, cands[start[s]].NormalizedDistance(cands[c]));
+			if (bestKey < key)
+			{
+				bestKey = key;
+				best = sint32(c);
+			}
+		}
+
+		if (best < 0 || bestKey.dist < minDistance)
+		{
+			contFull[cont] = true;      // no room left there: try the next continent
+			continue;
+		}
+		start.push_back(best);
+		startCont.push_back(sint16(cont));
+		contCivs[cont]++;
+		n++;
+	}
+
+	// Spread: move each start to the best candidate on its continent while that improves it
+	for (sint32 pass = 0; pass < k_FAIR_PASSES; pass++)
+	{
+		bool moved = false;
+		for (size_t s = 0; s < start.size(); s++)
+		{
+			FairKey cur = { spacing, candValue[start[s]] };
+			for (size_t o = 0; o < start.size(); o++)
+				if (o != s)
+					cur.dist = std::min<sint32>(cur.dist, cands[start[o]].NormalizedDistance(cands[start[s]]));
+
+			for (size_t c = 0; c < cands.size(); c++)
+			{
+				if (candCont[c] != startCont[s])
+					continue;
+				key.dist  = spacing;
+				key.value = candValue[c];
+				for (size_t o = 0; o < start.size() && key.dist > cur.dist - 1; o++)
+					if (o != s)
+						key.dist = std::min<sint32>(key.dist, cands[start[o]].NormalizedDistance(cands[c]));
+				if (cur < key)
+				{
+					cur = key;
+					start[s] = sint32(c);
+					moved = true;
+				}
+			}
+		}
+		if (!moved)
+			break;
+	}
+
+	// Top up starts below the median with goods, ring 1 first
+	std::vector<sint32> worth(start.size());
+	for (size_t s = 0; s < start.size(); s++)
+		worth[s] = FairStartValue(cands[start[s]]);
+	std::vector<sint32> sorted(worth);
+	std::sort(sorted.begin(), sorted.end());
+	sint32 const median = sorted[sorted.size() / 2];
+
+	bool goodsAdded = false;
+	for (size_t s = 0; s < start.size(); s++)
+	{
+		MapPoint const centre = cands[start[s]];
+		for (sint32 added = 0; added < k_FAIR_MAX_GOODS && worth[s] < median; added++)
+		{
+			MapPoint bestPos;
+			sint32   bestSlot = -1;
+			sint32   bestGain = 0;
+			RadiusIterator it(centre, 2);
+			for (it.Start(); !it.End(); it.Next())
+			{
+				MapPoint const p = it.Pos();
+				sint32 good;
+				if (GetGood(p, good))
+					continue;
+				TerrainRecord const * rec = g_theTerrainDB->Get(GetCell(p)->GetTerrain());
+				for (sint32 g = 0; g < rec->GetNumResources(); g++)
+				{
+					ResourceRecord const * res = rec->GetResources(g);
+					sint32 gain = 2 * res->GetFood() + res->GetProduction() + res->GetGold();
+					if (centre.NormalizedDistance(p) <= 1)
+						gain *= 2;
+					if (gain > bestGain)
+					{
+						bestGain = gain;
+						bestSlot = g;
+						bestPos  = p;
+					}
+				}
+			}
+			if (bestSlot < 0)
+				break;
+			SetGood(bestPos.x, bestPos.y, bestSlot + 1);
+			worth[s] = FairStartValue(centre);
+			goodsAdded = true;
+		}
+	}
+	if (goodsAdded)
+		ComputeGoodsValues();
+
+	// Shuffle, so the human (who takes start HUMAN_START_LOCATION, 0) isn't on the best
+	for (sint32 s = sint32(start.size()) - 1; s > 0; s--)
+		std::swap(start[s], start[g_rand->Next(s + 1)]);
+
+	// The stock score, for the extra settler (EXTRA_SETTLER_CHANCE) and the test-run log
+	for (size_t s = 0; s < start.size(); s++)
+	{
+		MapPoint const centre = cands[start[s]];
+		RadiusIterator it(centre, 2);
+		for (it.Start(); !it.End(); it.Next())
+			CalcRawScore(it.Pos().x, it.Pos().y, raw_score[it.Pos().x][it.Pos().y]);
+	}
+	for (size_t s = 0; s < start.size(); s++)
+	{
+		MapPoint const centre = cands[start[s]];
+		float score;
+		CalcCumScore(2, centre.x, centre.y, score, raw_score);
+		player_start[s]       = centre;
+		player_start_score[s] = sint32(score);
+	}
+	numStartsFound = sint32(start.size());
+	if (numStartsFound < k_MAX_PLAYERS)
+		player_start[numStartsFound].Set(-1, -1);
+	return true;
 }
 
 double World::CalcTerrainFreightCost(const MapPoint &pos)
