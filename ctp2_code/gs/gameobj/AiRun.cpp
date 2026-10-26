@@ -35,6 +35,9 @@
 #include "World.h"              // g_theWorld
 #include "CTP2Combat.h"         // CombatOdds
 #include "TurnCnt.h"            // g_turn
+#include "BldQue.h"             // BuildNode (cities log)
+#include "BuildingRecord.h"
+#include "Globals.h"            // k_GAME_OBJ_TYPE_IMPROVEMENT
 
 extern MapPoint g_player_start_list[k_MAX_PLAYERS];   // gameinit.cpp
 extern sint32 g_player_start_score[k_MAX_PLAYERS];
@@ -447,12 +450,18 @@ void airun_RecordRound(sint32 round)
 			for (sint32 c = 0; c < pl->m_all_cities->Num(); ++c)
 			{
 				CityData * cd = pl->m_all_cities->Access(c).CD();
-				fprintf(f, "%s[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d]", c ? "," : "",
+				BuildNode const * head = cd->GetBuildQueue()->GetHead();
+				char building[64] = "";
+				if (head && head->m_category == k_GAME_OBJ_TYPE_IMPROVEMENT)
+					snprintf(building, sizeof(building), "%s", g_theBuildingDB->Get(head->m_type)->GetIDText());
+				fprintf(f, "%s[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\"]", c ? "," : "",
 				        cd->PopCount(), cd->WorkerCount(), cd->EntertainerCount(),
 				        cd->PopCount() - cd->WorkerCount() - cd->EntertainerCount() - cd->SlaveCount(),
 				        (sint32)cd->GetGrossCityFood(), (sint32)cd->GetConsumedFood(), (sint32)cd->GetNetCityFood(),
 				        cd->GetGrowthRate(), cd->GetGrossCityProduction(), (sint32)cd->GetHappiness(),
-				        (sint32)cd->GetProducedFood(), (sint32)cd->GetFoodCrime());
+				        (sint32)cd->GetProducedFood(), (sint32)cd->GetFoodCrime(),
+				        cd->GetMaxPop(), cd->GetPossibleBuildingMaxPopIncrease(), head ? (sint32)head->m_category : -1,
+				        building);
 			}
 			fprintf(f, "]}");
 		}
