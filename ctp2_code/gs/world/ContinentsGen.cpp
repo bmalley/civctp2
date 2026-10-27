@@ -243,6 +243,21 @@ public:
 		return n;
 	}
 
+	// The four neighbours that share an edge with tile i (NE, SE, SW, NW in the game). The
+	// other four only touch it at a corner, and the game has no river piece across a corner.
+	int EdgeNeighbours(int i, int out[4]) const
+	{
+		int all[8];
+		int n = Neighbours(i, all), e = 0;
+		int y = i / m_w;
+		for (int k = 0; k < n; ++k)
+		{
+			int dy = all[k] / m_w - y;   // the edge neighbours are the ones in the next row up or down
+			if (dy == 1 || dy == -1) out[e++] = all[k];
+		}
+		return e;
+	}
+
 private:
 	int  m_w, m_h;
 	bool m_wrap;
@@ -980,7 +995,7 @@ private:
 			open.pop();
 			int i = e.second;
 			if (Land(i)) order.push_back(i);
-			int m = m_g.Neighbours(i, nb);
+			int m = m_g.EdgeNeighbours(i, nb);
 			for (int k = 0; k < m; ++k)
 			{
 				int j = nb[k];
@@ -992,7 +1007,8 @@ private:
 			}
 		}
 
-		// route each tile to its lowest neighbour on the filled surface, roughened a little
+		// route each tile to its lowest neighbour on the filled surface (edge neighbours only, as
+		// in the flood above: the game draws a river only across a tile's edges), roughened a little
 		// so rivers over flat land wander instead of running straight
 		double sw = m_g.W();
 		std::vector<double> route(n, -1);
@@ -1007,7 +1023,7 @@ private:
 		{
 			int i = order[k];
 			int best = down[i];
-			int m = m_g.Neighbours(i, nb);
+			int m = m_g.EdgeNeighbours(i, nb);
 			for (int q = 0; q < m; ++q)
 			{
 				int j = nb[q];
