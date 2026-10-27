@@ -545,7 +545,7 @@ TILEIMP_FARMS {
       NeedsIrrigation
       NeedsIrrigationUntil ADVANCE_AGRICULTURAL_REVOLUTION
       IsIrrigation
-      ProductionCost 200
+      ProductionCost 100
       ProductionTime 2
       TilesetIndex 5
       # placement bonuses (tools/bonusyields.py)
@@ -1149,7 +1149,7 @@ TILEIMP_MINES {
 
       BonusProduction 5
       EnableAdvance ADVANCE_SLAVE_LABOR
-      ProductionCost 300
+      ProductionCost 150
       ProductionTime 2
       TilesetIndex 14
       # placement bonuses (tools/bonusyields.py)
@@ -1167,7 +1167,7 @@ TILEIMP_MINES {
 
       BonusProduction 10
       EnableAdvance ADVANCE_SLAVE_LABOR
-      ProductionCost 400
+      ProductionCost 200
       ProductionTime 2
       TilesetIndex 14
       # placement bonuses (tools/bonusyields.py)
@@ -1183,7 +1183,7 @@ TILEIMP_MINES {
 
       BonusProduction 15
       EnableAdvance ADVANCE_SLAVE_LABOR
-      ProductionCost 500
+      ProductionCost 250
       ProductionTime 2
       TilesetIndex 14
       # placement bonuses (tools/bonusyields.py)
@@ -1295,7 +1295,7 @@ TILEIMP_NETS {
 
       BonusFood 10
       EnableAdvance ADVANCE_SHIP_BUILDING
-      ProductionCost 200
+      ProductionCost 100
       ProductionTime 2
       TilesetIndex 62
       # placement bonuses (tools/bonusyields.py)
@@ -1328,7 +1328,7 @@ TILEIMP_NETS {
 
       BonusFood 10
       EnableAdvance ADVANCE_SHIP_BUILDING
-      ProductionCost 300
+      ProductionCost 150
       ProductionTime 2
       TilesetIndex 62
       # placement bonuses (tools/bonusyields.py)
@@ -1352,7 +1352,7 @@ TILEIMP_NETS {
 
       BonusFood 10
       EnableAdvance ADVANCE_SHIP_BUILDING
-      ProductionCost 400
+      ProductionCost 200
       ProductionTime 2
       TilesetIndex 62
    }
@@ -1700,7 +1700,7 @@ TILEIMP_ROAD {
       MoveCost 33
       Freight 70
       EnableAdvance ADVANCE_TRADE
-      ProductionCost 60
+      ProductionCost 30
       ProductionTime 2
       TilesetIndex 200
    }
@@ -1715,7 +1715,7 @@ TILEIMP_ROAD {
       MoveCost 33
       Freight 70
       EnableAdvance ADVANCE_TRADE
-      ProductionCost 200
+      ProductionCost 100
       ProductionTime 2
       TilesetIndex 200
    }
@@ -1727,7 +1727,7 @@ TILEIMP_ROAD {
       MoveCost 33
       Freight 70
       EnableAdvance ADVANCE_TRADE
-      ProductionCost 300
+      ProductionCost 150
       ProductionTime 2
       TilesetIndex 200
    }
@@ -1740,7 +1740,7 @@ TILEIMP_ROAD {
       MoveCost 33
       Freight 70
       EnableAdvance ADVANCE_TRADE
-      ProductionCost 400
+      ProductionCost 200
       ProductionTime 4
       TilesetIndex 200
    }
