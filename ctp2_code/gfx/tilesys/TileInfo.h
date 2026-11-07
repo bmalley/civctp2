@@ -91,6 +91,8 @@ public:
 	TILEINDEX GetDisplayTileNum(void) const;
 	uint8 GetDisplayTerrainType(void) const;
 	static bool IsHiddenDeepOcean(sint32 terrainType);
+	static sint32 GoodViewer();
+	static bool IsHiddenGood(MapPoint const & pos);
 	static sint32 DisplayTerrainType(sint32 terrainType);
 
 	void SetTileNum(TILEINDEX index) { m_tileNum = index; }

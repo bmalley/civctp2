@@ -258,12 +258,13 @@ public:
 
 	uint32  GetSlaveBits(void) const { return m_slaveBits; }
 
-	sint32  GetFoodFromTerrain     () const;
-	sint32  GetFoodProduced        () const;
-	sint32  GetShieldsFromTerrain  () const;
-	sint32  GetShieldsProduced     () const;
-	sint32  GetGoldFromTerrain     () const;
-	sint32  GetGoldProduced        () const;
+	// viewer: as Cell's (a good the viewer can't see counts for nothing)
+	sint32  GetFoodFromTerrain     (bool withGood = true) const;
+	sint32  GetFoodProduced        (sint32 viewer = -1) const;
+	sint32  GetShieldsFromTerrain  (bool withGood = true) const;
+	sint32  GetShieldsProduced     (sint32 viewer = -1) const;
+	sint32  GetGoldFromTerrain     (bool withGood = true) const;
+	sint32  GetGoldProduced        (sint32 viewer = -1) const;
 
 	void    Serialize(CivArchive &archive);
 

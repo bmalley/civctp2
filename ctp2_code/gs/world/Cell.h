@@ -239,16 +239,18 @@ public:
 	uint32 GetRawZoc() { return m_zoc; }
 
 	sint32 GetFoodFromTerrain() const;
-	sint32 GetFoodProduced() const;
+	// viewer: a player who can't see the tile's good (VisibleAdvance,
+	// terrainutil_CanPlayerSeeGood) gets nothing from it; -1: every good counts
+	sint32 GetFoodProduced(sint32 viewer = -1) const;
 	sint32 GetShieldsFromTerrain() const;
-	sint32 GetShieldsProduced() const;
+	sint32 GetShieldsProduced(sint32 viewer = -1) const;
 	sint32 GetGoldFromTerrain() const;
-	sint32 GetGoldProduced() const;
+	sint32 GetGoldProduced(sint32 viewer = -1) const;
 	sint32 GetScore() const;
 
-	sint32 GetFoodFromTerrain(sint8 terrainType) const;
-	sint32 GetShieldsFromTerrain(sint8 terrainType) const;
-	sint32 GetGoldFromTerrain(sint8 terrainType) const;
+	sint32 GetFoodFromTerrain(sint8 terrainType, bool withGood = true) const;
+	sint32 GetShieldsFromTerrain(sint8 terrainType, bool withGood = true) const;
+	sint32 GetGoldFromTerrain(sint8 terrainType, bool withGood = true) const;
 
 	TERRAIN_TYPES GetTerrainType() const { return TERRAIN_TYPES(m_terrain_type); }
 

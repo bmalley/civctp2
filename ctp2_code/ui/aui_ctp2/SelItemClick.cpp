@@ -59,6 +59,7 @@
 #include "UnitData.h"
 #include "UnitRecord.h"
 #include "World.h"
+#include "TileInfo.h"            // TileInfo::IsHiddenGood
 
 void SelectedItem::SetupClickFunctions()
 {
@@ -1649,7 +1650,7 @@ SELECT_TYPE SelectedItem::GetClickedThing(const MapPoint &pos, bool click)
 			}
 		}
 	}
-	else if(g_theWorld->IsGood(pos))
+	else if(g_theWorld->IsGood(pos) && !TileInfo::IsHiddenGood(pos))
 	{
 		return SELECT_TYPE_GOOD;
 	}

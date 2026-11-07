@@ -324,7 +324,7 @@ bool Cell::GetCanDie(void) const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetFoodFromTerrain(sint8 terrainType) const
+sint32 Cell::GetFoodFromTerrain(sint8 terrainType, bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(terrainType);
 
@@ -339,7 +339,7 @@ sint32 Cell::GetFoodFromTerrain(sint8 terrainType) const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(this, good)) {
+	if(withGood && g_theWorld->GetGood(this, good)) {
 		food += g_theResourceDB->Get(good)->GetFood();
 	}
 
@@ -384,11 +384,11 @@ sint32 Cell::GetFoodFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetFoodProduced() const
+sint32 Cell::GetFoodProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(this, good);
-	sint32 food = GetFoodFromTerrain();
+	bool const hasGood = g_theWorld->GetGood(this, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 food = GetFoodFromTerrain(m_terrain_type, hasGood);
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
 	for (size_t i = 0; i < count; ++i)
 	{
@@ -425,7 +425,7 @@ sint32 Cell::GetFoodProduced() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetShieldsFromTerrain(sint8 terrainType) const
+sint32 Cell::GetShieldsFromTerrain(sint8 terrainType, bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(terrainType);
 
@@ -440,7 +440,7 @@ sint32 Cell::GetShieldsFromTerrain(sint8 terrainType) const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(this, good)) {
+	if(withGood && g_theWorld->GetGood(this, good)) {
 		shield += g_theResourceDB->Get(good)->GetProduction();
 	}
 
@@ -485,11 +485,11 @@ sint32 Cell::GetShieldsFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetShieldsProduced() const
+sint32 Cell::GetShieldsProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(this, good);
-	sint32 shield = GetShieldsFromTerrain();
+	bool const hasGood = g_theWorld->GetGood(this, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 shield = GetShieldsFromTerrain(m_terrain_type, hasGood);
 
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
 	for (size_t i = 0; i < count; ++i)
@@ -527,7 +527,7 @@ sint32 Cell::GetShieldsProduced() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetGoldFromTerrain(sint8 terrainType) const
+sint32 Cell::GetGoldFromTerrain(sint8 terrainType, bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(terrainType);
 
@@ -542,7 +542,7 @@ sint32 Cell::GetGoldFromTerrain(sint8 terrainType) const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(this, good)) {
+	if(withGood && g_theWorld->GetGood(this, good)) {
 		gold += g_theResourceDB->Get(good)->GetGold();
 	}
 
@@ -587,11 +587,11 @@ sint32 Cell::GetGoldFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 Cell::GetGoldProduced() const
+sint32 Cell::GetGoldProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(this, good);
-	sint32 gold = GetGoldFromTerrain(); // Like in GetShieldProduced and in GetFoodProduced functions
+	bool const hasGood = g_theWorld->GetGood(this, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 gold = GetGoldFromTerrain(m_terrain_type, hasGood); // Like in GetShieldProduced and in GetFoodProduced functions
 
 	size_t const	count	= m_objects ? m_objects->Num() : 0;
 	for (size_t i = 0; i < count; ++i)
