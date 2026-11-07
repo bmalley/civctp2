@@ -494,6 +494,7 @@ BOOL ResourceMap::DrawAGood(aui_Surface *pSurface, MapPoint const & pos, void *c
 	TileInfo *curTileInfo = g_tiledMap->GetTileInfo(pos);
 	Assert(curTileInfo != NULL);
 	if(!curTileInfo || !curTileInfo->HasGoodActor()) return FALSE;
+	if(TileInfo::IsHiddenGood(pos)) return FALSE;   // until its VisibleAdvance
 
 	GoodActor	*goodActor = curTileInfo->GetGoodActor();
 	if (!goodActor) return FALSE;

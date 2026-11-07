@@ -2686,11 +2686,15 @@ void CityData::CollectResources()
 	{
 		Cell *cell = g_theWorld->GetCell(it.Pos());
 		sint32 ring = GetRing(it.Pos());
-		m_ringFood[ring] += cell->GetFoodProduced();
-		m_ringProd[ring] += cell->GetShieldsProduced();
-		m_ringGold[ring] += cell->GetGoldProduced();
+		// a good the owner can't see yet (VisibleAdvance) yields nothing
+		sint32 const food = cell->GetFoodProduced(m_owner);
+		sint32 const prod = cell->GetShieldsProduced(m_owner);
+		sint32 const gold = cell->GetGoldProduced(m_owner);
+		m_ringFood[ring] += food;
+		m_ringProd[ring] += prod;
+		m_ringGold[ring] += gold;
 		m_ringSizes[ring]++;
-		CityRingTile const tile = { it.Pos(), cell->GetFoodProduced(), cell->GetShieldsProduced(), cell->GetGoldProduced() };
+		CityRingTile const tile = { it.Pos(), food, prod, gold };
 		m_ringTiles[ring].push_back(tile);
 		m_cityTiles.push_back(tile);
 		sint32 good;
@@ -11308,6 +11312,11 @@ bool CityData::CanCollectGood(sint32 good) const
 		return false;
 
 	if(rec->GetCantTrade())
+	{
+		return false;
+	}
+
+	if(!terrainutil_CanPlayerSeeGood(good, m_owner)) // hidden until its VisibleAdvance
 	{
 		return false;
 	}

@@ -63,6 +63,7 @@
 #include "terrainutil.h"
 
 #include "TerrainRecord.h"
+#include "ResourceRecord.h"                 // g_theResourceDB
 #ifndef __TILETOOL__
 #include "MapPoint.h"
 #include "World.h"
@@ -267,6 +268,30 @@ const TerrainImprovementRecord *terrainutil_GetBestRoad(sint32 player, const Map
 sint32 terrainutil_GetTimeToBuild(const MapPoint &pos, sint32 fromType, sint32 toType)
 {
 	return 10;
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : terrainutil_CanPlayerSeeGood
+//
+// Description: Whether a player can see a good, and so take its yield and
+//              collect it: a good with a VisibleAdvance (goods.txt) is hidden
+//              from a player without that advance.
+//
+// Parameters : good   : the good
+//              player : the player; -1 (nobody in particular) sees every good
+//
+//----------------------------------------------------------------------------
+bool terrainutil_CanPlayerSeeGood(sint32 good, sint32 player)
+{
+	if (player < 0 || player >= k_MAX_PLAYERS || !g_player[player])
+		return true;
+
+	if (good < 0 || good >= g_theResourceDB->NumRecords())
+		return false;
+
+	// HasAdvance is true for -1, a good without a VisibleAdvance
+	return g_player[player]->HasAdvance(g_theResourceDB->Get(good)->GetVisibleAdvanceIndex());
 }
 
 //----------------------------------------------------------------------------

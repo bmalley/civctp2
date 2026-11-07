@@ -548,7 +548,7 @@ bool UnseenCell::IsHealUnits(void) const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetFoodFromTerrain() const
+sint32 UnseenCell::GetFoodFromTerrain(bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(m_terrain_type);
 
@@ -563,7 +563,7 @@ sint32 UnseenCell::GetFoodFromTerrain() const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(m_point, good)){
+	if(withGood && g_theWorld->GetGood(m_point, good)){
 		food += g_theResourceDB->Get(good)->GetFood();
 	}
 
@@ -588,11 +588,11 @@ sint32 UnseenCell::GetFoodFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetFoodProduced() const
+sint32 UnseenCell::GetFoodProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(m_point, good);
-	sint32 food = GetFoodFromTerrain();
+	bool const hasGood = g_theWorld->GetGood(m_point, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 food = GetFoodFromTerrain(hasGood);
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
 			PointerList<UnseenImprovementInfo>::Walker(m_improvements);
@@ -638,7 +638,7 @@ sint32 UnseenCell::GetFoodProduced() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetShieldsFromTerrain() const
+sint32 UnseenCell::GetShieldsFromTerrain(bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(m_terrain_type);
 
@@ -653,7 +653,7 @@ sint32 UnseenCell::GetShieldsFromTerrain() const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(m_point, good)){
+	if(withGood && g_theWorld->GetGood(m_point, good)){
 		shield += g_theResourceDB->Get(good)->GetProduction();
 	}
 
@@ -678,11 +678,11 @@ sint32 UnseenCell::GetShieldsFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetShieldsProduced() const
+sint32 UnseenCell::GetShieldsProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(m_point, good);
-	sint32 shield = GetShieldsFromTerrain();
+	bool const hasGood = g_theWorld->GetGood(m_point, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 shield = GetShieldsFromTerrain(hasGood);
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
 			PointerList<UnseenImprovementInfo>::Walker(m_improvements);
@@ -727,7 +727,7 @@ sint32 UnseenCell::GetShieldsProduced() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetGoldFromTerrain() const
+sint32 UnseenCell::GetGoldFromTerrain(bool withGood) const
 {
 	const TerrainRecord *rec = g_theTerrainDB->Get(m_terrain_type);
 
@@ -742,7 +742,7 @@ sint32 UnseenCell::GetGoldFromTerrain() const
 	}
 
 	sint32 good;
-	if(g_theWorld->GetGood(m_point, good)){
+	if(withGood && g_theWorld->GetGood(m_point, good)){
 		gold += g_theResourceDB->Get(good)->GetGold();
 	}
 
@@ -767,11 +767,11 @@ sint32 UnseenCell::GetGoldFromTerrain() const
 // Remark(s)  : -
 //
 //----------------------------------------------------------------------------
-sint32 UnseenCell::GetGoldProduced() const
+sint32 UnseenCell::GetGoldProduced(sint32 viewer) const
 {
 	sint32 good = 0;
-	bool const hasGood = g_theWorld->GetGood(m_point, good);
-	sint32 gold = GetGoldFromTerrain();
+	bool const hasGood = g_theWorld->GetGood(m_point, good) && terrainutil_CanPlayerSeeGood(good, viewer);
+	sint32 gold = GetGoldFromTerrain(hasGood);
 
 	PointerList<UnseenImprovementInfo>::Walker walker =
 			PointerList<UnseenImprovementInfo>::Walker(m_improvements);

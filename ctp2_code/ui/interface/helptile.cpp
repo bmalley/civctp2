@@ -66,6 +66,7 @@
 #include "tiledmap.h"
 #include "SelItem.h"
 #include "player.h"
+#include "TileInfo.h"            // TileInfo::GoodViewer, IsHiddenGood
 
 extern sint32 g_fog_toggle;
 extern sint32 g_god;
@@ -259,9 +260,10 @@ void helptile_displayData(const MapPoint & pos)
 	char name[256];
 	strcpy(name, (tileVisible ? g_theWorld->GetTerrainName(pos)
 			: g_theStringDB->GetNameStr(g_theTerrainDB->Get(ucell.m_unseenCell->GetTerrainType())->GetName())));
-	sint32 foodProduced    = tileVisible ? tile->GetFoodProduced()    : ucell.m_unseenCell->GetFoodProduced();
-	sint32 shieldsProduced = tileVisible ? tile->GetShieldsProduced() : ucell.m_unseenCell->GetShieldsProduced();
-	sint32 goldProduced    = tileVisible ? tile->GetGoldProduced()    : ucell.m_unseenCell->GetGoldProduced();
+	sint32 const viewer    = TileInfo::GoodViewer();   // a good it can't see yet adds nothing
+	sint32 foodProduced    = tileVisible ? tile->GetFoodProduced(viewer)    : ucell.m_unseenCell->GetFoodProduced(viewer);
+	sint32 shieldsProduced = tileVisible ? tile->GetShieldsProduced(viewer) : ucell.m_unseenCell->GetShieldsProduced(viewer);
+	sint32 goldProduced    = tileVisible ? tile->GetGoldProduced(viewer)    : ucell.m_unseenCell->GetGoldProduced(viewer);
 	double moveCost        = tileVisible ? tile->GetMoveCost()        : (double)(ucell.m_unseenCell->GetMoveCost());
 
 	g_helpTileWindow->TitleText()->SetText(name);
@@ -309,7 +311,7 @@ void helptile_displayData(const MapPoint & pos)
 	s_tileGoldValue->SetText(text);
 
 	// Unfortunately this kind of information is not stored in the UnseenCell object.
-	if (g_theWorld->IsGood(pos))
+	if (g_theWorld->IsGood(pos) && !TileInfo::IsHiddenGood(pos))
 	{
 		StringId goodStrID;
 

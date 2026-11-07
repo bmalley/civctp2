@@ -2862,7 +2862,7 @@ sint32 TiledMap::RepaintLayerSprites(const RECT & paintRect, sint32 layer)
 			}
 #endif
 
-			if (g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos))
+			if (g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos) && !TileInfo::IsHiddenGood(pos))
 			{
 				TileInfo *curTileInfo = GetTileInfo(pos);
 				Assert(curTileInfo);
@@ -3120,7 +3120,7 @@ void TiledMap::ProcessLayerSprites(const RECT & paintRect, sint32 layer)
 
 			CurrentCell = g_theWorld->GetCell(pos);
 
-			if(g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos))
+			if(g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos) && !TileInfo::IsHiddenGood(pos))
 			{
 				if(curTileInfo && curTileInfo->HasGoodActor())
 				{
@@ -3214,7 +3214,7 @@ sint32 TiledMap::OffsetLayerSprites(const RECT & paintRect, sint32 deltaX, sint3
 			TileInfo *curTileInfo = GetTileInfo(pos);
 			Assert(curTileInfo != NULL);
 
-			if(g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos)) {
+			if(g_theWorld->IsGood(pos) && m_localVision->IsExplored(pos) && !TileInfo::IsHiddenGood(pos)) {
 				GoodActor *curGoodActor;
 				if(curTileInfo && curTileInfo->HasGoodActor()) {
 					curGoodActor = curTileInfo->GetGoodActor();

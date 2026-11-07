@@ -3512,6 +3512,9 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 
 	SurfaceLock surfaceLock(surf);
 
+	// a good the player at the screen can't see yet (VisibleAdvance) adds nothing
+	sint32 const viewer = TileInfo::GoodViewer();
+
 	for (sint32 i = m_mapViewRect.top; i < m_mapViewRect.bottom; i++)
 	{
 		for (sint32 j = m_mapViewRect.left; j < m_mapViewRect.right; j++)
@@ -3529,16 +3532,16 @@ void TiledMap::DrawTileYields(aui_Surface * surf)
 			UnseenCellCarton ucell;
 			if (m_localVision->GetLastSeen(pos, ucell) && !g_fog_toggle)
 			{
-				amount[0] = ucell.m_unseenCell->GetFoodProduced();
-				amount[1] = ucell.m_unseenCell->GetShieldsProduced();
-				amount[2] = ucell.m_unseenCell->GetGoldProduced();
+				amount[0] = ucell.m_unseenCell->GetFoodProduced(viewer);
+				amount[1] = ucell.m_unseenCell->GetShieldsProduced(viewer);
+				amount[2] = ucell.m_unseenCell->GetGoldProduced(viewer);
 				terrain   = ucell.m_unseenCell->GetTerrainType();
 			}
 			else
 			{
-				amount[0] = cell->GetFoodProduced();
-				amount[1] = cell->GetShieldsProduced();
-				amount[2] = cell->GetGoldProduced();
+				amount[0] = cell->GetFoodProduced(viewer);
+				amount[1] = cell->GetShieldsProduced(viewer);
+				amount[2] = cell->GetGoldProduced(viewer);
 				terrain   = cell->GetTerrainType();
 			}
 

@@ -92,7 +92,7 @@ void TileControl::SetMouseTile(const MapPoint & pos)
 	m_currentTile = pos;
 
 	sint32 goodIndex = 0;
-	if (g_theWorld->GetGood(pos, goodIndex))
+	if (g_theWorld->GetGood(pos, goodIndex) && !TileInfo::IsHiddenGood(pos))
 	{
 		m_goodActor = new GoodActor(g_theResourceDB->Get(goodIndex)->GetSpriteID(), pos);
 		if (g_theProfileDB->IsGoodAnim()) {
