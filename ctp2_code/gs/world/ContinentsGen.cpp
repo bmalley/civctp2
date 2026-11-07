@@ -26,7 +26,9 @@
 //    dry subtropics and the stormy mid-latitudes.
 // 5. Rivers: a priority flood from the sea gives every land tile a downhill
 //    route to water; rain is summed along the routes and the wettest routes are
-//    rivers, so they join, reach the sea and are rare in deserts.
+//    rivers, so they join, reach the sea and are rare in deserts. The game joins
+//    any two river tiles that share an edge, so rivers are kept apart where they
+//    don't run into each other, and each ends in a mouth on the beach.
 // 6. Terrain: rain bands by the profile's desert/plains/grass/forest/swamp
 //    shares, changed by temperature as the stock generator does, swamp only on
 //    low land by water.
@@ -243,6 +245,18 @@ public:
 		return n;
 	}
 
+	// Whether tiles i and j share an edge
+	bool EdgeNeighbour(int i, int j) const
+	{
+		int nb[4];
+		int n = EdgeNeighbours(i, nb);
+		for (int k = 0; k < n; ++k)
+		{
+			if (nb[k] == j) return true;
+		}
+		return false;
+	}
+
 	// The four neighbours that share an edge with tile i (NE, SE, SW, NW in the game). The
 	// other four only touch it at a corner, and the game has no river piece across a corner.
 	int EdgeNeighbours(int i, int out[4]) const
@@ -383,6 +397,7 @@ public:
 		MakeRivers();
 		MakeTerrain();
 		MakeWater();
+		MakeMouths();
 	}
 
 private:
@@ -978,8 +993,10 @@ private:
 		typedef std::pair<double, int> Entry;
 		std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry> > open;
 		std::vector<double> fill(n, 0);
-		std::vector<int>    down(n, -1), order;
+		std::vector<int> &  down = m_down;
+		std::vector<int>    order;
 		std::vector<char>   done(n, 0);
+		down.assign(n, -1);
 		for (int i = 0; i < n; ++i)
 		{
 			if (!Land(i))
@@ -1044,15 +1061,61 @@ private:
 			if (down[i] >= 0 && Land(down[i])) flow[down[i]] += flow[i];
 		}
 
-		std::vector<double> landFlow;
+		// The game joins any two river tiles across an edge, whether or not one runs into the
+		// other (TiledMap::TryRiver), so two streams side by side drew as a ladder, and a wet
+		// plain as a lattice of crossing channels. So rivers are taken wettest first, and a tile
+		// is left out, with everything above it, where it would touch another river (or its own
+		// lower course, or a river's mouth) across an edge it doesn't run through. Nor may it
+		// touch one at a corner, which no piece crosses, so it looks like a broken step, unless
+		// both join the tile it runs into. Then the next wettest, until rivers cover the
+		// profile's share of the land again.
+		std::vector<int> cand;
+		int landCount = 0;
 		for (int i = 0; i < n; ++i)
 		{
-			if (Land(i)) landFlow.push_back(flow[i]);
+			if (!Land(i)) continue;
+			++landCount;
+			if (!Mountain(i)) cand.push_back(i);
 		}
-		double level = Quantile(landFlow, 1 - m_p.rivers);
-		for (int i = 0; i < n; ++i)
+		std::sort(cand.begin(), cand.end(), [&flow](int a, int b)
 		{
-			if (Land(i) && flow[i] >= level && !Mountain(i)) m_map.river[i] = 1;
+			return flow[a] > flow[b] || (flow[a] == flow[b] && a < b);
+		});
+		int const wanted = static_cast<int>(floor(m_p.rivers * landCount + 0.5));
+		std::vector<char> & mouth = m_mouth;
+		mouth.assign(n, 0);
+		int taken = 0;
+		for (size_t c = 0; c < cand.size() && taken < wanted; ++c)
+		{
+			int const i = cand[c], d = down[i];
+			if (d < 0 || (Land(d) && !m_map.river[d])) continue;   // runs into a tile left out
+			bool clash = false;
+			int m = m_g.EdgeNeighbours(i, nb);
+			for (int k = 0; k < m && !clash; ++k)
+			{
+				int const j = nb[k];
+				clash = j != d && (Land(j) ? m_map.river[j] != 0 : mouth[j] != 0);
+			}
+			m = m_g.Neighbours(i, nb);
+			for (int k = 0; k < m && !clash; ++k)
+			{
+				int const j = nb[k];
+				clash = Land(j) && m_map.river[j] && !m_g.EdgeNeighbour(i, j) && !m_g.EdgeNeighbour(d, j);
+			}
+			if (!Land(d))
+			{
+				// its mouth: no other river may touch it, but one that runs into it too
+				m = m_g.EdgeNeighbours(d, nb);
+				for (int k = 0; k < m && !clash; ++k)
+				{
+					int const j = nb[k];
+					clash = j != i && Land(j) && m_map.river[j] && down[j] != d;
+				}
+			}
+			if (clash) continue;
+			m_map.river[i] = 1;
+			if (!Land(d)) mouth[d] = 1;
+			++taken;
 		}
 	}
 
@@ -1222,6 +1285,49 @@ private:
 		}
 	}
 
+	// 7. River mouths -------------------------------------------------------
+
+	// The water tile a river runs into carries the river too, as on stock maps (World::GenerateRivers
+	// ends each river on a beach tile). The game draws a mouth only there: a beach tile with a river
+	// gets a piece joining the land rivers across its edges, so without one a river stops on the
+	// last land tile. Only beach: on any other water the game would draw a land piece. Where two
+	// continents' waters meet, the tile a river drains to can be deep; then another beach tile
+	// across one of the last tile's edges that touches no other river takes the mouth, and a river
+	// with none is dropped (about one short river in 80 maps).
+	void MakeMouths()
+	{
+		int n = m_g.Size(), nb[4], nb2[4];
+		std::vector<char> dry(n, 0);   // last tiles of rivers that found no mouth
+		for (int i = 0; i < n; ++i)
+		{
+			int const d = m_down[i];
+			if (!m_map.river[i] || !Land(i) || d < 0 || Land(d)) continue;
+			int mouth = m_map.terrain[d] == T_BEACH ? d : -1;
+			int m = m_g.EdgeNeighbours(i, nb);
+			for (int k = 0; k < m && mouth < 0; ++k)
+			{
+				int const b = nb[k];
+				if (m_map.terrain[b] != T_BEACH) continue;
+				bool alone = true;
+				int m2 = m_g.EdgeNeighbours(b, nb2);
+				for (int q = 0; q < m2; ++q)
+				{
+					alone = alone && (nb2[q] == i || !Land(nb2[q]) || !m_map.river[nb2[q]]);
+				}
+				if (alone) mouth = b;
+			}
+			if (mouth >= 0) m_map.river[mouth] = 1;
+			else            dry[i] = 1;
+		}
+		for (int i = 0; i < n; ++i)
+		{
+			if (!m_map.river[i] || !Land(i)) continue;
+			int last = i;
+			while (m_down[last] >= 0 && Land(m_down[last])) last = m_down[last];
+			if (dry[last]) m_map.river[i] = 0;
+		}
+	}
+
 	Params const &      m_p;
 	Map &               m_map;
 	Grid                m_g;
@@ -1231,6 +1337,8 @@ private:
 	std::vector<int>    m_region;
 	std::vector<char>   m_land, m_oldRange;
 	std::vector<int>    m_coast;
+	std::vector<int>    m_down;   // the tile each land tile drains to (MakeRivers)
+	std::vector<char>   m_mouth;  // water tiles a river runs into (MakeRivers)
 	std::vector<double> m_height, m_temp, m_rain;
 	double              m_mountainLevel, m_hillLevel, m_whiteLevel, m_brownLevel;
 };
