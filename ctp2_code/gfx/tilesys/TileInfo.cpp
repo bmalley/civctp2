@@ -45,6 +45,7 @@
 #include "SelItem.h"        // g_selected_item
 #include "TerrainRecord.h"
 #include "terrainutil.h"
+#include "World.h"          // g_theWorld
 
 extern sint32			g_fog_toggle;
 extern sint32			g_god;
@@ -132,6 +133,38 @@ bool TileInfo::IsHiddenDeepOcean(sint32 terrainType)
 
 	TerrainRecord const * rec = g_theTerrainDB->Get(terrainType);
 	return rec && rec->GetMovementTypeSea() && !rec->GetMovementTypeShallowWater();
+}
+
+//----------------------------------------------------------------------------
+//
+// Name       : TileInfo::GoodViewer
+//
+// Description: The player whose knowledge decides which goods the screen
+//              shows and counts in tile yields: a good with a VisibleAdvance
+//              (goods.txt) is hidden from a player without that advance
+//              (terrainutil_CanPlayerSeeGood).
+//
+// Globals    : g_fog_toggle, g_god, g_selected_item
+//
+// Returns    : sint32 : the player at the screen; -1 (every good) with the fog
+//                       toggles, in god mode and in the scenario editor
+//
+// Remark(s)  : Knowledge, not sight: the global radar doesn't show them.
+//
+//----------------------------------------------------------------------------
+sint32 TileInfo::GoodViewer()
+{
+	if (g_fog_toggle || g_god || !g_selected_item || ScenarioEditor::IsShown())
+		return -1;
+
+	return g_selected_item->GetVisiblePlayer();
+}
+
+// Whether the good on a tile is hidden from GoodViewer (false on a tile without a good)
+bool TileInfo::IsHiddenGood(MapPoint const & pos)
+{
+	sint32 good;
+	return g_theWorld->GetGood(pos, good) && !terrainutil_CanPlayerSeeGood(good, GoodViewer());
 }
 
 // The terrain to draw for terrainType: shallow water while hidden, else itself.

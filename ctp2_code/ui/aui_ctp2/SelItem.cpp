@@ -132,6 +132,7 @@
 #include "soundmanager.h"
 #include "CityAstar.h"
 #include "agent.h"
+#include "TileInfo.h"            // TileInfo::IsHiddenGood
 
 extern ControlPanelWindow       *g_controlPanel;
 extern WorkWindow               *g_workWindow;
@@ -2705,7 +2706,7 @@ void SelectedItem::UnitCityToggle()
 			{
 				SetSelectUnit(g_theWorld->GetCell(pos)->GetCity());
 			}
-			else if(g_theWorld->IsGood(pos))
+			else if(g_theWorld->IsGood(pos) && !TileInfo::IsHiddenGood(pos))
 			{
 				SetSelectGood(pos);
 			}
@@ -2713,7 +2714,7 @@ void SelectedItem::UnitCityToggle()
 		case SELECT_TYPE_LOCAL_CITY:
 		case SELECT_TYPE_REMOTE_CITY:
 			m_selected_city[player].GetPos(pos);
-			if(g_theWorld->IsGood(pos))
+			if(g_theWorld->IsGood(pos) && !TileInfo::IsHiddenGood(pos))
 			{
 				SetSelectGood(pos);
 			}

@@ -78,6 +78,7 @@
 #include "wonderutil.h"
 #include "MainControlPanel.h"
 #include "radarmap.h"            // g_radarMap
+#include "ResourceRecord.h"      // g_theResourceDB (VisibleAdvance)
 #include <stdexcept>            // overflow_error
 
 namespace
@@ -293,6 +294,20 @@ void Advances::SetHasAdvance(AdvanceType advance, const bool init)
 		if (g_radarMap)
 		{
 			g_radarMap->Update();   // the minimap's colours change too
+		}
+	}
+
+	// Goods this advance reveals (VisibleAdvance) appear on the map
+	for (sint32 good = 0; good < g_theResourceDB->NumRecords(); ++good)
+	{
+		if (g_theResourceDB->Get(good)->GetVisibleAdvanceIndex() == advance)
+		{
+			if (g_tiledMap)
+			{
+				g_tiledMap->Refresh();
+				g_tiledMap->InvalidateMix();
+			}
+			break;
 		}
 	}
 
