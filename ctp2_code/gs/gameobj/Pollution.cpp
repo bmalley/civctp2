@@ -336,7 +336,7 @@ void Pollution::EndRound()
 
 	sint32 pollution = m_history[0];
 
-	memcpy(&m_history[1], &m_history[0], sizeof(m_history)-sizeof(m_history[0]));
+	memmove(&m_history[1], &m_history[0], sizeof(m_history)-sizeof(m_history[0]));
 
 	for(sint32 i = 0; i < k_MAX_PLAYERS; i++)
 	{
