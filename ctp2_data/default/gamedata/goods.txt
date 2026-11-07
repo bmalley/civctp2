@@ -61,6 +61,7 @@ TERRAIN_DESERT_GOOD_TWO {
    Food 0
    Production 15
    Probability 0.25
+   VisibleAdvance ADVANCE_OIL_REFINING   # oil: hidden, no yield, not collected until Oil Refining
    Icon ICON_GOOD_DESERT_TWO
 }
 
@@ -204,6 +205,7 @@ TERRAIN_HILL_GOOD_THREE {
    Food 0
    Production 15
    Probability 0.25
+   VisibleAdvance ADVANCE_PHYSICS        # uranium: hidden, no yield, not collected until Physics
    Icon ICON_GOOD_HILL_THREE
 }
 
@@ -413,6 +415,7 @@ TERRAIN_TUNDRA_GOOD_TWO {
   Food 10
   Production 10
   Probability 0.25
+  VisibleAdvance ADVANCE_OIL_REFINING   # oil: as in the desert
   Icon ICON_GOOD_TUNDRA_TWO
 }
 
