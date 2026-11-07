@@ -245,6 +245,15 @@ public:
 		return n;
 	}
 
+	// The direction of the step from i to j, an edge neighbour: 0 up-left, 1 up-right,
+	// 2 down-left, 3 down-right
+	int EdgeDirection(int i, int j) const
+	{
+		int y = i / m_w, x = i % m_w;
+		int left = ((y & 1) ? x : x - 1 + m_w) % m_w;
+		return (j / m_w > y ? 2 : 0) + (j % m_w == left ? 0 : 1);
+	}
+
 	// Whether tiles i and j share an edge
 	bool EdgeNeighbour(int i, int j) const
 	{
@@ -987,6 +996,17 @@ private:
 
 	// 5. Rivers -------------------------------------------------------------
 
+	// The flood's rise from one tile to the next on level ground (a filled hollow). With the
+	// same rise everywhere the flood spreads over a hollow in even diamond layers from its
+	// outlet, and a route lined up with the outlet can only run straight down the layers' axis:
+	// a long straight diagonal on screen. A rise that varies a little from tile to tile (by a
+	// hash, not m_rng, so nothing after this changes) makes the layers ragged and the routes wander.
+	double FloodStep(int i) const
+	{
+		Rng r(m_p.seed * 0x632BE59BD9B4E019ULL + static_cast<uint64_t>(i));
+		return 1e-5 + 0.001 * r.Unit();
+	}
+
 	void MakeRivers()
 	{
 		int n = m_g.Size();
@@ -1018,7 +1038,7 @@ private:
 				int j = nb[k];
 				if (done[j]) continue;
 				done[j] = 1;
-				fill[j] = std::max(m_height[j], e.first + 1e-5);
+				fill[j] = std::max(m_height[j], e.first + FloodStep(j));
 				down[j] = i;
 				open.push(Entry(fill[j], j));
 			}
@@ -1026,7 +1046,9 @@ private:
 
 		// route each tile to its lowest neighbour on the filled surface (edge neighbours only, as
 		// in the flood above: the game draws a river only across a tile's edges), roughened a little
-		// so rivers over flat land wander instead of running straight
+		// so rivers over flat land wander instead of running straight. A move that would make a
+		// third in one direction costs a little more, so a route turns where it can: a straight
+		// run is a straight diagonal line on screen.
 		double sw = m_g.W();
 		std::vector<double> route(n, -1);
 		for (int i = 0; i < n; ++i)
@@ -1036,6 +1058,15 @@ private:
 				route[i] = fill[i] + 0.04 * (1 + m_climate.Fbm(m_g.SX(i) + 50, m_g.SY(i), sw, m_g.Wrap(), 10, 2));
 			}
 		}
+		std::vector<int> run(n, 0);   // moves in one direction from each tile on down
+		auto straight = [&](int i, int j)
+		{
+			return Land(j) && down[j] >= 0 && Land(down[j]) && m_g.EdgeDirection(i, j) == m_g.EdgeDirection(j, down[j]);
+		};
+		auto cost = [&](int i, int j)
+		{
+			return route[j] + (straight(i, j) && run[j] + 1 >= 3 ? 0.05 : 0.0);
+		};
 		for (size_t k = 0; k < order.size(); ++k)
 		{
 			int i = order[k];
@@ -1045,9 +1076,10 @@ private:
 			{
 				int j = nb[q];
 				// only to tiles flooded earlier: no loops, and the sum below sees each tile before its outlet
-				if ((!Land(j) || fill[j] < fill[i]) && route[j] < route[best]) best = j;
+				if ((!Land(j) || fill[j] < fill[i]) && cost(i, j) < cost(i, best)) best = j;
 			}
 			down[i] = best;
+			run[i] = straight(i, best) ? run[best] + 1 : 1;
 		}
 
 		std::vector<double> flow(n, 0);
