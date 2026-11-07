@@ -433,7 +433,7 @@ void airun_RecordRound(sint32 round)
 	}
 	fprintf(f, "]}\n");
 
-	// CTP2_AIRUN_CITIES=N: every N rounds, each city's size, workers and food
+	// CTP2_AIRUN_CITIES=N: every N rounds, each city's size, workers and food, and where it is
 	static sint32 const citiesEvery = getenv("CTP2_AIRUN_CITIES") ? atoi(getenv("CTP2_AIRUN_CITIES")) : 0;
 	if (citiesEvery > 0 && round % citiesEvery == 0)
 	{
@@ -462,6 +462,13 @@ void airun_RecordRound(sint32 round)
 				        (sint32)cd->GetProducedFood(), (sint32)cd->GetFoodCrime(),
 				        cd->GetMaxPop(), cd->GetPossibleBuildingMaxPopIncrease(), head ? (sint32)head->m_category : -1,
 				        building);
+			}
+			fprintf(f, "],\"xy\":[");   // where each city is (map position), in list's order
+			for (sint32 c = 0; c < pl->m_all_cities->Num(); ++c)
+			{
+				MapPoint pos;
+				pl->m_all_cities->Access(c).GetPos(pos);
+				fprintf(f, "%s[%d,%d]", c ? "," : "", pos.x, pos.y);
 			}
 			fprintf(f, "]}");
 		}
