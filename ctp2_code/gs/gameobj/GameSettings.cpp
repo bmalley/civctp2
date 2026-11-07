@@ -47,6 +47,10 @@ extern sint32		g_barbarianRiskUponLaunch;
 GameSettings *g_theGameSettings = NULL;
 
 GameSettings::GameSettings()
+:
+	m_flags0    (0),
+	m_flags1    (0),
+	m_flags2    (0)
 {
 	if (g_setDifficultyUponLaunch)
 	{
