@@ -2569,7 +2569,6 @@ IMapGenerator *World::LoadMapPlugin(sint32 pass)
 	if(p) strcpy(p, ".so"); // Quickly change .dll to .so
 	//printf("DLL, open %s => %s\n", name, CI_FixName(name_so));
 	plugin = dlopen(CI_FixName(name_so), RTLD_LAZY);
-	free(name_so);
 #endif
 	if(plugin == NULL) {
 #ifndef USE_COM_REPLACEMENT
@@ -2580,6 +2579,7 @@ IMapGenerator *World::LoadMapPlugin(sint32 pass)
 #endif
 #else
 		fprintf(stderr, "Could not load library %s, using builtin map generator: %s", name_so, dlerror());
+		free(name_so);
 #endif
 		return NULL;
 	}
@@ -2599,9 +2599,13 @@ IMapGenerator *World::LoadMapPlugin(sint32 pass)
 #else
 		dlclose(plugin);
 		c3errors_ErrorDialog("Map Generator", "Plugin %s is not a valid map generator", name_so);
+		free(name_so);
 #endif
 		return NULL;
 	}
+#ifdef USE_COM_REPLACEMENT
+	free(name_so);
+#endif
 #ifndef USE_COM_REPLACEMENT
 	IUnknown *unknown;
 	if(creator(&unknown) != S_OK) {
