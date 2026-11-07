@@ -500,7 +500,7 @@ uint32 GameFile::Save(const MBCHAR *filepath, SaveInfo *info)
 		return GAMEFILE_ERR_STORE_FAILED;
 		}
 
-	delete compressedData;
+	delete [] compressedData;
 
 	c3files_fclose(fpSave);
 
