@@ -1097,10 +1097,10 @@ private:
 		// other (TiledMap::TryRiver), so two streams side by side drew as a ladder, and a wet
 		// plain as a lattice of crossing channels. So rivers are taken wettest first, and a tile
 		// is left out, with everything above it, where it would touch another river (or its own
-		// lower course, or a river's mouth) across an edge it doesn't run through. Nor may it
-		// touch one at a corner, which no piece crosses, so it looks like a broken step, unless
-		// both join the tile it runs into. Then the next wettest, until rivers cover the
-		// profile's share of the land again.
+		// lower course, or a river's mouth) across an edge it doesn't run through. Nor may a
+		// river piece, on land or a mouth in the sea, meet it or its mouth at a corner, which no
+		// piece crosses, so it looks like a broken step, unless a tile between them joins both.
+		// Then the next wettest, until rivers cover the profile's share of the land again.
 		std::vector<int> cand;
 		int landCount = 0;
 		for (int i = 0; i < n; ++i)
@@ -1116,6 +1116,8 @@ private:
 		int const wanted = static_cast<int>(floor(m_p.rivers * landCount + 0.5));
 		std::vector<char> & mouth = m_mouth;
 		mouth.assign(n, 0);
+		// a tile that shows a river piece: a river on land, or the sea where one runs in
+		auto drawn = [&](int j) { return Land(j) ? m_map.river[j] != 0 : mouth[j] != 0; };
 		int taken = 0;
 		for (size_t c = 0; c < cand.size() && taken < wanted; ++c)
 		{
@@ -1128,11 +1130,25 @@ private:
 				int const j = nb[k];
 				clash = j != d && (Land(j) ? m_map.river[j] != 0 : mouth[j] != 0);
 			}
+			// With i and its mouth added: the game joins two pieces across an edge, but never two
+			// in the sea; a piece at a corner of another is fine only through a tile joining both
+			auto shown = [&](int j) { return j == i || j == d || drawn(j); };
+			auto joins = [&](int a, int b) { return shown(a) && shown(b) && (Land(a) || Land(b)); };
+			auto cornerJoined = [&](int a, int b)
+			{
+				int e[4];
+				int const me = m_g.EdgeNeighbours(a, e);
+				for (int q = 0; q < me; ++q)
+				{
+					if (m_g.EdgeNeighbour(b, e[q]) && joins(a, e[q]) && joins(b, e[q])) return true;
+				}
+				return false;
+			};
 			m = m_g.Neighbours(i, nb);
 			for (int k = 0; k < m && !clash; ++k)
 			{
 				int const j = nb[k];
-				clash = Land(j) && m_map.river[j] && !m_g.EdgeNeighbour(i, j) && !m_g.EdgeNeighbour(d, j);
+				clash = !m_g.EdgeNeighbour(i, j) && drawn(j) && !cornerJoined(i, j);
 			}
 			if (!Land(d))
 			{
@@ -1142,6 +1158,12 @@ private:
 				{
 					int const j = nb[k];
 					clash = j != i && Land(j) && m_map.river[j] && down[j] != d;
+				}
+				m = m_g.Neighbours(d, nb);
+				for (int k = 0; k < m && !clash; ++k)
+				{
+					int const j = nb[k];
+					clash = !m_g.EdgeNeighbour(d, j) && drawn(j) && !cornerJoined(d, j);
 				}
 			}
 			if (clash) continue;
@@ -1324,11 +1346,12 @@ private:
 	// gets a piece joining the land rivers across its edges, so without one a river stops on the
 	// last land tile. Only beach: on any other water the game would draw a land piece. Where two
 	// continents' waters meet, the tile a river drains to can be deep; then another beach tile
-	// across one of the last tile's edges that touches no other river takes the mouth, and a river
-	// with none is dropped (about one short river in 80 maps).
+	// across one of the last tile's edges that touches no other river (across an edge, or at a
+	// corner with nothing between to join them) takes the mouth, and a river with none is dropped
+	// (about one short river in 80 maps).
 	void MakeMouths()
 	{
-		int n = m_g.Size(), nb[4], nb2[4];
+		int n = m_g.Size(), nb[4], nb2[4], nb8[8];
 		std::vector<char> dry(n, 0);   // last tiles of rivers that found no mouth
 		for (int i = 0; i < n; ++i)
 		{
@@ -1345,6 +1368,14 @@ private:
 				for (int q = 0; q < m2; ++q)
 				{
 					alone = alone && (nb2[q] == i || !Land(nb2[q]) || !m_map.river[nb2[q]]);
+				}
+				// at its corners: no piece but i's own tributaries, joined to it through i
+				m2 = m_g.Neighbours(b, nb8);
+				for (int q = 0; q < m2 && alone; ++q)
+				{
+					int const c = nb8[q];
+					bool const piece = m_map.river[c] || (!Land(c) && m_mouth[c]);
+					alone = m_g.EdgeNeighbour(b, c) || !piece || (Land(c) && m_g.EdgeNeighbour(i, c));
 				}
 				if (alone) mouth = b;
 			}
