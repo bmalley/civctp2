@@ -4709,7 +4709,8 @@ uint32 Diplomat::GetIncursionPermission() const
 
 bool Diplomat::IncursionPermission(const PLAYER_INDEX foreignerId) const
 {
-	return (m_incursionPermission & (1 << foreignerId)) != 0;
+	if (foreignerId < 0 || foreignerId >= k_MAX_PLAYERS) return false;
+	return (m_incursionPermission & (uint32(1) << foreignerId)) != 0;
 }
 
 void Diplomat::SetHotwarAttack(const PLAYER_INDEX foreignerId, const sint16 last_hot_war_attack)
