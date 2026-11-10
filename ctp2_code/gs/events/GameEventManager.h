@@ -209,14 +209,14 @@ public:
 	    sint32 &            resumeIndex
 	);
 
-	GAME_EVENT GetEventIndex(const MBCHAR *name) const;
-	const char *GetEventName(GAME_EVENT ev) const;
+	static GAME_EVENT GetEventIndex(const MBCHAR *name);
+	static const char *GetEventName(GAME_EVENT ev);
 
-	const char *GetArgString(GAME_EVENT ev) const;
+	static const char *GetArgString(GAME_EVENT ev);
 	static GAME_EVENT_ARGUMENT ArgCharToIndex(char want);
 
-	char ArgChar(GAME_EVENT type, size_t index) const;
-	size_t GetNumArgs(GAME_EVENT type) const;
+	static char ArgChar(GAME_EVENT type, size_t index);
+	static size_t GetNumArgs(GAME_EVENT type);
 
 	void GotUserInput();
 
