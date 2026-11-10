@@ -551,7 +551,7 @@ template <class T> bool CTPDatabase<T>::ParseRecordInArray(DBLexer *lex, sint32 
 		sint32 *oldArray = *array;
 		*array = new sint32[*numElements + 1];
 		memcpy(*array, oldArray, (*numElements) * sizeof(sint32));
-		delete oldArray;
+		delete [] oldArray;
 	} else {
 		*array = new sint32[1];
 	}
