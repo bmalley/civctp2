@@ -219,6 +219,9 @@ int ProjectFile::mergeEntries(PFEntry *newList, int newCount)
 
 PFEntry *ProjectFile::findRecord(char const * rname) const
 {
+    // bsearch requires a non-null base, even when the entry count is zero.
+    if (m_num_entries == 0) return NULL;
+
     PFEntry key;
 
     strcasecpy(key.rname, rname);
