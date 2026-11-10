@@ -63,6 +63,8 @@ GameEventArgument::GameEventArgument(GAME_EVENT_ARGUMENT type, const MapPoint& a
 }
 
 GameEventArgument::GameEventArgument(CivArchive &archive)
+:
+	m_IsAlwaysValid(false)
 {
 	Serialize(archive);
 }
