@@ -323,7 +323,7 @@ namespace Os
 			return std::basic_string<TCHAR>();
 
 		ssize_t size = readlink(szLink, szTemp, sizeof(szTemp));
-		if ((size < 0) || (static_cast<size_t>(size) > sizeof(szTemp)))
+		if ((size < 0) || (static_cast<size_t>(size) >= sizeof(szTemp)))
 			return std::basic_string<TCHAR>();
 		szTemp[size] = 0;
 
@@ -1650,14 +1650,13 @@ int WINAPI CivMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	}
 #elif defined(LINUX)
 	char result[PATH_MAX];
-	ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+	ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
 
-	const char *path = nullptr;
-	if (count != -1) {
-		path = dirname(result);
+	// readlink does not terminate its output; a full buffer may be truncated.
+	if (count >= 0 && static_cast<size_t>(count) < sizeof(result)) {
+		result[count] = '\0';
+		chdir(dirname(result));
 	}
-
-	chdir(path);
 #endif
 
 	appstrings_Initialize();
