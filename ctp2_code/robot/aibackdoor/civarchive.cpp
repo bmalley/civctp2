@@ -153,6 +153,7 @@ TypeCheck(TYPE_CHECK_ARRAY);
 #endif // ARCHIVE_TYPE_CHECK
 
 	Assert(m_bIsStoring);
+	if (ulLen == 0) return; // Empty arrays may have a null data pointer.
 
 	if ((m_ulLength + ulLen) >= m_ulAllocated)
 		DoubleExpand(ulLen);
@@ -179,6 +180,7 @@ void CivArchive::Load(uint8 *pbData, size_t ulLen)
 		exit(0);
 	}
 #endif
+	if (ulLen == 0) return;
 	Assert(pbData);
 	memcpy(pbData, m_pbInsert, ulLen) ;
 	m_pbInsert += ulLen ;
