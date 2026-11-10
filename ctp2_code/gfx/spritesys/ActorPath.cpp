@@ -43,8 +43,8 @@ ActorPath::ActorPath(sint32 x1, sint32 y1, sint32 x2, sint32 y2)
 
 ActorPath::~ActorPath()
 {
-	delete m_points;
-	delete m_pos;
+	delete [] m_points;
+	delete [] m_pos;
 }
 
 void ActorPath::SetPos(uint16 pointNum, sint32 x, sint32 y)
