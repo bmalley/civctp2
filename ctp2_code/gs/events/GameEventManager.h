@@ -216,7 +216,7 @@ public:
 	static GAME_EVENT_ARGUMENT ArgCharToIndex(char want);
 
 	static char ArgChar(GAME_EVENT type, size_t index);
-	size_t GetNumArgs(GAME_EVENT type) const;
+	static size_t GetNumArgs(GAME_EVENT type);
 
 	void GotUserInput();
 
