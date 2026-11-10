@@ -635,7 +635,7 @@ char GameEventManager::ArgChar(GAME_EVENT type, size_t index)
 	return '\0';
 }
 
-size_t GameEventManager::GetNumArgs(GAME_EVENT type) const
+size_t GameEventManager::GetNumArgs(GAME_EVENT type)
 {
     Assert((type >= (GAME_EVENT) 0) && (type < GEV_MAX));
     if ((type < (GAME_EVENT) 0) || (type >= GEV_MAX))
