@@ -21,7 +21,9 @@ aui_Switch::aui_Switch(
 	:
 	aui_ImageBase( ldlBlock ),
 	aui_TextBase( ldlBlock, (const MBCHAR *)NULL ),
-	aui_Control( retval, id, ldlBlock, ActionFunc, cookie )
+	aui_Control( retval, id, ldlBlock, ActionFunc, cookie ),
+	m_state(0),
+	m_numStates(k_AUI_SWITCH_DEFAULTNUMSTATES)
 {
 	m_drawFunc			= NULL;
 	m_drawCookie		= NULL;
@@ -50,7 +52,9 @@ aui_Switch::aui_Switch(
 	:
 	aui_ImageBase( numStates ),
 	aui_TextBase( NULL ),
-	aui_Control( retval, id, x, y, width, height, ActionFunc, cookie )
+	aui_Control( retval, id, x, y, width, height, ActionFunc, cookie ),
+	m_state(0),
+	m_numStates(k_AUI_SWITCH_DEFAULTNUMSTATES)
 {
 	m_drawFunc			= NULL;
 	m_drawCookie		= NULL;

@@ -125,6 +125,10 @@ m_cellArmyList()
 	Assert(m_transportSelectionIcon);
 
 	m_armySelectionUnit = -1;
+	// Force the first order-button refresh; the cached selection is not valid yet.
+	m_lastSelectionUnit = -2;
+	m_lastSelectedArmy.m_id = 0;
+	m_lastSelectedArmyCount = -1;
 
 	m_curSingleArmy.m_id = 0;
 	m_curSingleUnit.m_id = 0;
