@@ -809,6 +809,9 @@ bool MapAnalysis::PlayerCanEnter
 
 sint16 MapAnalysis::GetNuclearWeaponsCount(const PLAYER_INDEX playerId) const
 {
+	// General city-risk queries pass PLAYER_UNASSIGNED (no specific opponent).
+	if (playerId < 0 || static_cast<size_t>(playerId) >= m_nuclearWeapons.size())
+		return 0;
 	return m_nuclearWeapons[playerId];
 }
 
