@@ -483,8 +483,8 @@ ArmyData::~ArmyData()
 	}
 
 	delete m_attackedByDefenders;
-	delete m_debugString;
-	delete m_name;
+	delete [] m_debugString;
+	delete [] m_name;
 	delete m_tempKillList;
 }
 

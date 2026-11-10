@@ -158,7 +158,7 @@ SlicSymbolData::~SlicSymbolData()
         break;
 
 	case SLIC_SYM_STRING:
-		delete m_val.m_hard_string;
+		delete [] m_val.m_hard_string;
         break;
     } // switch
 
