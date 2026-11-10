@@ -38,7 +38,7 @@ SpriteStateDB::SpriteStateDB(CivArchive &archive)
 SpriteStateDB::~SpriteStateDB ()
 
 {
-	delete m_map;
+	delete [] m_map;
 }
 
 void SpriteStateDB::SetSize(sint32 s)
@@ -117,7 +117,7 @@ void SpriteStateDB::Serialize(CivArchive &archive)
 	} else {
 		archive>>m_size ;
 		if (m_map)
-			delete m_map ;
+			delete [] m_map;
 
 		m_map = new SpriteNameNode[m_size];
         archive.Load((uint8 *)m_map, sizeof(SpriteNameNode) * m_size) ;

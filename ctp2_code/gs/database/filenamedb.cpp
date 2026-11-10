@@ -32,7 +32,7 @@ FilenameDB::FilenameDB(CivArchive &archive)
 FilenameDB::~FilenameDB ()
 
 {
-	delete m_map;
+	delete [] m_map;
 }
 
 void FilenameDB::SetSize(sint32 s)
@@ -98,7 +98,7 @@ void FilenameDB::Serialize(CivArchive &archive)
 	} else {
 		archive>>m_size ;
 		if (m_map)
-			delete m_map ;
+			delete [] m_map;
 
 		m_map = new FilenameNode[m_size];
         archive.Load((uint8 *)m_map, sizeof(FilenameNode) * m_size) ;

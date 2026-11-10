@@ -255,7 +255,7 @@ void ThroneDB::Serialize(CivArchive &archive)
 		archive >> m_nThroneTypes;
 		archive >> m_nThroneLevels;
 
-		if(m_throneInfo) delete m_throneInfo;
+		if(m_throneInfo) delete [] m_throneInfo;
 
 		m_throneInfo = new ThroneInfo[(m_nThroneTypes * m_nThroneLevels)];
 

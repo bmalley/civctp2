@@ -1199,9 +1199,9 @@ sint32 knowledgewin_Cleanup( void )
 		s_playerFlag[i] = NULL;
 	}
 
-	delete s_playerText;
+	delete [] s_playerText;
 	s_playerText = NULL;
-	delete s_playerFlag;
+	delete [] s_playerFlag;
 	s_playerFlag = NULL;
 	delete s_advanceList;
 	s_advanceList = NULL;

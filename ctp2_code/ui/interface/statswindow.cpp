@@ -554,7 +554,7 @@ int StatsWindow_Cleanup( void )
 		s_statsButton[i] = NULL;
 	}
 
-	delete s_statsButton;
+	delete [] s_statsButton;
 	s_statsButton = NULL;
 
 	RemoveControl( s_statsString );

@@ -237,7 +237,7 @@ MessageResponseStandard::~MessageResponseStandard()
 	}
 	if(m_identifier)
 	{
-		delete m_identifier;
+		delete [] m_identifier;
 		m_identifier=NULL;
 	}
 
