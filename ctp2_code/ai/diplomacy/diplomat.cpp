@@ -1271,6 +1271,9 @@ void Diplomat::ApplyGlobalTrustChange(const PLAYER_INDEX & foreignerId, const ai
 
 void Diplomat::ApplyTrustChange(const PLAYER_INDEX & foreignerId, const ai::Regard &trust_delta, const MBCHAR *reason)
 {
+	// Global changes also visit diplomats whose records were cleared on defeat.
+	if (foreignerId < 0 || static_cast<size_t>(foreignerId) >= m_foreigners.size()) return;
+
 #ifndef _BFR_
 	gslog_dipprint("\nApplyTrustChange: player %d receives %d trust for player %d.\n",m_playerId, trust_delta, foreignerId);
 	if (reason != NULL)
