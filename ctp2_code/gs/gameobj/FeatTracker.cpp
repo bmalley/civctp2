@@ -202,7 +202,7 @@ void FeatTracker::Serialize(CivArchive & archive)
 
 		if(count != g_theFeatDB->NumRecords())
 		{
-			delete m_achieved;
+			delete [] m_achieved;
 			m_achieved = new bool[g_theFeatDB->NumRecords()];
 			memset(m_achieved, 0, g_theFeatDB->NumRecords() * sizeof(bool));
 		}

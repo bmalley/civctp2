@@ -184,7 +184,7 @@ MessageBoxDialog::~MessageBoxDialog()
 	aui_Ldl::DeleteHierarchyFromRoot("MessageBoxDialog");
 	if(m_identifier)
 	{
-		delete m_identifier;
+		delete [] m_identifier;
 		m_identifier=NULL;
 	}
 }
