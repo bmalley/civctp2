@@ -191,7 +191,12 @@ void maputils_MapXY2PixelXY(
 	sint32 *pixelY
 	)
 {
-	if (!g_tiledMap) return;
+	if (!g_tiledMap) {
+		// Animations can ask for a position while a saved map is still loading.
+		*pixelX = 0;
+		*pixelY = 0;
+		return;
+	}
 
 	sint32		mapWidth, mapHeight;
 	sint32		nudge;
