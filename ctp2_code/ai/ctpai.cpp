@@ -141,6 +141,7 @@
 #include "radarmap.h"                       // g_radarMap
 #include "MoveFlags.h"
 #include <list>
+#include <limits>
 #include "Events.h"
 #include "GameEventUser.h"
 #include "settlemap.h"
@@ -2576,11 +2577,13 @@ void CtpAi::SpendGoldToRushBuy(const PLAYER_INDEX player)
 		rush_buy.first = city.CD()->HowMuchLonger();
 		if(rush_buy.first > 1)
 		{
-			// A city that never finishes is 0x7fffffff turns away; adding to that
-			// overflowed and wrapped it to the front of the list
-			rush_buy.first = std::min<sint32>(rush_buy.first, 0x7fffffff - 2);
-			rush_buy.first +=
-				(sint32) ceil(1.0 - MapAnalysis::GetMapAnalysis().GetThreatRank(city.CD()) * threat_bonus);
+			// The threat adjustment can exceed two turns. Clamp the complete sum,
+			// rather than reserving a fixed amount of headroom in the turn count.
+			double priority = static_cast<double>(rush_buy.first) +
+				ceil(1.0 - MapAnalysis::GetMapAnalysis().GetThreatRank(city.CD()) * threat_bonus);
+			rush_buy.first = static_cast<sint32>(std::max<double>(
+				std::numeric_limits<sint32>::min(), std::min<double>(
+				std::numeric_limits<sint32>::max(), priority)));
 			rush_buy.second = city.m_id;
 
 			rush_buy_list.push_back(rush_buy);
