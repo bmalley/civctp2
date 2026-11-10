@@ -202,7 +202,8 @@ void CivScenarios::LoadScenarioPackData(ScenarioPack *pack, MBCHAR *packPath)
 	}
 
 	//This must be deleted always
-	scenList->DeleteAll();
+	while (scenList->GetCount() > 0)
+		delete [] scenList->RemoveHead();
 	delete scenList;
 }
 
@@ -299,7 +300,7 @@ void CivScenarios::LoadData(void)
 		m_scenarioPacks[i].m_index = i;
 		LoadScenarioPackData(&m_scenarioPacks[i], packPath);
 
-		delete fileListFileName;
+		delete [] fileListFileName;
 
 		walker->Next();
 	}

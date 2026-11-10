@@ -71,11 +71,11 @@ FacedSprite::~FacedSprite()
 		for (size_t i = 0; i < m_facedFrameCount; ++i)
 	        {
 			if ((m_frames[facing] != NULL) && (m_frames[facing][i] != NULL)) {
-				delete m_frames[facing][i];
+				delete [] m_frames[facing][i];
 				m_frames[facing][i] = NULL;
 			}
 			if ((m_miniframes[facing] != NULL) && (m_miniframes[facing][i] != NULL)) {
-				delete m_miniframes[facing][i];
+				delete [] m_miniframes[facing][i];
 				m_miniframes[facing][i] = NULL;
 			}
 		}
