@@ -269,7 +269,7 @@ aui_Control::~aui_Control()
 	delete m_imageLayerList;
 	delete [] m_layerRenderFlags;
 	// m_statusText: reference only
-	delete m_statusTextCopy;
+	delete [] m_statusTextCopy;
 }
 
 
@@ -1712,7 +1712,7 @@ void aui_Control::SetStatusText(const MBCHAR *text)
 	if(m_statusTextCopy != NULL)
 	{
 		StatusBar::SetText("", NULL);
-		delete m_statusTextCopy;
+		delete [] m_statusTextCopy;
 		m_statusTextCopy = NULL;
 	}
 }
@@ -1723,7 +1723,7 @@ void aui_Control::SetStatusTextCopy(const MBCHAR *text)
 
 	if(m_statusTextCopy != NULL)
 	{
-		delete m_statusTextCopy;
+		delete [] m_statusTextCopy;
 		StatusBar::SetText("", NULL);
 	}
 	m_statusTextCopy = new MBCHAR[strlen(text)+1];
