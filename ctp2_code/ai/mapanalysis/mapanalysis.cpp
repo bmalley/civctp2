@@ -591,9 +591,9 @@ double MapAnalysis::GetThreatRank(const CityData * city) const
 	PLAYER_INDEX owner = city->GetOwner();
 	sint32 threat = GetThreat(owner, city->GetHomeCity().RetPos());
 
-	if ((m_maxCityThreat[owner] - m_minCityThreat[owner]) > 0)
-		return ((double)(threat - m_minCityThreat[owner]) /
-		(double)(m_maxCityThreat[owner] - m_minCityThreat[owner]));
+	if (m_maxCityThreat[owner] > m_minCityThreat[owner])
+		return ((static_cast<double>(threat) - m_minCityThreat[owner]) /
+		(static_cast<double>(m_maxCityThreat[owner]) - m_minCityThreat[owner]));
 
 	return 0.0;
 }
