@@ -94,13 +94,13 @@ CivArchive::CivArchive(size_t ulSize)
 
 CivArchive::~CivArchive()
 {
-	delete m_pbBaseMemory;
+	delete [] m_pbBaseMemory;
 	m_pbBaseMemory = NULL;
 }
 
 void CivArchive::SetSize(size_t ulSize)
 {
-	delete m_pbBaseMemory ;
+	delete [] m_pbBaseMemory ;
 	m_pbBaseMemory = NULL;
 
 	Assert(0<ulSize);
@@ -142,7 +142,7 @@ void CivArchive::DoubleExpand(size_t ulAmount)
 	memcpy(pbData, m_pbBaseMemory, m_ulLength);
 	m_pbInsert = pbData + (m_pbInsert - m_pbBaseMemory);
 	m_ulAllocated = ulSize;
-	delete m_pbBaseMemory;
+	delete [] m_pbBaseMemory;
 	m_pbBaseMemory = pbData;
 }
 
