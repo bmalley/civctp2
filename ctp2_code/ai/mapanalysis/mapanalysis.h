@@ -147,7 +147,8 @@ public:
 
 	sint32 GetTotalTrade(const PLAYER_INDEX & playerId) const
 	{
-		if (m_totalTrade.size() <= 0)
+		// Revolts create players before the next analysis resize.
+		if (playerId < 0 || static_cast<size_t>(playerId) >= m_totalTrade.size())
 			return 0;
 		return m_totalTrade[playerId];
 	}
