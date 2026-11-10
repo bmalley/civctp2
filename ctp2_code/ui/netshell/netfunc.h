@@ -432,13 +432,13 @@ public:
 	template<typename type>
 	void Push(type t) {
 		Grow(sizeof(type));
-		*(type *)(m_body + m_size - sizeof(type)) = t;
+		memcpy(m_body + m_size - sizeof(type), &t, sizeof(type));
 	}
 
 	template<typename type>
 	void Pop(type& t) {
 
-		t = *(type *)(m_first);
+		memcpy(&t, m_first, sizeof(type));
 		m_first += sizeof(type);
 
 	}
