@@ -575,7 +575,7 @@ GAME_EVENT_ARGUMENT GameEventManager::ArgCharToIndex(const char arg)
 	}
 }
 
-const char *GameEventManager::GetArgString(GAME_EVENT ev) const
+const char *GameEventManager::GetArgString(GAME_EVENT ev)
 {
 	Assert(ev >= (GAME_EVENT)0);
 	Assert(ev < GEV_MAX);
@@ -600,7 +600,7 @@ bool GameEventManager::CheckArg(sint32 num, char got, char want)
 	return true;
 }
 
-char GameEventManager::ArgChar(GAME_EVENT type, size_t index) const
+char GameEventManager::ArgChar(GAME_EVENT type, size_t index)
 {
 	Assert(type >= (GAME_EVENT)0);
 	Assert(type < GEV_MAX);
@@ -891,7 +891,7 @@ void GameEventManager::Dump()
 }
 #endif
 
-GAME_EVENT GameEventManager::GetEventIndex(const MBCHAR *name) const
+GAME_EVENT GameEventManager::GetEventIndex(const MBCHAR *name)
 {
 	GAME_EVENT e;
 	for(e = (GAME_EVENT)0; e < GEV_MAX; e = GAME_EVENT(sint32(e) + 1)) {
@@ -901,7 +901,7 @@ GAME_EVENT GameEventManager::GetEventIndex(const MBCHAR *name) const
 	return GEV_MAX;
 }
 
-const char *GameEventManager::GetEventName(GAME_EVENT ev) const
+const char *GameEventManager::GetEventName(GAME_EVENT ev)
 {
 	if(ev < (GAME_EVENT)0 || ev >= GEV_MAX) {
 		return "EventNone";
