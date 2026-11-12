@@ -4447,7 +4447,8 @@ ORDER_RESULT UnitData::StealTechnology(Unit c, sint32 whichAdvance)
 ORDER_RESULT UnitData::InciteRevolution(Unit c)
 {
 	if (StoppedBySpies(c)) {
-		return SpecialCityAttackResult(ORDER_RESULT_FAILED, SPECATTACK_INCITEREVOLUTION, c);
+		// StoppedBySpies has killed this unit and sent the failure messages.
+		return ORDER_RESULT_FAILED;
 	}
 
 	const UnitRecord::InciteRevolutionData *data;
@@ -4506,7 +4507,8 @@ ORDER_RESULT UnitData::AssassinateRuler(Unit c)
 	SlicObject	*so ;
 
 	if(StoppedBySpies(c)) {
-		return SpecialCityAttackResult(ORDER_RESULT_FAILED, SPECATTACK_BOMBCABINET, c);
+		// StoppedBySpies has killed this unit and sent the failure messages.
+		return ORDER_RESULT_FAILED;
 	}
 
 	double chance, eliteChance, deathChance;
