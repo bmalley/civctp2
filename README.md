@@ -1,3 +1,57 @@
+> [!WARNING]
+> # ⚠️ Uses AI-generated code
+> Much of the code on this branch was written with an AI coding agent (Claude), then built
+> and tested by me. If you'd rather avoid AI-generated code, use
+> [upstream civctp2](https://github.com/civctp2/civctp2) instead.
+
+# My personal copy of Call to Power II
+
+Call to Power II is a really old game (Activision, 2000), and I think it still has a lot of
+potential. It also has a bunch of bugs. This is my personal copy of the
+[Apolyton Edition source](https://github.com/civctp2/civctp2), with the fixes and changes I
+made so I can play it on Linux today. Some of them are just for my own games, so take what's
+useful.
+
+The branch `personal` is upstream master plus all of my changes. The other branches are
+small single fixes I've offered (or plan to offer) upstream.
+
+## What's different
+
+**Runs on a modern Linux**
+- Movies and their sound work again with FFmpeg 7 and 8.
+- CtP1's Great Library movies can play in CtP2's library.
+- An idle game no longer burns CPU and GPU, and lets the desktop sleep.
+
+**Crash and bug fixes**
+- A crash when zooming out, and an intermittent crash loading scenario saves.
+- Combat: who wins a battle, units standing idle in a fight, and a terrain-bonus bug.
+- Bad Great Library entries for trade goods: duplicates, wrong icons, blank pages.
+- Several crashes and freezes in long all-AI games, and reads of uninitialised memory.
+- Transports could load the wrong unit, leaving it in two stacks at once (a crash), and the
+  AI read memory it had already freed (another crash, and games that played out differently).
+
+**Controls and display**
+- Optional modern controls: WASD and edge scrolling, middle-drag to pan, wheel zoom toward
+  the cursor, right-click to move (hold to see the path first).
+- Scaled 16:9 resolutions, zooming in past 1:1, and the map drawn at full screen
+  resolution under a larger interface.
+- The edge of the map is shown instead of black.
+
+**Watching and graphs**
+- Observer mode: the AI plays your civ too and you watch the game unfold.
+- A map timelapse, a large graph window and score history, also on the end-game screen.
+
+**A stronger AI**
+- AI bug fixes (diplomacy, city visibility, difficulty), and it now besieges cities at war
+  instead of only garrisoning.
+- Test tools for running seeded all-AI games headless and measuring the AI, and much
+  faster AI turns.
+
+Notes, measurements and the reasoning behind each change live in my own project notes. Each
+commit message here explains its change.
+
+---
+
 [![Build Status](https://travis-ci.com/civctp2/civctp2.svg?branch=master)](https://travis-ci.com/civctp2/civctp2)
 
 ## Apolyton Call to Power II Source Code Project
