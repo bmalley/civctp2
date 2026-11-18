@@ -248,16 +248,28 @@ SPNewGameTribeScreen {
 }
 
 CivItem:CTP2_LIST_ITEM {
-	int widthpix 190
+	int widthpix 250
 	int heightpix 30
-	label:CTP2_HEADER_FONT {
-		int fontsize				14
+	box {
 		string objecttype "ctp2_Static"
-		string just "left"
-		bool vertcenter true
-		int xpix 10
-		int widthpix 115
+		int widthpix 250
 		int heightpix 30
+		label:CTP2_HEADER_FONT {
+			int fontsize				14
+			string objecttype "ctp2_Static"
+			string just "left"
+			bool vertcenter true
+			int xpix 54
+			int widthpix 190
+			int heightpix 30
+		}
+		flag {
+			string objecttype "ctp2_Static"
+			int xpix 6
+			int ypix 3
+			int widthpix 40
+			int heightpix 24
+		}
 	}
 }
 
