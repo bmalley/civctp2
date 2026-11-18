@@ -61,7 +61,11 @@
 #include "c3.h"                     // Precompiled header
 #include "spnewgametribescreen.h"   // Own declarations: consistency check
 
+#include "aui_blitter.h"
+#include "aui_Factory.h"
+#include "aui_image.h"
 #include "aui_radio.h"
+#include "aui_surface.h"
 #include "aui_switchgroup.h"
 #include "aui_uniqueid.h"
 #include "c3_button.h"
@@ -75,6 +79,7 @@
 #include "c3window.h"
 #include "Civilisation.h"
 #include "CivilisationRecord.h"
+#include "CivPaths.h"               // g_civPaths
 #include "gamefile.h"
 #include "keypress.h"
 #include "player.h"                 // g_player
@@ -83,6 +88,8 @@
 #include "spnewgamewindow.h"
 #include "StrDB.h"                  // g_theStringDB
 #include "textradio.h"
+#include <map>                      // std::map
+#include <string>                   // std::string
 #include <vector>                   // std::vector
 //end includes
 
@@ -102,6 +109,127 @@ aui_Radio					*s_maleRadio = NULL;
 aui_Radio					*s_femaleRadio = NULL;
 sint32						s_tribeIndex    = INDEX_TRIBE_INVALID;
 sint32						s_skipIndex = 0;
+
+// Civ list flags: the diplomacy flags, shrunk once and kept until the screen is cleaned up.
+// Keyed by file name because a scenario can load another civilisation database.
+static sint32 const         k_FLAG_THUMBNAIL_WIDTH   = 40;
+static sint32 const         k_FLAG_THUMBNAIL_HEIGHT  = 24;
+static std::map<std::string, aui_Surface *> s_flagThumbnails;
+
+// Averages the source pixels behind each thumbnail pixel: the flags are 250x150, and the
+// blitter's nearest-neighbour stretch loses their thin stripes at this size.
+static aui_Surface * spnewgametribescreen_createFlagThumbnail(MBCHAR const * fileName)
+{
+	MBCHAR path[_MAX_PATH];
+	if (!g_civPaths->FindFile(C3DIR_PICTURES, fileName, path, true))
+		return NULL;
+
+	aui_Image * image = g_c3ui->LoadImage(fileName);
+	if (!image)
+		return NULL;
+
+	aui_Surface * thumbnail = NULL;
+	aui_Surface * source    = image->TheSurface();
+	AUI_ERRCODE   errcode   = AUI_ERRCODE_OK;
+
+	if (source && source->BitsPerPixel() == 16)
+	{
+		thumbnail = aui_Factory::new_Surface(errcode, k_FLAG_THUMBNAIL_WIDTH, k_FLAG_THUMBNAIL_HEIGHT);
+	}
+
+	uint8 * sourceBuffer = NULL;
+	uint8 * targetBuffer = NULL;
+	bool    done         = false;
+
+	if (thumbnail && AUI_SUCCESS(errcode)
+	 && thumbnail->BitsPerPixel() == 16
+	 && thumbnail->PixelFormat() == source->PixelFormat()
+	 && source->Lock(NULL, (LPVOID *)&sourceBuffer, 0) == AUI_ERRCODE_OK)
+	{
+		if (thumbnail->Lock(NULL, (LPVOID *)&targetBuffer, 0) == AUI_ERRCODE_OK)
+		{
+			bool const   is565     = source->PixelFormat() == AUI_SURFACE_PIXELFORMAT_565;
+			sint32 const redShift  = is565 ? 11 : 10;
+			uint32 const greenMask = is565 ? 0x3f : 0x1f;
+
+			for (sint32 y = 0; y < k_FLAG_THUMBNAIL_HEIGHT; ++y)
+			{
+				sint32 const top    = y * source->Height() / k_FLAG_THUMBNAIL_HEIGHT;
+				sint32 const bottom = (y + 1) * source->Height() / k_FLAG_THUMBNAIL_HEIGHT;
+				uint16 *     target = (uint16 *)(targetBuffer + y * thumbnail->Pitch());
+
+				for (sint32 x = 0; x < k_FLAG_THUMBNAIL_WIDTH; ++x)
+				{
+					sint32 const left  = x * source->Width() / k_FLAG_THUMBNAIL_WIDTH;
+					sint32 const right = (x + 1) * source->Width() / k_FLAG_THUMBNAIL_WIDTH;
+					uint32       red   = 0;
+					uint32       green = 0;
+					uint32       blue  = 0;
+
+					for (sint32 sy = top; sy < bottom; ++sy)
+					{
+						uint16 const * row = (uint16 const *)(sourceBuffer + sy * source->Pitch());
+						for (sint32 sx = left; sx < right; ++sx)
+						{
+							red   += (row[sx] >> redShift) & 0x1f;
+							green += (row[sx] >> 5) & greenMask;
+							blue  += row[sx] & 0x1f;
+						}
+					}
+
+					uint32 const count = (right - left) * (bottom - top);
+					bool const   edge  = x == 0 || y == 0
+					                  || x == k_FLAG_THUMBNAIL_WIDTH - 1
+					                  || y == k_FLAG_THUMBNAIL_HEIGHT - 1;
+
+					target[x] = edge ? 0 : (uint16)
+						((((red + count / 2) / count) << redShift)
+						 | (((green + count / 2) / count) << 5)
+						 | ((blue + count / 2) / count));
+				}
+			}
+
+			thumbnail->Unlock(targetBuffer);
+			done = true;
+		}
+
+		source->Unlock(sourceBuffer);
+	}
+
+	g_c3ui->UnloadImage(image);
+
+	if (!done)
+	{
+		delete thumbnail;
+		thumbnail = NULL;
+	}
+
+	return thumbnail;
+}
+
+static AUI_ERRCODE spnewgametribescreen_drawFlag(ctp2_Static * control, aui_Surface * surface, RECT & rect, Cookie cookie)
+{
+	sint32 const tribe = cookie.m_sin32Type;
+	if (tribe < 0 || tribe >= g_theCivilisationDB->NumRecords())
+		return AUI_ERRCODE_OK;
+
+	MBCHAR const * fileName = g_theStringDB->GetNameStr(g_theCivilisationDB->Get(tribe)->GetEmissaryPhotoMale());
+	if (!fileName)
+		return AUI_ERRCODE_OK;
+
+	std::map<std::string, aui_Surface *>::iterator found = s_flagThumbnails.find(fileName);
+	if (found == s_flagThumbnails.end())
+	{
+		// A civilisation without a usable flag is remembered too, so it is only looked for once.
+		found = s_flagThumbnails.insert(std::make_pair(std::string(fileName), spnewgametribescreen_createFlagThumbnail(fileName))).first;
+	}
+
+	if (!found->second)
+		return AUI_ERRCODE_OK;
+
+	RECT source = { 0, 0, k_FLAG_THUMBNAIL_WIDTH, k_FLAG_THUMBNAIL_HEIGHT };
+	return g_c3ui->TheBlitter()->Blt(surface, rect.left, rect.top, found->second, &source, k_AUI_BLITTER_FLAG_COPY);
+}
 
 sint32 spnewgametribescreen_getTribeIndex( void )
 {
@@ -330,6 +458,12 @@ AUI_ERRCODE spnewgametribescreen_Cleanup()
 		allocated::clear(s_maleRadio);
 		allocated::clear(s_femaleRadio);
 		allocated::clear(g_spNewGameTribeScreen);
+
+		for (std::map<std::string, aui_Surface *>::iterator it = s_flagThumbnails.begin(); it != s_flagThumbnails.end(); ++it)
+		{
+			delete it->second;
+		}
+		s_flagThumbnails.clear();
 	}
 
 	return AUI_ERRCODE_OK;
@@ -459,12 +593,25 @@ void spnewgametribescreen_addTribe(sint32 tribe)
 
 		item->SetUserData(tribe);
 
-		ctp2_Static *text = (ctp2_Static *)item->GetChildByIndex(0);
+		// The list box makes each direct child of an item a column, so the name and flag share a box.
+		ctp2_Static *box = (ctp2_Static *)item->GetChildByIndex(0);
+		Assert(box);
+		if(!box)
+			return;
+
+		ctp2_Static *text = (ctp2_Static *)box->GetChildByIndex(0);
 		Assert(text);
 		if(!text)
 			return;
 
 		text->SetText(g_theStringDB->GetNameStr(g_theCivilisationDB->Get(tribe)->GetPluralCivName()));  //singular? // Maybe change to civ name and then we can change it to Roman Empire, instead of having the boring name Romans
+		ctp2_Static *flag = (ctp2_Static *)box->GetChildByIndex(1);
+		Assert(flag);
+		if(flag)
+		{
+			flag->SetDrawCallbackAndCookie(spnewgametribescreen_drawFlag, tribe);
+		}
+
 		item->SetCompareCallback(spnewgametribescreen_CompareItems);
 		s_CivListBox->AddItem(item);
 	}
@@ -496,8 +643,8 @@ void spnewgametribescreen_addAllTribes()
 
 sint32 spnewgametribescreen_CompareItems(ctp2_ListItem *item1, ctp2_ListItem *item2, sint32 column)
 {
-	ctp2_Static *text1 = (ctp2_Static *)item1->GetChildByIndex(0);
-	ctp2_Static *text2 = (ctp2_Static *)item2->GetChildByIndex(0);
+	ctp2_Static *text1 = (ctp2_Static *)item1->GetChildByIndex(0)->GetChildByIndex(0);
+	ctp2_Static *text2 = (ctp2_Static *)item2->GetChildByIndex(0)->GetChildByIndex(0);
 
 	return _stricoll(text1->GetText(), text2->GetText());
 }
