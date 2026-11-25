@@ -107,6 +107,8 @@ extern PointerList<Player> * g_deadPlayer;
 
 static const int k_SHIELD_ON_TIME  = 650;
 static const int k_SHIELD_OFF_TIME = 150;
+// How late a unit's next tile may begin and still carry on at speed instead of setting off again.
+static const sint32 k_GLIDE_CHAIN_MS = 40;
 
 static const sint32 CITY_TYPE_LAND  = 0;
 static const sint32 CITY_TYPE_WATER = 1;
@@ -136,6 +138,7 @@ UnitActor::UnitActor(
 	m_hidden                    (false),
 	m_type                      (GROUPTYPE_UNIT),
 	m_curAction                 (NULL),
+	m_glideAction               (NULL),
 	m_curUnitAction             (UNITACTION_NONE),
 	m_actionQueue               (k_MAX_ACTION_QUEUE_SIZE),
 	m_unitVisibility            (0),
@@ -188,6 +191,7 @@ UnitActor::UnitActor(CivArchive & archive)
 	m_hidden                    (false),
 	m_type                      (GROUPTYPE_UNIT),
 	m_curAction                 (NULL),
+	m_glideAction               (NULL),
 	m_curUnitAction             (UNITACTION_NONE),
 	m_actionQueue               (k_MAX_ACTION_QUEUE_SIZE),
 	m_unitVisibility            (0),
@@ -299,6 +303,7 @@ void UnitActor::GetIDAndType(
 UnitActor::~UnitActor()
 {
 	DumpAllActions();
+	delete m_glideAction;
 
 	SpriteGroupList * spriteGroupList = GetSpriteGroupList(m_type);
 	spriteGroupList->ReleaseSprite(m_spriteID, m_loadType);
@@ -403,7 +408,12 @@ void UnitActor::AddIdle()
 
 void UnitActor::GetNextAction()
 {
-	delete m_curAction;
+	if (m_curAction && m_curAction->IsTimedMove() && m_curAction->IsFinished()) {
+		delete m_glideAction;
+		m_glideAction = m_curAction;
+	} else {
+		delete m_curAction;
+	}
 	m_curAction = NULL;
 
 	if (m_actionQueue.GetNumItems() > 0)
@@ -416,6 +426,7 @@ void UnitActor::GetNextAction()
 		}
 
 		m_facing = m_curAction->CalculateFacing(m_facing);
+		StartMoveAfterGlide();
 	} else {
 		return;
 	}
@@ -425,6 +436,41 @@ void UnitActor::GetNextAction()
 	}
 
 	m_curUnitAction = (UNITACTION)m_curAction->GetActionType();
+}
+
+// A tile that follows straight on from the previous one starts when that one ends, at full
+// speed; otherwise the unit sets off from rest now.
+void UnitActor::StartMoveAfterGlide()
+{
+	if (!m_curAction->IsTimedMove() || !m_glideAction) {
+		return;
+	}
+
+	uint32 const now     = GetTickCount();
+	uint32 const glideEnd = m_glideAction->GetMoveEndTime();
+	if (m_glideAction->GetEndMapPoint() == m_curAction->GetStartMapPoint()
+	    && static_cast<sint32>(glideEnd + k_GLIDE_CHAIN_MS - now) >= 0)
+	{
+		uint32 const start = (static_cast<sint32>(glideEnd - now) > 0) ? glideEnd : now;
+		m_curAction->SetMoveTiming(start, false, m_curAction->GetEaseOut());
+	}
+}
+
+POINT UnitActor::CurrentPixelXY() const
+{
+	if (m_glideAction
+	    && static_cast<sint32>(m_glideAction->GetMoveEndTime() - GetTickCount()) > 0
+	    && m_glideAction->GetEndMapPoint() == m_pos)
+	{
+		return m_glideAction->CalculatePixelXY(m_pos);
+	}
+
+	if (m_curAction) {
+		return m_curAction->CalculatePixelXY(m_pos);
+	}
+
+	POINT current = { m_x, m_y };
+	return current;
 }
 
 bool UnitActor::IsActionFinished() const
@@ -460,9 +506,16 @@ void UnitActor::Process()
 		DumpFullLoad();
 	}
 
+	if (m_glideAction
+	    && static_cast<sint32>(m_glideAction->GetMoveEndTime() - GetTickCount()) <= 0)
+	{
+		delete m_glideAction;
+		m_glideAction = NULL;
+	}
+
 	if (m_curAction)
 	{
-		POINT current = m_curAction->CalculatePixelXY(m_pos);
+		POINT current = CurrentPixelXY();
 		m_x = current.x;
 		m_y = current.y;
 
@@ -485,6 +538,9 @@ void UnitActor::DumpAllActions()
 #ifndef _TEST
 	STOMPCHECK();
 #endif
+	delete m_glideAction;
+	m_glideAction = NULL;
+
 	if (m_curAction) {
 		m_facing = m_curAction->CalculateFacing(m_facing);
 		delete m_curAction;
@@ -870,8 +926,8 @@ bool UnitActor::Draw(bool fogged)
 
 	if (m_unitSpriteGroup)
 	{
-		if (m_curAction) {
-			POINT current = m_curAction->CalculatePixelXY(m_pos);
+		if (m_curAction || m_glideAction) {
+			POINT current = CurrentPixelXY();
 			m_x = current.x;
 			m_y = current.y;
 		}

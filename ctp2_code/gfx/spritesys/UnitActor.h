@@ -183,6 +183,8 @@ protected:
 	void     DrawHealthBar(const RECT & rect, sint32 stackSize) const;
 	sint32   GetDisplayedOwner() const;
 	Pixel16  GetDisplayedColor() const;
+	POINT    CurrentPixelXY() const;
+	void     StartMoveAfterGlide();
 
 	Unit              m_unitID;
 	sint32            m_unitDBIndex;
@@ -192,6 +194,9 @@ protected:
 
 	GROUPTYPE         m_type;
 	Action          * m_curAction;
+	// The last finished tile of a move, kept for the milliseconds until the unit reaches its
+	// end: it finishes a director tick early so that the next tile carries straight on.
+	Action          * m_glideAction;
 	UNITACTION        m_curUnitAction;
 	Queue<Action *>   m_actionQueue;
 

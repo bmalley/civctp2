@@ -636,6 +636,7 @@ public:
 
 	virtual void Process();
 	virtual void Draw(const RECT & paintRect, sint32 layer);
+	bool HasQueuedMove(const UnitActor *actor, const MapPoint &startPos);
 	virtual void OffsetActors(sint32 deltaX, sint32 deltaY);
 
 	virtual void ExternalActionFinished(DEACTION_TYPE externalActionType);
@@ -1490,6 +1491,8 @@ public:
 		delete [] moveActors;
 	}
 	virtual DQACTION_TYPE GetType() { return DQACTION_MOVE; }
+	const UnitActor *GetMoveActor() const { return moveActor; }
+	const MapPoint  &GetStartPos() const { return startPos; }
 
 	virtual void ProcessLoopingSound(DQActiveLoopingSound* &activeLoopingSound)
 	{
@@ -1516,6 +1519,10 @@ public:
 		}
 
 		Action *action = Action::CreateUnitAction(UNITACTION_MOVE, animation, startPos, endPos);
+		if (action->IsTimedMove()) {
+			action->SetMoveTiming(GetTickCount(), true,
+			                      !DirectorImpl::Instance()->HasQueuedMove(moveActor, endPos));
+		}
 		moveActor->PositionActor(startPos);
 		moveActor->SetIsFortifying(false);
 		moveActor->SetIsFortified (false);
@@ -2463,6 +2470,21 @@ void DirectorImpl::ProcessActions()
 			++it;
 		}
 	}
+}
+
+// Whether the actor's next tile is already waiting, so this tile need not slow to a stop.
+bool DirectorImpl::HasQueuedMove(const UnitActor *actor, const MapPoint &startPos)
+{
+	for (PointerList<DQAction>::Walker walker(m_actionQueue); walker.IsValid(); walker.Next())
+	{
+		DQAction *action = walker.GetObj();
+		if (action->GetType() == DQACTION_MOVE) {
+			// Moves play one after another, so another unit's move would hold this one up
+			DQActionMove *move = static_cast<DQActionMove *>(action);
+			return move->GetMoveActor() == actor && move->GetStartPos() == startPos;
+		}
+	}
+	return false;
 }
 
 void DirectorImpl::ProcessAnimations()

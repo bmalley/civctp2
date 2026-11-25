@@ -135,6 +135,15 @@ public:
 
 	sint32 GetActionType() const { return (m_actionType > 0 ) ? m_actionType : 0; }
 
+	// Unit moves are timed in milliseconds and drawn where they are at the moment of drawing,
+	// so they glide at the screen's frame rate instead of stepping with the director's tick.
+	bool   IsTimedMove() const { return m_duration > 0; }
+	void   SetMoveTiming(uint32 startTime, bool easeIn, bool easeOut);
+	uint32 GetMoveEndTime() const { return m_startTime + m_duration; }
+	bool   GetEaseOut() const { return m_easeOut; }
+	const MapPoint & GetStartMapPoint() const { return m_startMapPoint; }
+	const MapPoint & GetEndMapPoint() const { return m_endMapPoint; }
+
 	void   Process();
 	bool   IsFinished() const { return m_finished; }
 
@@ -158,6 +167,7 @@ protected:
 	);
 
 	sint32 DetermineMaxActionCounter();
+	double MoveProgress(uint32 now) const;
 
 	GROUPTYPE   m_groupType;
 	sint32      m_actionType;
@@ -175,6 +185,11 @@ protected:
 	uint32      m_unitsVisibility;
 
 	bool        m_finished;
+
+	uint32      m_startTime;
+	uint32      m_duration;
+	bool        m_easeIn;
+	bool        m_easeOut;
 };
 
 #endif
