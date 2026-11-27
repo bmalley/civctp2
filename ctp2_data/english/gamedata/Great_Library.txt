@@ -1721,13 +1721,12 @@ Requires:
 
 [ADVANCE_OCEAN_FARING_STATISTICS]
 Gives:
-<L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e>
 <L:DATABASE_WONDERS,WONDER_EAST_INDIA_COMPANY>East India Company<e>
 <L:DATABASE_TILE_IMPROVEMENTS,TILEIMP_FISHERIES>Fisheries<e>
 [END]
 
 [ADVANCE_OCEAN_FARING_GAMEPLAY]
-Ocean Faring represents advancements in shipbuilding that made large- scale, open-ocean transport and trade possible.  The <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e> is a ship ideally suited to cargo transport, exploration and combat.  The <L:DATABASE_WONDERS,WONDER_EAST_INDIA_COMPANY>East India Company<e> represents a shipping cartel of tremendous commercial power.
+Ocean Faring represents advancements in shipbuilding that made large- scale, open-ocean transport and trade possible.  It leads to <L:DATABASE_ADVANCES,ADVANCE_OPTICS>Optics<e>, whose instruments let the <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e> navigate the deep ocean.  The <L:DATABASE_WONDERS,WONDER_EAST_INDIA_COMPANY>East India Company<e> represents a shipping cartel of tremendous commercial power.
 
 Ocean Faring also gives the <L:DATABASE_CONCEPTS,CONCEPT_TILE_IMPROVEMENTS>Tile Improvement<e> <L:DATABASE_TILE_IMPROVEMENTS,TILEIMP_FISHERIES>Fisheries<e>, which increase the <L:DATABASE_CONCEPTS,CONCEPT_FOOD>Food<e> yield from fishing tiles.
 [END]
@@ -1771,11 +1770,14 @@ Requires:
 
 [ADVANCE_OPTICS_STATISTICS]
 Gives:
+<L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e>
 <L:DATABASE_WONDERS,WONDER_GALILEOS_TELESCOPE>Galileo's Telescope<e>
 [END]
 
 [ADVANCE_OPTICS_GAMEPLAY]
 Optical instruments, such as telescopes, expanded the frontiers of scientific research.  <L:DATABASE_WONDERS,WONDER_GALILEOS_TELESCOPE>Galileo's Telescope<e> proved that the solar system was, in fact, heliocentric, overturning centuries of widely held beliefs about the nature of the universe.
+
+Optics also gives the <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e>, the first ship able to cross the deep ocean: telescopes and better navigational instruments made long open-sea voyages practical.
 [END]
 
 [ADVANCE_OPTICS_HISTORICAL]
@@ -7373,7 +7375,7 @@ Although some military helicopters were primarily designed for ground attack, th
 
 [UNIT_CARRACK_PREREQ]
 Requires:
-<L:DATABASE_ADVANCES,ADVANCE_OCEAN_FARING>Ocean Faring<e>
+<L:DATABASE_ADVANCES,ADVANCE_OPTICS>Optics<e>
 Obsolete:
 <L:DATABASE_ADVANCES,ADVANCE_INTERNAL_COMBUSTION>Internal Combustion<e>
 
@@ -8579,7 +8581,7 @@ Can <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> up to 2 land units
 [END]
 
 [UNIT_LONGSHIP_GAMEPLAY]
-Built to survive rough coastal seas, the Longship is a step above the <L:DATABASE_UNITS,UNIT_CATAMARAN>Coracle<e> in sea transport.  It can <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> two land units along coasts and across shallow seas, but not over the deep ocean; crossing to other continents waits for the <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e> of <L:DATABASE_ADVANCES,ADVANCE_OCEAN_FARING>Ocean Faring<e>.
+Built to survive rough coastal seas, the Longship is a step above the <L:DATABASE_UNITS,UNIT_CATAMARAN>Coracle<e> in sea transport.  It can <L:DATABASE_ORDERS,ORDER_BOARD_TRANSPORT>Transport<e> two land units along coasts and across shallow seas, but not over the deep ocean; crossing to other continents waits for the <L:DATABASE_UNITS,UNIT_CARRACK>Carrack<e> of <L:DATABASE_ADVANCES,ADVANCE_OPTICS>Optics<e>.
 [END]
 
 [UNIT_LONGSHIP_HISTORICAL]

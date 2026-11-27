@@ -589,7 +589,7 @@ UNIT_CARRACK {
    FoodHunger 0
    MaxMovePoints 400
    VisionRange 2
-   EnableAdvance ADVANCE_OCEAN_FARING
+   EnableAdvance ADVANCE_OPTICS
    ObsoleteAdvance ADVANCE_INTERNAL_COMBUSTION
    UpgradeTo UNIT_TROOP_SHIP
    ActiveDefenseRange 0
