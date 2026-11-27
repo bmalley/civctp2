@@ -13,6 +13,7 @@ enum QUADRANT {
 };
 
 #include "dynarr.h"
+#include "player_mask.h"
 
 #define k_MAX_DEGENERATE_COUNT 100
 
@@ -692,7 +693,7 @@ QuadTreeNode<T>::SearchRect(DynamicArray<T> &array,
 
 	if(m_isLeaf) {
 		Assert(m_array.Num() > 0);
-		if(!(mask & m_tree->GetFlags(m_array[0])))
+		if(mask != uint32(0xffffffff) && !(mask & m_tree->GetFlags(m_array[0])))
 			return;
 
 		srch = m_tree->GetPos(m_array[0]);
@@ -762,7 +763,7 @@ template <class T> void QuadTreeNode<T>::BuildList(DynamicArray<T> &array,
 {
 	if(m_isLeaf) {
 		Assert(m_array.Num() > 0);
-		if(!(mask & m_tree->GetFlags(m_array.Get(0))))
+		if(mask != uint32(0xffffffff) && !(mask & m_tree->GetFlags(m_array.Get(0))))
 			return;
 
 		array.Concat(m_array);
@@ -918,7 +919,7 @@ QuadTree<T>::GetPos(T obj) const
 template <class T> uint32
 QuadTree<T>::GetFlags(T obj)
 {
-	return (1 << obj.GetOwner());
+	return player_Mask(obj.GetOwner());
 }
 
 template <class T> void

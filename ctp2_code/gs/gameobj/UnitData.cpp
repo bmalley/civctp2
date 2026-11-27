@@ -2756,16 +2756,17 @@ void UnitData::DoVision(UnitDynamicArray *revealedUnits)
 			}
 		}
 
-		if(!(m_visibility & (1 << inst.GetOwner()))) {
+		uint32 const instOwnerMask = player_Mask(inst.GetOwner());
+		if(instOwnerMask && !(m_visibility & instOwnerMask)) {
 			double hisr = terrainutil_GetVisionRange(inst.GetType(),inst.RetPos());
 			if(hisr > 0) {
 				sint32 hisrsq = sint32((hisr+0.5) * (hisr+0.5));
 				if(ls <= hisrsq) {
 					if(myrec->GetVisionClass() &
 					   g_theTerrainImprovementDB->Get(inst.GetType())->GetCanSee()) {
-						m_visibility |= (1 << inst.GetOwner());
+						m_visibility |= instOwnerMask;
 						m_ever_visible |= m_visibility;
-						m_temp_visibility |= (1 << inst.GetOwner());
+						m_temp_visibility |= instOwnerMask;
 					}
 				}
 			}
@@ -2867,12 +2868,13 @@ void UnitData::UndoVision()
 	g_theInstallationTree->SearchRect(
 		instArray, topleft,
 		static_cast<sint16>(maxVisionRange) * 2 + 1,
-		static_cast<sint16>(maxVisionRange) * 2 + 1,
-		~(1 << m_owner));
+		static_cast<sint16>(maxVisionRange) * 2 + 1);
 
 	en = instArray.Num();
 	for(i = 0; i < en; i++) {
-		if(!instArray[i].GetVisibility() & (1 << m_owner))
+		if(instArray[i].GetOwner() == m_owner)
+			continue;
+		if(!(instArray[i].GetVisibility() & player_Mask(m_owner)))
 			continue;
 
 		Installation inst = instArray[i];

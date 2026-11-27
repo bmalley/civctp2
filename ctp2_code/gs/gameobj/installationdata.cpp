@@ -68,7 +68,7 @@ InstallationData::InstallationData(ID id,
 	m_owner = owner;
 	m_point = pnt;
 	m_type = type;
-	m_visibility = 1 << owner;
+	m_visibility = player_Mask(owner);
 	m_airfieldLastUsed = -1;
 
 
@@ -132,7 +132,7 @@ void InstallationData::DoVision()
 	sint32 myrsq = sint32((myVisionRange+0.5)*(myVisionRange+0.5));
 
 	if(m_owner >= 0) {
-		m_visibility = 1 << m_owner;
+		m_visibility = player_Mask(m_owner);
 	} else {
 		m_visibility = 0;
 	}
@@ -143,7 +143,7 @@ void InstallationData::DoVision()
 	g_theInstallationTree->SearchRect(instArray, topleft,
 									  static_cast<sint16>(maxVisionRange) * 2 + 1,
 									  static_cast<sint16>(maxVisionRange) * 2 + 1,
-									  m_owner >= 0 ? ~(1 << m_owner) : 0xffffffff);
+									  m_owner >= 0 ? ~player_Mask(m_owner) : 0xffffffff);
 	sint32 in = instArray.Num();
 	sint32 i;
 	for(i = 0; i < in; i++) {
@@ -154,18 +154,18 @@ void InstallationData::DoVision()
 		if(ls > maxrsq)
 			continue;
 
-		if(ls <= hisrsq && !(m_visibility & (1 << oinst->m_owner))) {
+		if(ls <= hisrsq && !(m_visibility & player_Mask(oinst->m_owner))) {
 			if(g_theTerrainImprovementDB->Get(oinst->m_type)->GetCanSee() &
 			   g_theTerrainImprovementDB->Get(m_type)->GetCanSee()) {
-				m_visibility |= (1 << oinst->m_owner);
+				m_visibility |= player_Mask(oinst->m_owner);
 			}
 		}
 
-		if(ls <= myrsq && !(oinst->m_visibility & (1 << m_owner))) {
+		if(ls <= myrsq && !(oinst->m_visibility & player_Mask(m_owner))) {
 
 			if (g_theTerrainImprovementDB->Get(oinst->m_type)->GetCanSee() &
 				g_theTerrainImprovementDB->Get(m_type)->GetCanSee()) {
-				oinst->m_visibility |= 1 << m_owner;
+				oinst->m_visibility |= player_Mask(m_owner);
 			}
 		}
 	}
@@ -181,7 +181,7 @@ void InstallationData::DoVision()
 	g_theUnitTree->SearchRect(unitArray, topleft,
 							  static_cast<sint16>(maxVisionRange) * 2 + 1,
 							  static_cast<sint16>(maxVisionRange) * 2 + 1,
-							  ~(1 << m_owner));
+							  ~player_Mask(m_owner));
 	sint32 un = unitArray.Num();
 	for(i = 0; i < un; i++) {
 		UnitData *ud = unitArray[i].AccessData();
@@ -192,11 +192,11 @@ void InstallationData::DoVision()
 		if(ls >= maxrsq)
 			continue;
 
-		if(ls <= hisrsq && !(m_visibility & (1 << ud->GetOwner()))) {
-			m_visibility |= (1 << ud->GetOwner());
+		if(ls <= hisrsq && !(m_visibility & player_Mask(ud->GetOwner()))) {
+			m_visibility |= player_Mask(ud->GetOwner());
 		}
 
-		if(ls <= myrsq && !(ud->GetRealVisibility() & (1 << m_owner))) {
+		if(ls <= myrsq && !(ud->GetRealVisibility() & player_Mask(m_owner))) {
 			if(ud->GetDBRec()->GetVisionClass() &
 			   g_theTerrainImprovementDB->Get(m_type)->GetCanSee()) {
 				if(m_owner >= 0) {
@@ -209,6 +209,8 @@ void InstallationData::DoVision()
 
 void InstallationData::CheckVision(sint32 owner)
 {
+	if (!player_Mask(owner))
+		return;
 	MapPoint topleft = m_point;
 
 	double maxVisionRange = terrainutil_GetMaxVisionRange();
@@ -220,7 +222,7 @@ void InstallationData::CheckVision(sint32 owner)
 	g_theInstallationTree->SearchRect(instArray, topleft,
 									  static_cast<sint16>(maxVisionRange) * 2 + 1,
 									  static_cast<sint16>(maxVisionRange) * 2 + 1,
-									  1 << owner);
+									  player_Mask(owner));
 	sint32 in = instArray.Num();
 	BOOL canBeSeen = FALSE;
 	sint32 i;
@@ -251,7 +253,7 @@ void InstallationData::CheckVision(sint32 owner)
 		g_theUnitTree->SearchRect(unitArray, topleft,
 								  static_cast<sint16>(maxVisionRange) * 2 + 1,
 								  static_cast<sint16>(maxVisionRange) * 2 + 1,
-								  1 << owner);
+								  player_Mask(owner));
 		sint32 un = unitArray.Num();
 		for(i = 0; i < un; i++) {
 			UnitData *ud = unitArray[i].AccessData();
@@ -273,7 +275,7 @@ void InstallationData::CheckVision(sint32 owner)
 	}
 
 	if(canBeSeen) {
-		m_visibility |= (1 << owner);
+		m_visibility |= player_Mask(owner);
 	}
 }
 
@@ -442,6 +444,9 @@ void InstallationData::ChangeOwner(sint32 toOwner)
 
 void InstallationData::SetVisible(sint32 player)
 {
-	m_visibility |= (1 << player);
+	uint32 const mask = player_Mask(player);
+	if (!mask)
+		return;
+	m_visibility |= mask;
 	g_tiledMap->RedrawTile(&m_point);
 }

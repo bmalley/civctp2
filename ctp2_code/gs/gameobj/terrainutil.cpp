@@ -648,10 +648,10 @@ void terrainutil_DoVision(const MapPoint &point)
 	}
 
 	sint32  cellOwner           = cell->GetOwner();
-	if (cellOwner >= 0)
-	{
-		g_player[cellOwner]->AddUnitVision(point, maxVisionRange);
-	}
+	uint32 const ownerMask = player_Mask(cellOwner);
+	if (!ownerMask)
+		return; // An unowned improvement cannot grant vision to any player.
+	g_player[cellOwner]->AddUnitVision(point, maxVisionRange);
 
 	MapPoint topleft = MapPoint(point.x - maxVisionRange, point.y);
 	DynamicArray<Unit> unitArray;
@@ -659,7 +659,7 @@ void terrainutil_DoVision(const MapPoint &point)
 	g_theUnitTree->SearchRect(unitArray, topleft,
 	                          static_cast<sint16>(maxVisionRange) * 2 + 1,
 	                          static_cast<sint16>(maxVisionRange) * 2 + 1,
-	                          ~(1 << cellOwner)
+	                          ~ownerMask
 	                         );
 
 	sint32 myrsq    = sint32((maxVisionRange+0.5) * (maxVisionRange+0.5));
@@ -672,7 +672,7 @@ void terrainutil_DoVision(const MapPoint &point)
 		if(ls >= myrsq)
 			continue;
 
-		if (!(ud->GetRealVisibility() & (1 << cellOwner)))
+		if (!(ud->GetRealVisibility() & ownerMask))
 		{
 			if (ud->GetDBRec()->GetVisionClass() &
 			    g_theTerrainImprovementDB->Get(type)->GetCanSee()

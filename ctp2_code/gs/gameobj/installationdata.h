@@ -5,6 +5,7 @@
 #define _INSTALLATION_DATA_H_
 
 #include "GameObj.h"
+#include "player_mask.h"
 #include "MapPoint.h"
 
 class CivArchive;
@@ -31,7 +32,7 @@ public:
 	MapPoint GetLocation() const { return m_point; }
 	uint32 GetVisibility() const { return m_visibility; }
 	void SetVisible(sint32 player);
-	void UnsetVisible(sint32 player) { m_visibility &= ~(1 << player); }
+	void UnsetVisible(sint32 player) { m_visibility &= ~player_Mask(player); }
 	void DoVision();
 	void CheckVision(sint32 owner);
 
