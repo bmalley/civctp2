@@ -20,6 +20,7 @@ libgsutility_la_LIBADD = \
 	../gameobj/libgsgameobj.la
 
 libgsutility_la_SOURCES = \
+	player_mask.h \
 	AgreementDynArr.cpp \
 	checksum.cpp \
 	CivDynArr.cpp \
